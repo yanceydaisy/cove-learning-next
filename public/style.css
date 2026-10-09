@@ -49,7 +49,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .wallpaper.custom:after{content:"";position:absolute;inset:0;background:rgba(226,229,238,.43)}
 :root[data-theme="dark"] .wallpaper.custom:after{background:rgba(15,17,28,.52)}
 .shell{position:fixed;left:0;right:0;top:var(--app-top,0px);width:min(100%,920px);height:var(--app-height,100dvh);
- padding:calc(max(12px,var(--safe-top)) + 4px) clamp(14px,3vw,34px) 6px;
+ padding:calc(max(12px,var(--safe-top)) + 4px) clamp(14px,3vw,34px) 8px;
  margin:auto;z-index:1;display:flex;flex-direction:column;gap:clamp(7px,1.45vh,13px);overflow:hidden}
 .topbar{height:34px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-width:0}
 .brand{font:400 13px/1.3 var(--display);letter-spacing:.10em;color:var(--ink);white-space:nowrap}
