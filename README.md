@@ -3,12 +3,11 @@
 Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
 ## App
-- **Default page is Today** (heading `Learning`): real tasks, active focus and recent sessions, no fabricated progress. No separate Home tab or hub page.
-- The bottom bar has exactly four business tabs: Today, Plan, Learn, Library.
-- Plan: create, complete and optionally link tasks to learning objects.
-- Learn: Focus start, pause, resume and finish with conservative duration accounting.
-- Library: Course / Project / Track plus immutable source uploads (8MB max, SHA-256).
-- UI: Home-aligned blue-grey glass, serif typography, iPhone 15 393×852 responsive and standalone PWA with safe areas.
+- **Default page is Today** (heading `Learning`): one focus hero, open task summary with real pending counts and unboxed recent study activity. No separate Home tab.
+- Plan: a single task-composer focus with an open actionable list. Create, complete and optionally link tasks to learning objects.
+- Learn: one focus stage for start, pause, resume and finish, followed by a light activity archive.
+- Library: full-width learning-object stats and creation, followed by an independently spaced materials/upload section. No cramped twin cards. Original source upload stays capped at 8 MB (SHA-256).
+- UI direction B (product hierarchy): varied scales and surfaces, quiet dividers, Home-aligned blue-grey glass/serif typography. Four navigation tabs, a lower 52px dock respecting the visible iPhone viewport and a reduced (not removed) bottom safe-area margin.
 
 Reading anchors, ChatGPT / Bridge actions, Calendar, interpretation/RAG and the broader Learning roadmap are not yet implemented.
 
@@ -39,7 +38,7 @@ Chromium iPhone/PWA browser validation (Linux Playwright shared libraries must b
 LD_LIBRARY_PATH=$PWD/.browser-deps/root/usr/lib/x86_64-linux-gnu npm run test:browser
 ```
 
-Regression covers desktop and 393×852 mobile, plus iPhone 15 standalone with 393×759 and 393×700 *usable* viewports against an 852px physical screen, no access dialogs, and real task/focus round trip. Keep fixed page shell and dock within the actual visible viewport (including safe-bottom inset); never use Math.max(innerHeight, screen.height), which placed the dock under an iOS PWA black bottom band. Service worker cache name must be bumped for layout fixes.
+Regression covers desktop and 393×852 mobile, plus iPhone 15 standalone with 393×759 and 393×700 *usable* viewports against an 852px physical screen, no access dialogs, and real task/focus round trip. It verifies the single hero, open task/activity groups, spacious Library sections, real learning-object creation, source upload, and no horizontal overflow. Keep fixed page shell and dock within the actual visible viewport (including safe-bottom inset); never use Math.max(innerHeight, screen.height), which placed the dock under an iOS PWA black bottom band. Service worker cache name must be bumped for layout fixes.
 
 ## VPS preview
 

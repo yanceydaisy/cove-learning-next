@@ -24,6 +24,9 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.dock a').count(),4);
   assert.equal(await page.locator('.dock a[data-nav=today]').getAttribute('aria-current'),'page');
   assert.equal(await page.locator('.door').count(),0);
+  assert.equal(await page.locator('.feature-today').count(),1,'Today has one dominant hero');
+  assert.equal(await page.locator('.task-overview').count(),1,'tasks are open information, not a card');
+  assert.equal(await page.locator('.history-block').count(),1,'history is a light activity list');
   assert.match(await page.title(),/Learning/);
   const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'./manifest.webmanifest');
   const sizes=await page.evaluate(()=>({
@@ -48,6 +51,28 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('#taskForm button').click();
   await page.getByText('极点配置',{exact:true}).waitFor();
   await page.screenshot({path:join(dir,'mobile-plan.png'),fullPage:true});
+  await page.locator('a[data-nav=library]').click();
+  await page.locator('#objectForm').waitFor();
+  assert.equal(await page.locator('.library-objects').count(),1);
+  assert.equal(await page.locator('.library-materials').count(),1);
+  assert.equal(await page.locator('.library-flow .panel').count(),0,'Library must not use twin dense cards');
+  await page.locator('#objectForm input[name=title]').fill('现代控制');
+  await page.locator('#objectForm button').click();
+  await page.getByText('现代控制',{exact:true}).waitFor();
+  await page.locator('#fileForm input[type=file]').setInputFiles({
+   name:'study-note.txt',mimeType:'text/plain',buffer:Buffer.from('Learning browser regression note')
+  });
+  await page.locator('#fileForm button').click();
+  await page.getByText('study-note.txt',{exact:true}).waitFor();
+  const libSize=await page.evaluate(()=>({
+   viewport:innerWidth,scroll:document.documentElement.scrollWidth,
+   sections:Array.from(document.querySelectorAll('.library-objects,.library-materials')).map(el=>({
+    width:Math.round(el.getBoundingClientRect().width),left:Math.round(el.getBoundingClientRect().left)
+   }))
+  }));
+  assert.ok(libSize.scroll<=libSize.viewport,'Library never scrolls horizontally');
+  assert.ok(libSize.sections.every(s=>s.width>300 && s.left>=0),'Library sections have full mobile width');
+  await page.screenshot({path:join(dir,'mobile-library.png'),fullPage:true});
   await page.locator('a[data-nav=learn]').click();
   await page.locator('#focusForm').waitFor();
   await page.locator('#focusForm button').click();
@@ -61,7 +86,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const exportDir='/home/ubuntu/projects/cove-learning-next/.visual';
   const fs=await import('node:fs');
   fs.mkdirSync(exportDir,{recursive:true});
-  for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
+  for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png','mobile-library.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
   await context.close();
   const desktop=await browser.newContext({viewport:{width:1440,height:900}});
   const p2=await desktop.newPage();await p2.goto('http://127.0.0.1:'+addr.port+'/');
@@ -90,7 +115,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(pwaDims.screenHeight,852,'device reports the taller physical screen');
   assert.equal(pwaDims.shellHeight,759,'app shell fits visible PWA viewport, not screen.height');
   assert.equal(pwaDims.wallpaperHeight,759,'background paints the actual PWA viewport');
-  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom<=725,'dock stays visible above iPhone 34px home-indicator safe area');
+  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom>=736&&pwaDims.dockBottom<=747,
+    'dock sits 12–23px from visible bottom after bold iPhone safe-area tightening');
   assert.ok(pwaDims.bodyWidth<=393,'no horizontal overflow with safe areas');
   await pwaPage.setViewportSize({width:393,height:700});
   await pwaPage.waitForFunction(()=>Math.round(document.querySelector('.shell')!.getBoundingClientRect().height)===innerHeight);
@@ -103,7 +129,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(resized.viewport,700,'viewport resize is reported');
   assert.equal(resized.shell,700,'PWA shell follows viewport resizing');
   assert.equal(resized.wallpaper,700,'background follows viewport resizing');
-  assert.ok(resized.dock<=666,'dock remains clear of 34px safe area after resize');
+  assert.ok(resized.dock>=677&&resized.dock<=688,'dock stays low but inside the 700px viewport after resize');
   await pwa.close();
  }finally{
   await browser.close();
