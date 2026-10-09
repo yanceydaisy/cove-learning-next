@@ -52,5 +52,17 @@ Script behavior: backs up the existing Caddyfile, installs a separate systemd un
 
 The domain is **not** claimed live until activation and external TLS/browser validation both succeed. Do not send access keys over HTTP. Use the private browser connection dialog only after verifying HTTPS.
 
+### Gateway 502 repair (2026-10-09)
+The first preview activation started the Node service, but TCP proxying from Caddy to the host Docker bridge returned HTTP 502. Direct host-to-backend HTTP returned 200. An alternative Unix-socket transport has been implemented and smoke-tested (static 200, unauthorized API 401, authorized API 200), without touching Home or the old Learning instance.
+
+A one-time restricted admin repair is available at `ops/repair-proxy-socket.sh`. Install a root-owned copy and execute it with explicit owner approval. It will create `/opt/cove/data/caddy/data/learning-next`, switch only the new systemd unit to a protected Unix socket, replace only the new Caddy site upstream, validate Caddy and reload it; it makes a rollback copy of the Caddyfile.
+
+```sh
+sudo install -o root -g root -m 0755 /home/ubuntu/projects/cove-learning-next/ops/repair-proxy-socket.sh /usr/local/sbin/cove-learning-repair
+sudo /usr/local/sbin/cove-learning-repair
+```
+
+Only then check HTTPS and browser acceptance. Never grant broad Docker access or general passwordless sudo to the remote-development account. For recurring deployments, consider a narrow, root-owned audited operation via a fixed-command privilege policy; runtime tool restrictions may still require human approval.
+
 ## Next
 Real Reader reuse contract, official ChatGPT/Bridge adapter, and feature depth across all four modules, without prematurely building generic future APIs.
