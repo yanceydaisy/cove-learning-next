@@ -69,7 +69,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await p2.locator('.head h1').innerText(),'Learning');
   assert.equal(await p2.locator('.dock a').count(),4);
   await desktop.close();
-  // iPhone 15 standalone regression: iOS can report a shorter visual viewport than screen.
+  // iPhone 15 PWA regression: the CSS layout viewport can be shorter than screen.height.
+  // Never grow the app shell beyond the actually visible viewport; doing so hides the dock below a black band.
   const pwa=await browser.newContext({viewport:{width:393,height:759},screen:{width:393,height:852},deviceScaleFactor:3,isMobile:true,hasTouch:true});
   await pwa.addInitScript(()=>{Object.defineProperty(navigator,'standalone',{value:true,configurable:true});});
   const pwaPage=await pwa.newPage();
@@ -81,12 +82,28 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
    const shell=document.querySelector('.shell')!.getBoundingClientRect();
    const wallpaper=document.querySelector('.wallpaper')!.getBoundingClientRect();
    const dock=document.querySelector('.dock')!.getBoundingClientRect();
-   return {shellHeight:shell.height,wallpaperHeight:wallpaper.height,dockBottom:dock.bottom,screenHeight:screen.height,bodyWidth:document.body.scrollWidth};
+   return {shellHeight:shell.height,wallpaperHeight:wallpaper.height,dockBottom:dock.bottom,
+    dockTop:dock.top,screenHeight:screen.height,viewportHeight:innerHeight,
+    visualHeight:visualViewport?.height,bodyWidth:document.body.scrollWidth};
   });
-  assert.equal(pwaDims.shellHeight,852,'PWA shell spans iPhone physical CSS screen');
-  assert.equal(pwaDims.wallpaperHeight,852,'background paints full PWA height');
-  assert.ok(pwaDims.dockBottom<=818,'dock stays clear of iPhone home indicator');
+  assert.equal(pwaDims.viewportHeight,759,'PWA test simulates a truncated visible window');
+  assert.equal(pwaDims.screenHeight,852,'device reports the taller physical screen');
+  assert.equal(pwaDims.shellHeight,759,'app shell fits visible PWA viewport, not screen.height');
+  assert.equal(pwaDims.wallpaperHeight,759,'background paints the actual PWA viewport');
+  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom<=725,'dock stays visible above iPhone 34px home-indicator safe area');
   assert.ok(pwaDims.bodyWidth<=393,'no horizontal overflow with safe areas');
+  await pwaPage.setViewportSize({width:393,height:700});
+  await pwaPage.waitForFunction(()=>Math.round(document.querySelector('.shell')!.getBoundingClientRect().height)===innerHeight);
+  const resized=await pwaPage.evaluate(()=>({
+   shell:document.querySelector('.shell')!.getBoundingClientRect().height,
+   dock:document.querySelector('.dock')!.getBoundingClientRect().bottom,
+   wallpaper:document.querySelector('.wallpaper')!.getBoundingClientRect().height,
+   viewport:innerHeight
+  }));
+  assert.equal(resized.viewport,700,'viewport resize is reported');
+  assert.equal(resized.shell,700,'PWA shell follows viewport resizing');
+  assert.equal(resized.wallpaper,700,'background follows viewport resizing');
+  assert.ok(resized.dock<=666,'dock remains clear of 34px safe area after resize');
   await pwa.close();
  }finally{
   await browser.close();

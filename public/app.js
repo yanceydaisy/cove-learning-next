@@ -21,11 +21,13 @@ function currentNav(){
  document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===here?'page':'false'));
 }
 function adjustViewport(){
+ // iOS standalone PWA may expose a physical screen.height taller than the usable web viewport.
+ // Never size fixed UI by screen.height: it pushes the navigation under the native black bottom area.
  const vv=window.visualViewport;
- const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
- const keyboard=vv&&window.innerHeight-vv.height>135;
- const height=(standalone&&!keyboard)?Math.max(window.innerHeight,screen.height):vv?.height||window.innerHeight;
- const top=standalone&&!keyboard?0:vv?.offsetTop||0;
+ const layoutHeight=Math.max(1,window.innerHeight);
+ const top=Math.max(0,Math.min(layoutHeight-1,vv?.offsetTop||0));
+ const visibleHeight=vv?.height>0?vv.height:layoutHeight;
+ const height=Math.max(1,Math.floor(Math.min(layoutHeight-top,visibleHeight)));
  document.documentElement.style.setProperty('--app-height',height+'px');
  document.documentElement.style.setProperty('--app-top',top+'px');
 }

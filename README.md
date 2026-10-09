@@ -39,7 +39,7 @@ Chromium iPhone/PWA browser validation (Linux Playwright shared libraries must b
 LD_LIBRARY_PATH=$PWD/.browser-deps/root/usr/lib/x86_64-linux-gnu npm run test:browser
 ```
 
-Regression covers desktop and 393×852 mobile, 393×759 standalone viewport with 852px screen and safe areas, no access dialogs, and real task/focus round trip.
+Regression covers desktop and 393×852 mobile, plus iPhone 15 standalone with 393×759 and 393×700 *usable* viewports against an 852px physical screen, no access dialogs, and real task/focus round trip. Keep fixed page shell and dock within the actual visible viewport (including safe-bottom inset); never use Math.max(innerHeight, screen.height), which placed the dock under an iOS PWA black bottom band. Service worker cache name must be bumped for layout fixes.
 
 ## VPS preview
 

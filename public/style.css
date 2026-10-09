@@ -22,9 +22,9 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%;width:100%;max-width:100%;margin:0;overflow:hidden;overscroll-behavior:none}
-html{background:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c));font-family:var(--serif);-webkit-text-size-adjust:100%}
+html{background-color:var(--bg-c);background-image:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c));font-family:var(--serif);-webkit-text-size-adjust:100%}
 body{color:var(--body);font-size:13px;line-height:1.6;
-background:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c))}
+background-color:var(--bg-c);background-image:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c))}
 body,button,input,select{font-family:var(--serif)}
 button,a,input,select{-webkit-tap-highlight-color:transparent}
 button{cursor:pointer}a{text-decoration:none;color:inherit}
@@ -32,7 +32,7 @@ button,input,select{color:var(--ink)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #8b8da2;outline-offset:3px}
 button:disabled{opacity:.45;cursor:not-allowed}
 [hidden]{display:none!important}
-.wallpaper{position:fixed;top:0;left:0;right:0;height:var(--app-height,100dvh);background:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c));z-index:0;pointer-events:none}
+.wallpaper{position:fixed;top:var(--app-top,0px);left:0;right:0;height:var(--app-height,100dvh);background-color:var(--bg-c);background-image:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c));z-index:0;pointer-events:none}
 .wallpaper.custom{background-position:center;background-size:cover;background-repeat:no-repeat}
 .wallpaper.custom:after{content:"";position:absolute;inset:0;background:rgba(226,229,238,.43)}
 :root[data-theme="dark"] .wallpaper.custom:after{background:rgba(15,17,28,.52)}
