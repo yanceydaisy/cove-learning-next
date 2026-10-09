@@ -39,3 +39,29 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   app.close();rmSync(dir,{recursive:true,force:true});
  }
 });
+
+test('morning letter is an isolated, CSP-compatible public gift',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'cove-morning-letter-')),app=new LearningApplication(dir);
+ const publicDir=resolve(fileURLToPath(new URL('../public',import.meta.url)));
+ const server=createHttp(app,publicDir);
+ await new Promise<void>(done=>server.listen(0,'127.0.0.1',done));
+ const addr=server.address();
+ if(!addr||typeof addr==='string')throw Error('No listener');
+ const base='http://127.0.0.1:'+addr.port;
+ try{
+  for(const [path,type] of [['/morning-letter.html','text/html'],['/morning-letter.css','text/css'],['/morning-letter.js','text/javascript']] as const){
+   const response=await fetch(base+path);
+   assert.equal(response.status,200,path);
+   assert.match(response.headers.get('content-type')??'',new RegExp(type));
+   assert.match(response.headers.get('content-security-policy')??'',/script-src 'self'/);
+   assert.ok((await response.text()).length>200,path+' should not be empty');
+  }
+  const page=await (await fetch(base+'/morning-letter.html')).text();
+  assert.match(page,/Before the/);
+  assert.match(page,/id="dawn"/);
+  assert.doesNotMatch(page,/<script(?![^>]*src=)[^>]*>/i,'no inline script under strict CSP');
+ }finally{
+  await new Promise<void>(done=>server.close(()=>done()));
+  app.close();rmSync(dir,{recursive:true,force:true});
+ }
+});
