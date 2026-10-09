@@ -73,6 +73,18 @@ async function api(path,method='GET',data){
  if(res.headers.get('content-type')?.includes('application/octet-stream'))return res.blob();
  return res.json();
 }
+// All micro-ornaments are monochrome inline vectors. Never substitute emoji glyphs.
+const ornamentPaths={
+ arrow:'<path d="M5.5 18.5 18.5 5.5M9 5.5h9.5V15"/>',
+ sparkle:'<path d="M12 2.5v19M2.5 12h19M5.3 5.3l13.4 13.4M18.7 5.3 5.3 18.7"/>',
+ orbit:'<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="2"/><path d="M18.4 5.8l3-3"/>',
+ plus:'<path d="M12 4v16M4 12h16"/>',
+ check:'<path d="m4.5 12.5 5 5 10-11"/>'
+};
+function ornament(name,extra=''){
+ return '<svg class="micro-icon micro-'+name+(extra?' '+extra:'')+'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">'+ornamentPaths[name]+'</svg>';
+}
+function actionLink(href,label){return '<a class="text-action" href="'+href+'">'+label+' '+ornament('arrow')+'</a>';}
 function list(items,cb){return items.length?items.map(cb).join(''):'<p class="empty">暂时没有记录</p>';}
 function head(english,cn,kicker='COVE / LEARNING'){
  return '<header class="head"><div><p class="kicker">'+kicker+'</p><h1>'+english+'</h1></div><span class="quiet">'+cn+'</span></header>';
@@ -97,14 +109,14 @@ async function today(){
  const hint=activity?'从 '+esc(date(activity.started_at))+' '+esc(time(activity.started_at))+' 开始的记录仍在这里。':'不必计划好一整天，先从一段专注开始。';
  view(head('Learning','今日','TODAY / OVERVIEW')+
  '<div class="workarea daily-flow">'+
- '<section class="feature feature-today" aria-label="继续学习"><div class="feature-top"><span class="feature-index">01 / FOCUS</span><span class="feature-symbol" aria-hidden="true">✳</span></div>'+
- '<div class="feature-bottom"><p class="feature-overline">'+(activity?'当前进度':'你的今日起点')+'</p><h2>'+title+'</h2><p>'+hint+'</p><a class="feature-action" href="#/learn">'+(activity?'继续学习':'开始学习')+' <span aria-hidden="true">↗</span></a></div></section>'+
+ '<section class="feature feature-today" aria-label="继续学习"><div class="feature-top"><span class="feature-index">01 / FOCUS</span><span class="feature-symbol" aria-hidden="true">'+ornament('sparkle')+'</span></div>'+
+ '<div class="feature-bottom"><p class="feature-overline">'+(activity?'当前进度':'你的今日起点')+'</p><h2>'+title+'</h2><p>'+hint+'</p><a class="feature-action" href="#/learn">'+(activity?'继续学习':'开始学习')+' '+ornament('arrow')+'</a></div></section>'+
  '<section class="task-overview" aria-label="待办任务">'+
- sectionTitle('02 / TO DO','待办任务','<a class="text-action" href="#/plan">打开计划 ↗</a>')+
+ sectionTitle('02 / TO DO','待办任务',actionLink('#/plan','打开计划'))+
  '<div class="task-countline"><strong>'+pending.length+'</strong><span>项待完成</span></div>'+
  (pending.length?'<div class="compact-list">'+pending.slice(0,3).map(t=>'<div class="compact-item"><span class="mini-indicator" aria-hidden="true"></span><span>'+esc(t.title)+'</span></div>').join('')+'</div>':'<p class="muted-line">今天还没有待办任务。</p>')+
  '</section>'+
- '<section class="history-block" aria-label="最近学习">'+sectionTitle('03 / ACTIVITY','最近学习','<a class="text-action" href="#/learn">学习记录 ↗</a>')+
+ '<section class="history-block" aria-label="最近学习">'+sectionTitle('03 / ACTIVITY','最近学习',actionLink('#/learn','学习记录'))+
  historyList(d.recentSessions,3)+'</section></div>');
 }
 async function plan(){
@@ -115,10 +127,10 @@ async function plan(){
  '<section class="composer-pane" aria-label="创建任务"><p class="section-eyebrow">CAPTURE / 01</p><h2>下一步，写下来。</h2>'+
  '<p class="muted-line">一件具体的小事，就足够成为今天的开始。</p>'+
  '<form id="taskForm" class="form task-composer"><input name="title" placeholder="接下来要完成什么？" required maxlength="160" aria-label="任务名称">'+
- '<button class="button primary" type="submit">添加 ↗</button>'+
+ '<button class="button primary" type="submit">添加 '+ornament('arrow')+'</button>'+
  '<select class="wide" name="object_id" aria-label="关联课程或项目"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select></form></section>'+
  '<section class="open-section">'+sectionTitle('02 / TASKS','我的任务','<span class="count-caption">'+open+' 待办 / '+tasks.length+' 全部</span>')+
- '<div class="simple-list">'+list(tasks,t=>'<div class="task-item"><span class="task-check '+(t.status==='done'?'complete':'')+'" aria-hidden="true">'+(t.status==='done'?'✓':'')+'</span><span class="task-description '+(t.status==='done'?'complete':'')+'">'+esc(t.title)+'</span>'+
+ '<div class="simple-list">'+list(tasks,t=>'<div class="task-item"><span class="task-check '+(t.status==='done'?'complete':'')+'" aria-hidden="true">'+(t.status==='done'?ornament('check'):'')+'</span><span class="task-description '+(t.status==='done'?'complete':'')+'">'+esc(t.title)+'</span>'+
  (t.status==='open'?'<button type="button" class="button sm quiet-button" data-done="'+esc(t.id)+'">完成</button>':'<span class="row-trailing">已完成</span>')+'</div>')+'</div></section></div>');
  root.querySelector('#taskForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
   await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null});await plan();notify('已添加任务');
@@ -142,10 +154,10 @@ async function learn(){
  '<p class="focus-prompt">现在，开始一段属于你的时间。</p>'+
  '<form id="focusForm" class="focus-form"><select name="object_id" aria-label="选择学习对象"><option value="">自由学习 · 不关联任务</option>'+
  objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+
- '</select><button class="button focus-main">开始专注 <span aria-hidden="true">↗</span></button></form>';
+ '</select><button class="button focus-main">开始专注 '+ornament('arrow')+'</button></form>';
  view(head('Learn','专注')+
  '<div class="workarea spacious-flow">'+
- '<section class="focus-stage"><p class="focus-eyebrow">FOCUS / NOW</p><span class="focus-decoration" aria-hidden="true">◌</span>'+action+'</section>'+
+ '<section class="focus-stage"><p class="focus-eyebrow">FOCUS / NOW</p><span class="focus-decoration" aria-hidden="true">'+ornament('orbit')+'</span>'+action+'</section>'+
  '<section class="open-section">'+sectionTitle('ARCHIVE / RECENT','学习记录')+historyList(recent,6)+'</section>'+
  '<p class="notice">阅读器与 ChatGPT 尚未接入，当前仅记录真实的专注时间。</p></div>');
  if(timer){clearInterval(timer);timer=null;}
@@ -169,17 +181,20 @@ async function library(){
  '<section class="library-objects">'+sectionTitle('01 / COLLECTION','学习对象','<span class="count-caption">'+objects.length+' 个</span>')+
  '<div class="object-overview"><div><strong>'+counts.course+'</strong><span>课程</span></div><div><strong>'+counts.project+'</strong><span>项目</span></div><div><strong>'+counts.track+'</strong><span>路线</span></div></div>'+
  '<form id="objectForm" class="form object-composer"><input name="title" placeholder="新建课程或项目" aria-label="名称" required maxlength="160">'+
- '<button class="button primary">创建 ↗</button>'+
+ '<button class="button primary">创建 '+ornament('arrow')+'</button>'+
  '<select class="wide" name="kind" aria-label="学习对象类型"><option value="course">课程</option><option value="project">项目</option><option value="track">学习路线</option></select></form>'+
  '<div class="simple-list object-list">'+objectList+'</div></section>'+
  '<section class="library-materials">'+sectionTitle('02 / MATERIALS','我的资料','<span class="count-caption">'+resources.length+' 份</span>')+
  '<p class="muted-line">保存原始文件，随时回到学习资料。</p>'+
- '<form id="fileForm" class="upload-strip"><div class="upload-copy"><span class="upload-mark" aria-hidden="true">＋</span><label for="sourceFile">选择文件</label><small>支持 8MB 以内文件 · 公开测试版请勿上传隐私资料</small></div>'+
- '<input id="sourceFile" type="file" name="file" aria-label="选择资料" required><button class="button secondary">保存原件 ↗</button></form>'+
+ '<form id="fileForm" class="upload-strip"><div class="upload-copy"><span class="upload-mark" aria-hidden="true">'+ornament('plus')+'</span><label for="sourceFile">选择文件</label><small>支持 8MB 以内文件 · 公开测试版请勿上传隐私资料</small></div>'+
+ '<div class="file-picker"><span class="file-picker-label">浏览文件</span><span class="file-picker-name" id="fileName" aria-live="polite">尚未选择</span><input id="sourceFile" type="file" name="file" aria-label="选择资料" required></div><button class="button secondary">保存原件 '+ornament('arrow')+'</button></form>'+
  '<div class="simple-list resource-list">'+resourceList+'</div></section></div>');
  root.querySelector('#objectForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
   await api('/objects','POST',{title:f.get('title'),kind:f.get('kind')});await library();notify('已创建');
  });});
+ root.querySelector('#sourceFile').addEventListener('change',e=>{
+  root.querySelector('#fileName').textContent=e.currentTarget.files?.[0]?.name||'尚未选择';
+ });
  root.querySelector('#fileForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget),file=f.get('file');if(!(file instanceof File)||!file.size)return;perform(async()=>{
   if(file.size>8*1024*1024)throw Error('文件目前不能超过 8MB');
   const bytes=new Uint8Array(await file.arrayBuffer());let string='';
