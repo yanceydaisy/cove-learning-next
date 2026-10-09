@@ -101,21 +101,42 @@ document.querySelector('.brand').addEventListener('click',()=>{
  document.body.append(out);
 });
 
+// Retry only safe GET requests. Never retry writes: a dropped response could follow
+// a successful task creation, focus transition, or file upload.
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function api(path,method='GET',data){
- const res=await fetch(API+path,{
-  method,
-  cache:'no-store',
-  headers:{...(method==='GET'?{}:{'Content-Type':'application/json'})},
-  body:data===undefined?undefined:JSON.stringify(data)
- });
- if(!res.ok){
-  let error;try{error=(await res.json()).error?.message;}catch{}
-  if(res.status===401)dot.classList.remove('connected');
-  throw Error(error||'请求未成功');
+ const isRead=method==='GET';
+ const pauses=[350,1100];
+ for(let attempt=0;;attempt++){
+  let res;
+  try{
+   res=await fetch(API+path,{
+    method,
+    cache:'no-store',
+    headers:{...(isRead?{}:{'Content-Type':'application/json'})},
+    body:data===undefined?undefined:JSON.stringify(data)
+   });
+  }catch(error){
+   dot.classList.remove('connected');
+   if(isRead&&error instanceof TypeError&&attempt<pauses.length){
+    await wait(pauses[attempt]);continue;
+   }
+   if(error instanceof TypeError)throw Error('网络连接暂时中断，请检查网络后重试。');
+   throw error;
+  }
+  if(isRead&&[502,503,504].includes(res.status)&&attempt<pauses.length){
+   await wait(pauses[attempt]);continue;
+  }
+  if(!res.ok){
+   dot.classList.remove('connected');
+   let error;try{error=(await res.json()).error?.message;}catch{}
+   if([502,503,504].includes(res.status))throw Error('服务暂时不可用，请稍后重试。');
+   throw Error(error||'请求未成功（HTTP '+res.status+'）');
+  }
+  dot.classList.add('connected');
+  if(res.headers.get('content-type')?.includes('application/octet-stream'))return res.blob();
+  return res.json();
  }
- dot.classList.add('connected');
- if(res.headers.get('content-type')?.includes('application/octet-stream'))return res.blob();
- return res.json();
 }
 // All micro-ornaments are monochrome inline vectors. Never substitute emoji glyphs.
 const ornamentPaths={
@@ -268,6 +289,9 @@ async function render(){
  }
 }
 window.addEventListener('hashchange',render);
+// A failed iPhone PWA view should recover when the connection returns.
+window.addEventListener('online',()=>{if(root.querySelector('#retry'))render();});
+window.addEventListener('pageshow',event=>{if(event.persisted&&root.querySelector('#retry'))render();});
 render();
 api('/health').catch(()=>dot.classList.remove('connected'));
 if('serviceWorker' in navigator && location.protocol==='https:'){

@@ -128,6 +128,28 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await p2.locator('.head h1').innerText(),'Learning');
   assert.equal(await p2.locator('.dock a').count(),4);
   await desktop.close();
+  // iPhone network handoff regression: retry safe reads and self-heal on reconnection.
+  const recoveryContext=await browser.newContext({viewport:{width:393,height:759},isMobile:true,hasTouch:true});
+  const recoveryPage=await recoveryContext.newPage();
+  let readAttempts=0;
+  await recoveryPage.route('**/api/today',async route=>{
+   readAttempts++;
+   if(readAttempts<=2)await route.abort('failed');
+   else await route.continue();
+  });
+  await recoveryPage.goto('http://127.0.0.1:'+addr.port+'/',{waitUntil:'domcontentloaded'});
+  await recoveryPage.locator('.feature-today').waitFor({timeout:8000});
+  assert.equal(readAttempts,3,'two failed GETs recover via safe retries');
+  await recoveryPage.unroute('**/api/today');
+  await recoveryPage.route('**/api/today',route=>route.abort('failed'));
+  await recoveryPage.reload({waitUntil:'domcontentloaded'});
+  await recoveryPage.locator('#retry').waitFor({timeout:8000});
+  assert.match(await recoveryPage.locator('.screen').innerText(),/网络连接暂时中断/,'network errors use clear Chinese guidance');
+  await recoveryPage.unroute('**/api/today');
+  await recoveryPage.evaluate(()=>window.dispatchEvent(new Event('online')));
+  await recoveryPage.locator('.feature-today').waitFor({timeout:8000});
+  assert.equal(await recoveryPage.locator('#retry').count(),0,'online event restores Today automatically');
+  await recoveryContext.close();
   // iPhone 15 PWA regression: the CSS layout viewport can be shorter than screen.height.
   // Never grow the app shell beyond the actually visible viewport; doing so hides the dock below a black band.
   const pwa=await browser.newContext({viewport:{width:393,height:759},screen:{width:393,height:852},deviceScaleFactor:3,isMobile:true,hasTouch:true});
