@@ -34,6 +34,17 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
    if(path.startsWith('/api/')){
     if(accessKey && !equals(String(req.headers['x-learning-key']??''),accessKey))throw new AppError('UNAUTHORIZED','访问密钥不正确。');
     const method=req.method??'GET',parts=path.split('/').filter(Boolean);
+    if(method!=='GET'&&method!=='HEAD'){
+     // Prevent other websites from silently mutating the public preview using a visitor's browser.
+     const origin=req.headers.origin;
+     const fetchSite=req.headers['sec-fetch-site'];
+     if(fetchSite==='cross-site')throw new AppError('UNAUTHORIZED','跨站请求不可修改测试数据。');
+     if(origin){
+      let parsed:URL;try{parsed=new URL(origin);}catch{throw new AppError('UNAUTHORIZED','来源无效。');}
+      if(parsed.host!==req.headers.host || !['http:','https:'].includes(parsed.protocol))throw new AppError('UNAUTHORIZED','跨站请求不可修改测试数据。');
+     }
+     if(!String(req.headers['content-type']??'').toLowerCase().startsWith('application/json'))throw new AppError('VALIDATION_ERROR','请使用 JSON 请求。');
+    }
     let result:unknown,status=200;
     if(path==='/api/health'&&method==='GET')result={status:'ok',product:'Cove Learning',stage:'independent-skeleton'};
     else if(path==='/api/today'&&method==='GET')result=app.today.snapshot();

@@ -1,19 +1,14 @@
 const root = document.querySelector('#screen');
 const dot = document.querySelector('#connection');
 const toast = document.querySelector('#toast');
-const dialog = document.querySelector('#connectDialog');
-const keyInput = document.querySelector('#accessKey');
 const base = new URL('.', import.meta.url).pathname.replace(/\/$/, '');
 const API = base + '/api';
-const KEY = 'cove.learning.previewAccess';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date = v => v ? new Date(v).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}) : '—';
 const time = v => v ? new Date(v).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}) : '—';
 const minutes = ms => Math.floor(Math.max(0,Number(ms)||0)/60000);
-let access = '';try{access=sessionStorage.getItem(KEY)||'';}catch{}
 let viewId = 0;
 let timer = null;
-let promptAfterAuth = null;
 function notify(message){
  toast.textContent = message;
  toast.classList.add('on');
@@ -60,27 +55,16 @@ window.addEventListener('resize',adjustViewport);
 window.visualViewport?.addEventListener('resize',adjustViewport);
 adjustViewport();
 
-function connect(){keyInput.value=access;dialog.showModal();}
-document.querySelector('#connectionButton').addEventListener('click',connect);
-document.querySelector('#cancelConnect').addEventListener('click',()=>dialog.close());
-document.querySelector('#connectForm').addEventListener('submit',e=>{
- e.preventDefault();
- access=keyInput.value.trim();
- try{if(access)sessionStorage.setItem(KEY,access);else sessionStorage.removeItem(KEY);}catch{}
- dialog.close();
- const callback=promptAfterAuth;promptAfterAuth=null;
- if(callback)callback();else render();
-});
 async function api(path,method='GET',data){
  const res=await fetch(API+path,{
   method,
   cache:'no-store',
-  headers:{...(access?{'x-learning-key':access}:{}),...(data===undefined?{}:{'Content-Type':'application/json'})},
+  headers:{...(method==='GET'?{}:{'Content-Type':'application/json'})},
   body:data===undefined?undefined:JSON.stringify(data)
  });
  if(!res.ok){
   let error;try{error=(await res.json()).error?.message;}catch{}
-  if(res.status===401){dot.classList.remove('connected');const x=new Error(error||'需要访问密钥');x.unauthorized=true;throw x;}
+  if(res.status===401)dot.classList.remove('connected');
   throw Error(error||'请求未成功');
  }
  dot.classList.add('connected');
@@ -151,7 +135,7 @@ async function library(){
  '<div class="workarea"><div class="desktop-columns">'+
  panel('学习对象','<form id="objectForm" class="form"><input name="title" placeholder="课程 / 项目名称" aria-label="名称" required maxlength="160"><button class="button primary">创建</button><select class="wide" name="kind" aria-label="学习对象类型"><option value="course">课程</option><option value="project">项目</option><option value="track">学习路线</option></select></form>'+
  '<div style="margin-top:13px">'+list(objects,o=>row(o.title,kinds[o.kind]||o.kind))+'</div>',String(objects.length))+
- panel('我的资料','<form id="fileForm" class="form"><input class="wide" type="file" name="file" aria-label="选择资料" required><button class="button secondary wide">保存原件</button></form>'+
+ panel('我的资料','<p class="panel-sub">公开测试版，请勿上传私人文件。</p><form id="fileForm" class="form"><input class="wide" type="file" name="file" aria-label="选择资料" required><button class="button secondary wide">保存原件</button></form>'+
  '<div style="margin-top:13px">'+list(resources,r=>row(r.title,Math.ceil(r.size_bytes/1024)+' KB · 原始资料','<button type="button" class="button sm secondary" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button>'))+'</div>',String(resources.length))+
  '</div></div>');
  root.querySelector('#objectForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{await api('/objects','POST',{title:f.get('title'),kind:f.get('kind')});await library();notify('已创建');});});
@@ -170,10 +154,7 @@ async function library(){
  })));
 }
 async function perform(action){
- try{await action();}catch(error){
-  if(error.unauthorized){promptAfterAuth=()=>render();connect();}
-  else notify(error.message);
- }
+ try{await action();}catch(error){notify(error.message);}
 }
 async function render(){
  currentNav();const name=page();const seq=++viewId;
@@ -184,12 +165,12 @@ async function render(){
   await({today,plan,learn,library}[name])();
  }catch(error){
   if(seq!==viewId)return;
-  if(error.unauthorized){root.innerHTML='<div class="view"><div class="head"><h1>Learning.</h1></div><button class="button primary" id="reconnect">连接学习空间</button></div>';root.querySelector('#reconnect').addEventListener('click',connect);if(!dialog.open)connect();}
-  else{root.innerHTML='<div class="view"><div class="head"><h1>连接失败</h1></div><p class="quiet">'+esc(error.message)+'</p><button class="button secondary" id="retry">重试</button></div>';root.querySelector('#retry').addEventListener('click',render);}
+  root.innerHTML='<div class="view"><div class="head"><h1>连接失败</h1></div><p class="quiet">'+esc(error.message)+'</p><button class="button secondary" id="retry">重试</button></div>';root.querySelector('#retry').addEventListener('click',render);
  }
 }
 window.addEventListener('hashchange',render);
 render();
+api('/health').catch(()=>dot.classList.remove('connected'));
 if('serviceWorker' in navigator && location.protocol==='https:'){
  window.addEventListener('load',()=>navigator.serviceWorker.register(base+'/sw.js',{scope:base+'/'}).catch(()=>{}));
 }

@@ -9,7 +9,9 @@ const root=resolve(here,'../..');
 const host=process.env.LEARNING_HOST??'127.0.0.1';
 const port=Number(process.env.LEARNING_PORT??8982);
 const socket=process.env.LEARNING_SOCKET?.trim()??'';
-const key=process.env.LEARNING_ACCESS_KEY??'';
+const publicPreview=process.env.LEARNING_PREVIEW_PUBLIC==='1';
+if(publicPreview&&!socket)throw Error('Unauthenticated preview must use the private Unix socket');
+const key=publicPreview?'':process.env.LEARNING_ACCESS_KEY??'';
 
 if(!socket&&host!=='127.0.0.1'&&host!=='::1'&&!key)throw Error('Non-loopback binding requires LEARNING_ACCESS_KEY');
 if(!socket&&(!Number.isInteger(port)||port<1||port>65535))throw Error('Invalid port');
