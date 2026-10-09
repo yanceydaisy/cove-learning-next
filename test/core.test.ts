@@ -1,0 +1,96 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {LearningApplication} from '../src/core/application.js';
+import {AppError} from '../src/core/errors.js';
+function fixture(){
+ const dir=mkdtempSync(join(tmpdir(),'cove-learning-next-'));
+ let instant=new Date('2026-10-09T07:00:00.000Z');
+ const app=new LearningApplication(dir,false,()=>instant);
+ return {app,dir,tick:(ms:number)=>{instant=new Date(instant.getTime()+ms);},end:()=>{app.close();rmSync(dir,{recursive:true,force:true});}};
+}
+test('cross-module: object → task → focus → real Today read model',()=>{
+ const f=fixture();
+ try{
+  const obj=f.app.catalog.create({kind:'course',title:'现代控制理论'}) as {id:string};
+  const task=f.app.planning.create({title:'极点配置',object_id:obj.id}) as {id:string};
+  const session=f.app.activity.start({object_id:obj.id}) as {id:string};
+  assert.equal(f.app.today.snapshot().openTasks.length,1);
+  assert.equal((f.app.activity.active() as {id:string}).id,session.id);
+  f.tick(60_000);f.app.activity.pause(session.id);
+  assert.equal((f.app.activity.active() as {accumulated_ms:number}).accumulated_ms,60_000);
+  f.tick(120_000);f.app.activity.resume(session.id);
+  f.tick(30_000);const finished=f.app.activity.finish(session.id) as {accumulated_ms:number;state:string};
+  assert.equal(finished.accumulated_ms,90_000);
+  assert.equal(finished.state,'finished');
+  assert.equal(f.app.activity.events(session.id).length,4);
+  f.app.planning.complete(task.id);
+  assert.equal(f.app.today.snapshot().openTasks.length,0);
+  assert.equal(f.app.today.snapshot().activeFocus,null);
+  assert.equal(f.app.today.snapshot().recentSessions.length,1);
+ }finally{f.end();}
+});
+test('Focus remains unbound, rejects duplicate active sessions and invalid transitions',()=>{
+ const f=fixture();
+ try{
+  const s=f.app.activity.start() as {id:string};
+  assert.throws(()=>f.app.activity.start(),e=>e instanceof AppError&&e.code==='CONFLICT');
+  assert.throws(()=>f.app.activity.resume(s.id),e=>e instanceof AppError&&e.code==='CONFLICT');
+  assert.equal(f.app.activity.events(s.id).length,1);
+  f.app.activity.finish(s.id);
+  assert.throws(()=>f.app.activity.finish(s.id),e=>e instanceof AppError&&e.code==='CONFLICT');
+  assert.equal(f.app.activity.events(s.id).length,2);
+ }finally{f.end();}
+});
+test('immutable resource bytes with SHA and version survives app restart',()=>{
+ const f=fixture();
+ const src=Buffer.from('Learning 原始内容 2026-10-09','utf8');
+ let id:string;
+ try{
+  const resource=f.app.library.ingest({title:'资料.txt',mime_type:'text/plain',base64:src.toString('base64')}) as {id:string;version_id:string;sha256:string};
+  id=resource.id;
+  assert.match(resource.sha256,/^[a-f0-9]{64}$/);
+  assert.deepEqual(f.app.library.content(resource.id).bytes,src);
+  assert.equal(f.app.library.list().length,1);
+  const f2=new LearningApplication(f.dir);
+  try{assert.deepEqual(f2.library.content(id).bytes,src);}finally{f2.close();}
+  assert.throws(()=>f.app.library.ingest({title:'bad',mime_type:'text/plain',base64:'!!!!'}),AppError);
+  assert.equal(f.app.library.list().length,1);
+ }finally{f.end();}
+});
+test('restart conservatively pauses unknown interval instead of inflating focus duration',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'cove-focus-recover-'));
+ let time=new Date('2026-10-09T07:00:00.000Z');
+ const first=new LearningApplication(dir,false,()=>time);
+ try{
+  const session=first.activity.start() as {id:string};
+  first.close();
+  time=new Date('2026-10-09T09:00:00.000Z');
+  const second=new LearningApplication(dir,false,()=>time);
+  try{
+   const active=second.activity.active() as {state:string;accumulated_ms:number};
+   assert.equal(active.state,'paused');
+   assert.equal(active.accumulated_ms,0);
+   assert.equal(second.activity.events(session.id).at(-1)?.event_type,'focus.recovery_needed');
+   const finished=second.activity.finish(session.id) as {accumulated_ms:number};
+   assert.equal(finished.accumulated_ms,0);
+  }finally{second.close();}
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+test('transaction rolls back and migration metadata stays stable',()=>{
+ const f=fixture();
+ try{
+  const before=f.app.database.raw.prepare('SELECT * FROM schema_migrations').all();
+  assert.equal(before.length,1);
+  assert.throws(()=>f.app.database.transaction(()=>{
+   f.app.catalog.create({kind:'track',title:'中途回滚'});
+   throw new Error('abort');
+  }));
+  assert.equal(f.app.catalog.list().length,0);
+  const again=new LearningApplication(f.dir);
+  try{assert.deepEqual(again.database.raw.prepare('SELECT * FROM schema_migrations').all(),before);}
+  finally{again.close();}
+ }finally{f.end();}
+});

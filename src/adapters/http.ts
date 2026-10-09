@@ -1,0 +1,74 @@
+import {createServer,type IncomingMessage,type ServerResponse} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {timingSafeEqual,createHash} from 'node:crypto';
+import type {LearningApplication} from '../core/application.js';
+import {AppError,errorPayload,errorStatus} from '../core/errors.js';
+
+function equals(a:string,b:string){
+ return timingSafeEqual(createHash('sha256').update(a).digest(),createHash('sha256').update(b).digest());
+}
+async function parseBody(req:IncomingMessage){
+ const chunks:Buffer[]=[];let n=0;
+ for await(const chunk of req){
+  n+=Buffer.byteLength(chunk);
+  if(n>12*1024*1024)throw new AppError('VALIDATION_ERROR','文件或请求过大（开发版限制 8MB 原件）。');
+  chunks.push(Buffer.from(chunk));
+ }
+ try{return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}') as unknown;}
+ catch{throw new AppError('VALIDATION_ERROR','请求必须是有效 JSON。');}
+}
+function json(res:ServerResponse,status:number,data:unknown){
+ res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+ res.end(JSON.stringify(data));
+}
+export function createHttp(app:LearningApplication,publicDir:string,accessKey:string=''){
+ return createServer(async(req,res)=>{
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('Referrer-Policy','no-referrer');
+  res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('Content-Security-Policy',"default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+  try{
+   const url=new URL(req.url??'/','http://localhost'),path=url.pathname;
+   if(path.startsWith('/api/')){
+    if(accessKey && !equals(String(req.headers['x-learning-key']??''),accessKey))throw new AppError('UNAUTHORIZED','访问密钥不正确。');
+    const method=req.method??'GET',parts=path.split('/').filter(Boolean);
+    let result:unknown,status=200;
+    if(path==='/api/health'&&method==='GET')result={status:'ok',product:'Cove Learning',stage:'independent-skeleton'};
+    else if(path==='/api/today'&&method==='GET')result=app.today.snapshot();
+    else if(path==='/api/objects'&&method==='GET')result=app.catalog.list();
+    else if(path==='/api/objects'&&method==='POST'){result=app.catalog.create(await parseBody(req));status=201;}
+    else if(path==='/api/tasks'&&method==='GET')result=app.planning.list();
+    else if(path==='/api/tasks'&&method==='POST'){result=app.planning.create(await parseBody(req));status=201;}
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='complete'&&method==='POST')result=app.planning.complete(parts[2]!);
+    else if(path==='/api/resources'&&method==='GET')result=app.library.list();
+    else if(path==='/api/resources'&&method==='POST'){result=app.library.ingest(await parseBody(req));status=201;}
+    else if(parts.length===4&&parts[1]==='resources'&&parts[3]==='content'&&method==='GET'){
+     const content=app.library.content(parts[2]!);
+     res.writeHead(200,{'content-type':'application/octet-stream','content-disposition':'attachment; filename="learning-original"','cache-control':'no-store','content-length':content.bytes.length});
+     res.end(content.bytes);return;
+    }
+    else if(path==='/api/focus/active'&&method==='GET')result=app.activity.active();
+    else if(path==='/api/focus/recent'&&method==='GET')result=app.activity.recent();
+    else if(path==='/api/focus/start'&&method==='POST'){result=app.activity.start(await parseBody(req));status=201;}
+    else if(parts.length===4&&parts[1]==='focus'&&['pause','resume','finish'].includes(parts[3]!)&&method==='POST'){
+     const id=parts[2]!,action=parts[3];
+     result=action==='pause'?app.activity.pause(id):action==='resume'?app.activity.resume(id):app.activity.finish(id);
+    }
+    else throw new AppError('NOT_FOUND','接口不存在。');
+    return json(res,status,result);
+   }
+   if(req.method!=='GET'&&req.method!=='HEAD')throw new AppError('VALIDATION_ERROR','不支持的请求方法。');
+   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css'};
+   const name=routes[path];
+   if(!name)return json(res,404,{error:{code:'NOT_FOUND',message:'页面不存在。'}});
+   const content=await readFile(join(publicDir,name));
+   const contentType=name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
+   res.writeHead(200,{'content-type':contentType,'cache-control':'no-store'});
+   res.end(req.method==='HEAD'?undefined:content);
+  }catch(error){
+   if(res.headersSent){res.end();return;}
+   json(res,errorStatus(error),errorPayload(error));
+  }
+ });
+}
