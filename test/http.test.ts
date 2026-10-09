@@ -17,7 +17,10 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
  const base='http://127.0.0.1:'+addr.port;
  const request=async(path:string,init:RequestInit={})=>fetch(base+path,{...init,headers:{'x-learning-key':'my-test-key','content-type':'application/json',...init.headers}});
  try{
-  const root=await fetch(base+'/');assert.equal(root.status,200);assert.match(await root.text(),/data-page="library"/);
+  const root=await fetch(base+'/');assert.equal(root.status,200);assert.match(await root.text(),/data-nav="library"/);
+  const manifest=await fetch(base+'/manifest.webmanifest');assert.equal(manifest.status,200);assert.match(manifest.headers.get('content-type')??'',/manifest/);
+  const worker=await fetch(base+'/sw.js');assert.equal(worker.status,200);
+  const alias=await fetch(base+'/learning-next/');assert.equal(alias.status,200);
   const noKey=await fetch(base+'/api/today');assert.equal(noKey.status,401);
   const object=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'project',title:'我们的项目'})});
   assert.equal(object.status,201);const item=await object.json() as {id:string};

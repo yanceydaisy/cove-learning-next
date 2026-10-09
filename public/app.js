@@ -1,76 +1,195 @@
-const main=document.querySelector('#main'),status=document.querySelector('#status');
-let page='today';
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const when=v=>v?new Date(v).toLocaleString('zh-CN',{hour12:false}):'—';
-const api=async(path,method='GET',body)=>{
- const res=await fetch('/api'+path,{method,headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
- if(!res.ok){let error;try{error=(await res.json()).error?.message;}catch{}throw Error(error||'操作失败');}
- return res.json();
-};
-const muted='暂时没有记录，等我们第一次真正使用它。';
-function notice(message){status.textContent=message;}
-function card(title,body){return '<section class="card"><h3>'+esc(title)+'</h3>'+body+'</section>';}
-function list(rows,item){
- return rows.length?'<ul class="items">'+rows.map(item).join('')+'</ul>':'<p class="empty">'+muted+'</p>';
+const root = document.querySelector('#screen');
+const dot = document.querySelector('#connection');
+const toast = document.querySelector('#toast');
+const dialog = document.querySelector('#connectDialog');
+const keyInput = document.querySelector('#accessKey');
+const base = new URL('.', import.meta.url).pathname.replace(/\/$/, '');
+const API = base + '/api';
+const KEY = 'cove.learning.previewAccess';
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const date = v => v ? new Date(v).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}) : '—';
+const time = v => v ? new Date(v).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}) : '—';
+const minutes = ms => Math.floor(Math.max(0,Number(ms)||0)/60000);
+let access = '';try{access=sessionStorage.getItem(KEY)||'';}catch{}
+let viewId = 0;
+let timer = null;
+let promptAfterAuth = null;
+function notify(message){
+ toast.textContent = message;
+ toast.classList.add('on');
+ clearTimeout(notify.timer);
+ notify.timer=setTimeout(()=>toast.classList.remove('on'),2800);
 }
-function header(title,hint){return '<div class="sectiontitle"><h2>'+title+'</h2></div><p class="hint">'+hint+'</p>';}
-async function showToday(){
- const d=await api('/today');
- const active=d.activeFocus;
- main.innerHTML=header('今天，慢慢来。','这里呈现真实任务与学习记录，不生成虚构的统计或留言。')+
- '<div class="grid">'+
- card('正在进行的学习',active?'<p><strong>专注中 · '+esc(active.state)+'</strong></p><p class="meta">开始于 '+when(active.started_at)+'</p><button class="action ghost" data-go="learn">进入 Learn →</button>':'<p class="empty">目前没有进行中的学习。</p><button class="action ghost" data-go="learn">去学习 →</button>')+
- card('待办 · '+d.openTasks.length+' 项',list(d.openTasks,x=>'<li><span>'+esc(x.title)+'</span><span class="meta">未完成</span></li>'))+
- card('最近学习',list(d.recentSessions,x=>'<li><span>'+when(x.started_at)+'</span><span class="meta">'+esc(x.state)+' · '+Math.round(x.accumulated_ms/60000)+' 分钟（已确认）</span></li>'))+
- card('最近入库',list(d.recentResources,x=>'<li><span>'+esc(x.title)+'</span><span class="meta">'+when(x.created_at)+'</span></li>'))+
- '</div><div class="quiet">♡ Cove 的留言会在连接真实 Chat / Bridge、并建立消息实体后出现。这里不会预置假纸条。</div>';
+function page(){const p=(location.hash||'#/').replace(/^#\/?/,'').split('/')[0];return ['today','plan','learn','library'].includes(p)?p:'home';}
+function currentNav(){
+ const here=page();
+ document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===here?'page':'false'));
 }
-async function showPlan(){
- const [tasks,objects]=await Promise.all([api('/tasks'),api('/objects')]);
- main.innerHTML=header('计划','先把要做的事情记下来。真实 Calendar 同步暂不启用。')+
- card('创建任务','<form id="task-form" class="fieldrow"><input required maxlength="160" name="title" placeholder="例如：复习极点配置"><select name="object_id"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+' · '+esc(o.kind)+'</option>').join('')+'</select><button class="action">添加任务</button></form>')+
- card('任务清单',list(tasks,t=>'<li><span>'+esc(t.title)+'<br><small class="meta">'+esc(t.status)+'</small></span>'+(t.status==='open'?'<button class="smallbtn" data-done="'+esc(t.id)+'">标记完成</button>':'')+'</li>'))+
- '<div class="quiet">学习块、任务建议和外部日历将逐层实现；当前不会声称已修改 Calendar。</div>';
- document.querySelector('#task-form').addEventListener('submit',async e=>{
-  e.preventDefault();const f=new FormData(e.currentTarget);
-  await run(async()=>{await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null});await showPlan();});
+function adjustViewport(){
+ const vv=window.visualViewport;
+ const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ const keyboard=vv&&window.innerHeight-vv.height>135;
+ const height=(standalone&&!keyboard)?Math.max(window.innerHeight,screen.height):vv?.height||window.innerHeight;
+ const top=standalone&&!keyboard?0:vv?.offsetTop||0;
+ document.documentElement.style.setProperty('--app-height',height+'px');
+ document.documentElement.style.setProperty('--app-top',top+'px');
+}
+function appearance(){
+ const mode=localStorage.getItem('cove.home.themeMode')||'system';
+ const prefers=window.matchMedia('(prefers-color-scheme: dark)').matches;
+ const dark=mode==='dark'||mode==='system'&&prefers;
+ document.documentElement.dataset.theme=dark?'dark':'light';
+ const meta=document.querySelector('meta[name="theme-color"]');
+ if(meta)meta.content=dark?'#252936':'#dee1e8';
+ const bg=localStorage.getItem('cove.home.background')||'';
+ const layer=document.querySelector('.wallpaper');
+ // Only honor images already stored by Cove Home; never use untrusted arbitrary page markup.
+ if(bg&&(/^(data:image\/|blob:)/.test(bg))) {layer.style.backgroundImage='url('+JSON.stringify(bg)+')';layer.classList.add('custom');}
+ else{layer.style.backgroundImage='';layer.classList.remove('custom');}
+}
+try{appearance();}catch{}
+document.querySelector('#appearance').addEventListener('click',()=>{
+ const current=localStorage.getItem('cove.home.themeMode')||'system';
+ const next=current==='light'?'dark':current==='dark'?'system':'light';
+ localStorage.setItem('cove.home.themeMode',next);appearance();
+ notify(next==='system'?'已跟随系统外观':next==='dark'?'已切换深色':'已切换浅色');
+});
+window.addEventListener('storage',event=>{if(['cove.home.themeMode','cove.home.background'].includes(event.key))try{appearance();}catch{}});
+window.addEventListener('pageshow',()=>{try{appearance();}catch{}adjustViewport();});
+window.addEventListener('resize',adjustViewport);
+window.visualViewport?.addEventListener('resize',adjustViewport);
+adjustViewport();
+
+function connect(){keyInput.value=access;dialog.showModal();}
+document.querySelector('#connectionButton').addEventListener('click',connect);
+document.querySelector('#cancelConnect').addEventListener('click',()=>dialog.close());
+document.querySelector('#connectForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ access=keyInput.value.trim();
+ try{if(access)sessionStorage.setItem(KEY,access);else sessionStorage.removeItem(KEY);}catch{}
+ dialog.close();
+ const callback=promptAfterAuth;promptAfterAuth=null;
+ if(callback)callback();else render();
+});
+async function api(path,method='GET',data){
+ const res=await fetch(API+path,{
+  method,
+  cache:'no-store',
+  headers:{...(access?{'x-learning-key':access}:{}),...(data===undefined?{}:{'Content-Type':'application/json'})},
+  body:data===undefined?undefined:JSON.stringify(data)
  });
- main.querySelectorAll('[data-done]').forEach(b=>b.addEventListener('click',()=>run(async()=>{await api('/tasks/'+b.dataset.done+'/complete','POST');await showPlan();})));
+ if(!res.ok){
+  let error;try{error=(await res.json()).error?.message;}catch{}
+  if(res.status===401){dot.classList.remove('connected');const x=new Error(error||'需要访问密钥');x.unauthorized=true;throw x;}
+  throw Error(error||'请求未成功');
+ }
+ dot.classList.add('connected');
+ if(res.headers.get('content-type')?.includes('application/octet-stream'))return res.blob();
+ return res.json();
 }
-async function showLearn(){
- const [current,recent,objects]=await Promise.all([api('/focus/active'),api('/focus/recent'),api('/objects')]);
- const controls=!current?'<form id="focus-form" class="fieldrow"><select name="object_id"><option value="">自由学习（不绑定课程）</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select><button class="action">开始专注</button></form>':
- '<p><strong>当前状态：'+esc(current.state)+'</strong></p><p class="meta">开始于 '+when(current.started_at)+'</p><div class="fieldrow">'+
- (current.state==='running'?'<button class="action secondary" data-action="pause">暂停</button>':'<button class="action secondary" data-action="resume">继续</button>')+
- '<button class="action ghost" data-action="finish">结束并记录</button></div>';
- main.innerHTML=header('学习工作台','可以不选课程、任务或时长，直接开始真实的专注记录。')+
- card('专注',controls)+
- card('学习记录',list(recent,s=>'<li><span>'+when(s.started_at)+'</span><span class="meta">'+esc(s.state)+' · '+Math.round(s.accumulated_ms/60000)+' 分钟</span></li>'))+
- '<div class="quiet">Reader Tabs、精确 Anchor、选区问 Cove 尚未接入。我们不会在这里另造阅读器；会复用现有 Reading 的能力。</div>';
- if(!current)document.querySelector('#focus-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);run(async()=>{await api('/focus/start','POST',{object_id:f.get('object_id')||null});await showLearn();});});
- else main.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>run(async()=>{await api('/focus/'+current.id+'/'+b.dataset.action,'POST');await showLearn();})));
+function panel(title,body,tag=''){return '<section class="panel"><div class="panel-title"><h2>'+title+'</h2>'+(tag?'<span class="pill">'+tag+'</span>':'')+'</div>'+body+'</section>';}
+function list(items,cb){return items.length?items.map(cb).join(''):'<p class="empty">暂无记录</p>';}
+function head(english,cn){return '<div class="head"><div><p class="kicker">COVE / LEARNING</p><h1>'+english+'</h1></div><span class="quiet">'+cn+'</span></div>';}
+function row(label,sub,right=''){return '<div class="row"><div class="row-body"><div class="row-title">'+esc(label)+'</div>'+(sub?'<div class="row-sub">'+esc(sub)+'</div>':'')+'</div>'+right+'</div>';}
+function view(body){root.innerHTML='<div class="view">'+body+'</div>';}
+function hub(){
+ view('<div class="view hub"><header class="head"><p class="kicker">COVE / STUDY SPACE</p><h1>Learning<span style="color:var(--pink)">.</span></h1></header>'+
+ '<div class="hub-grid">'+[
+ ['01','Today','今日','today'],
+ ['02','Plan','计划','plan'],
+ ['03','Learn','学习','learn'],
+ ['04','Library','资料库','library']
+ ].map(([num,en,cn,id])=>'<a class="door" href="#/'+id+'"><span class="door-number">'+num+'</span><span class="door-name">'+en+'</span><span class="door-bottom"><span>'+cn+'</span><span class="arrow">↗</span></span></a>').join('')+'</div></div>');
 }
-async function showLibrary(){
+async function today(){
+ const d=await api('/today');
+ const activity=d.activeFocus;
+ const pending=d.openTasks;
+ view(head('Today','今天')+
+ '<div class="workarea compact">'+
+ panel('继续学习',activity?'<div class="row">'+
+ '<div class="row-body"><div class="row-title">'+(activity.state==='paused'?'已暂停':'正在学习')+'</div><div class="row-sub">'+date(activity.started_at)+' · '+time(activity.started_at)+'</div></div>'+
+ '<a class="inner-link" href="#/learn">打开 ↗</a></div>':'<p class="empty">还没有进行中的学习</p><a class="inner-link" href="#/learn">开始学习 ↗</a>')+
+ panel('待办任务',list(pending.slice(0,6),t=>row(t.title,'', '<span class="row-trailing">待完成</span>'))+'<div style="margin-top:10px"><a class="inner-link" href="#/plan">查看计划 ↗</a></div>',String(pending.length))+
+ panel('最近学习',list(d.recentSessions.slice(0,3),s=>row(date(s.started_at)+' · '+time(s.started_at),s.state==='finished'?'已结束':s.state==='paused'?'已暂停':'进行中','<span class="row-trailing">'+minutes(s.accumulated_ms)+' min</span>')))+
+ '</div>');
+}
+async function plan(){
+ const [tasks,objects]=await Promise.all([api('/tasks'),api('/objects')]);
+ view(head('Plan','计划')+
+ '<div class="workarea compact">'+
+ panel('新建任务','<form id="taskForm" class="form"><input name="title" placeholder="要完成的事情" required maxlength="160" aria-label="任务名称"><button class="button primary">添加</button><select class="wide" name="object_id" aria-label="关联课程或项目"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select></form>')+
+ panel('任务',list(tasks,t=>row(t.title,t.status==='done'?'已完成':'待完成',t.status==='open'?'<button class="button sm secondary" data-done="'+esc(t.id)+'">完成</button>':'<span class="row-trailing">✓</span>')),String(tasks.length))+
+ '</div>');
+ root.querySelector('#taskForm').addEventListener('submit',e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);perform(async()=>{await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null});await plan();notify('已添加任务');});});
+ root.querySelectorAll('[data-done]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{await api('/tasks/'+b.dataset.done+'/complete','POST');await plan();notify('已完成');})));
+}
+function liveTime(s){
+ const since=s.current_started_at&&s.state==='running'?Math.max(0,Date.now()-Date.parse(s.current_started_at)):0;
+ const seconds=Math.max(0,Math.floor((s.accumulated_ms+since)/1000));
+ return String(Math.floor(seconds/3600)).padStart(2,'0')+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+}
+async function learn(){
+ const [active,recent,objects]=await Promise.all([api('/focus/active'),api('/focus/recent'),api('/objects')]);
+ const action=active?
+ '<div class="session-state" id="elapsed">'+liveTime(active)+'</div><p class="session-meta">'+(active.state==='paused'?'已暂停':'专注进行中')+'</p><div class="actions">'+
+ (active.state==='running'?'<button class="button secondary" data-action="pause">暂停</button>':'<button class="button primary" data-action="resume">继续</button>')+
+ '<button class="button secondary" data-action="finish">结束</button></div>':
+ '<form id="focusForm" class="form stacked"><select name="object_id" aria-label="选择学习对象"><option value="">自由学习 · 不关联任务</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select><button class="button primary">开始学习 →</button></form>';
+ view(head('Learn','学习')+'<div class="workarea compact">'+panel('专注',action)+
+ panel('学习记录',list(recent.slice(0,6),s=>row(date(s.started_at)+' · '+time(s.started_at),s.state==='finished'?'已结束':s.state==='paused'?'已暂停':'进行中','<span class="row-trailing">'+minutes(s.accumulated_ms)+' min</span>')))+
+ '<p class="notice">阅读器与 ChatGPT 尚未接入，本页只记录真实专注时间。</p></div>');
+ if(timer){clearInterval(timer);timer=null;}
+ if(active?.state==='running')timer=setInterval(()=>{const el=document.querySelector('#elapsed');if(el)el.textContent=liveTime(active);},1000);
+ if(!active)root.querySelector('#focusForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{await api('/focus/start','POST',{object_id:f.get('object_id')||null});await learn();notify('学习开始');});});
+ else root.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{await api('/focus/'+active.id+'/'+b.dataset.action,'POST');await learn();notify('已保存');})));
+}
+async function library(){
  const [objects,resources]=await Promise.all([api('/objects'),api('/resources')]);
- main.innerHTML=header('资料库','第一轮先保存真正的学习对象与原始文件，绝不伪造 AI 理解。')+
- '<div class="grid">'+
- card('学习对象','<form id="object-form" class="fieldrow"><select name="kind"><option value="course">课程</option><option value="project">项目</option><option value="track">学习路线</option></select><input name="title" required maxlength="160" placeholder="名称"><button class="action">创建</button></form>'+list(objects,o=>'<li><span>'+esc(o.title)+'</span><span class="meta">'+esc(o.kind)+'</span></li>'))+
- card('原始资料','<form id="file-form" class="fieldrow"><input type="file" required name="file" aria-label="选择文件"><button class="action">原件入库</button></form><p class="meta">8 MB 以内；保存 SHA-256 与不可变版本。尚未连接阅读器。</p>'+list(resources,r=>'<li><span>'+esc(r.title)+'<br><small class="meta">'+Math.round(r.size_bytes/1024)+' KB · SHA-256 已记录</small></span><a class="smallbtn" download href="/api/resources/'+esc(r.id)+'/content">取回原件</a></li>'))+
- '</div><div class="quiet">Original 与 Cove Interpretation 将分离存储。当前只有真实 Original，Worker、RAG 和 Interpretation 仍未实施。</div>';
- document.querySelector('#object-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);run(async()=>{await api('/objects','POST',{kind:f.get('kind'),title:f.get('title')});await showLibrary();});});
- document.querySelector('#file-form').addEventListener('submit',e=>{e.preventDefault();const file=new FormData(e.currentTarget).get('file');if(!(file instanceof File)||!file.size)return;if(file.size>8*1024*1024)return notice('文件超过当前 8MB 限制。');run(async()=>{
-  const buffer=await file.arrayBuffer();let base64='';
-  const bytes=new Uint8Array(buffer);for(let i=0;i<bytes.length;i+=8192){base64+=String.fromCharCode(...bytes.subarray(i,i+8192));}
-  base64=btoa(base64);
-  await api('/resources','POST',{title:file.name,mime_type:file.type||'application/octet-stream',base64});await showLibrary();
+ const kinds={course:'课程',project:'项目',track:'路线'};
+ view(head('Library','资料库')+
+ '<div class="workarea"><div class="desktop-columns">'+
+ panel('学习对象','<form id="objectForm" class="form"><input name="title" placeholder="课程 / 项目名称" aria-label="名称" required maxlength="160"><button class="button primary">创建</button><select class="wide" name="kind" aria-label="学习对象类型"><option value="course">课程</option><option value="project">项目</option><option value="track">学习路线</option></select></form>'+
+ '<div style="margin-top:13px">'+list(objects,o=>row(o.title,kinds[o.kind]||o.kind))+'</div>',String(objects.length))+
+ panel('我的资料','<form id="fileForm" class="form"><input class="wide" type="file" name="file" aria-label="选择资料" required><button class="button secondary wide">保存原件</button></form>'+
+ '<div style="margin-top:13px">'+list(resources,r=>row(r.title,Math.ceil(r.size_bytes/1024)+' KB · 原始资料','<button type="button" class="button sm secondary" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button>'))+'</div>',String(resources.length))+
+ '</div></div>');
+ root.querySelector('#objectForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{await api('/objects','POST',{title:f.get('title'),kind:f.get('kind')});await library();notify('已创建');});});
+ root.querySelector('#fileForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget),file=f.get('file');if(!(file instanceof File)||!file.size)return;perform(async()=>{
+  if(file.size>8*1024*1024)throw Error('文件目前不能超过 8MB');
+  const bytes=new Uint8Array(await file.arrayBuffer());let string='';
+  for(let i=0;i<bytes.length;i+=8192)string+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  await api('/resources','POST',{title:file.name,mime_type:file.type||'application/octet-stream',base64:btoa(string)});
+  await library();notify('原件已保存');
  });});
+ root.querySelectorAll('[data-file]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
+  const blob=await api('/resources/'+b.dataset.file+'/content');
+  const href=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=href;link.download=b.dataset.name||'learning-original';document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(href),2000);
+ })));
 }
-async function run(fn){try{notice('正在保存真实数据…');await fn();notice('已保存');}catch(e){notice('失败：'+e.message);}}
+async function perform(action){
+ try{await action();}catch(error){
+  if(error.unauthorized){promptAfterAuth=()=>render();connect();}
+  else notify(error.message);
+ }
+}
 async function render(){
- for(const b of document.querySelectorAll('.tab')){const selected=b.dataset.page===page;b.classList.toggle('active',selected);b.setAttribute('aria-current',selected?'page':'false');}
- try{notice('正在读取…');await({today:showToday,plan:showPlan,learn:showLearn,library:showLibrary}[page])();notice('已载入');}
- catch(e){main.textContent='加载失败：'+e.message;notice('读取失败');}
- main.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{page=b.dataset.go;render();}));
+ currentNav();const name=page();const seq=++viewId;
+ if(timer){clearInterval(timer);timer=null;}
+ if(name==='home'){hub();return;}
+ try{
+  root.innerHTML='<div class="view"><div class="kicker">LEARNING</div><div class="quiet">正在载入…</div></div>';
+  await({today,plan,learn,library}[name])();
+ }catch(error){
+  if(seq!==viewId)return;
+  if(error.unauthorized){root.innerHTML='<div class="view"><div class="head"><h1>Learning.</h1></div><button class="button primary" id="reconnect">连接学习空间</button></div>';root.querySelector('#reconnect').addEventListener('click',connect);if(!dialog.open)connect();}
+  else{root.innerHTML='<div class="view"><div class="head"><h1>连接失败</h1></div><p class="quiet">'+esc(error.message)+'</p><button class="button secondary" id="retry">重试</button></div>';root.querySelector('#retry').addEventListener('click',render);}
+ }
 }
-for(const b of document.querySelectorAll('.tab'))b.addEventListener('click',()=>{page=b.dataset.page;render();});
+window.addEventListener('hashchange',render);
 render();
+if('serviceWorker' in navigator && location.protocol==='https:'){
+ window.addEventListener('load',()=>navigator.serviceWorker.register(base+'/sw.js',{scope:base+'/'}).catch(()=>{}));
+}
