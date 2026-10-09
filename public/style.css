@@ -23,7 +23,10 @@
  --hero-a:#555a72;--hero-b:#34374d;--hero-text:#f4f1fb;--hero-sub:rgba(250,250,255,.68);
 }
 *{box-sizing:border-box}
-html,body{height:100%;width:100%;max-width:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+/* iOS 26 standalone + black-translucent shifts a 100% root behind the status bar
+   without growing its height, leaving a native black "chin" below the dock.
+   100vh anchors the root to the full CSS viewport instead of its shortened containing block. */
+html,body{height:100vh;width:100%;max-width:100%;margin:0;overflow:hidden;overscroll-behavior:none}
 html{
  background-color:var(--bg-c);
  background-image:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c));
@@ -252,3 +255,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .file-picker:focus-within{outline:2px solid var(--ink);outline-offset:2px}
 .upload-strip{padding-bottom:23px}
 .library-flow{scroll-padding-bottom:90px;padding-bottom:112px}
+
+.viewport-debug{position:fixed;top:calc(max(12px,var(--safe-top)) + 56px);left:16px;right:16px;z-index:30;max-width:360px;
+ white-space:pre-wrap;background:rgba(17,22,33,.95);color:white;font:12px/1.65 ui-monospace,Menlo,monospace;
+ padding:13px 15px;border:1px solid rgba(255,255,255,.25);border-radius:12px;pointer-events:none;
+ box-shadow:0 15px 40px rgba(0,0,0,.25)}
