@@ -77,7 +77,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   });
   assert.equal(await page.locator('#fileName').innerText(),'study-note.txt','custom file picker reflects the selected filename');
   await page.locator('#fileForm button').click();
-  await page.getByText('study-note.txt',{exact:true}).waitFor();
+  await page.locator('.resource-list .row-title',{hasText:'study-note.txt'}).waitFor();
   const libSize=await page.evaluate(()=>({
    viewport:innerWidth,scroll:document.documentElement.scrollWidth,
    sections:Array.from(document.querySelectorAll('.library-objects,.library-materials')).map(el=>({
@@ -86,6 +86,16 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   }));
   assert.ok(libSize.scroll<=libSize.viewport,'Library never scrolls horizontally');
   assert.ok(libSize.sections.every(s=>s.width>300 && s.left>=0),'Library sections have full mobile width');
+  await page.locator('.workarea').evaluate(el=>el.scrollTo(0,el.scrollHeight));
+  await page.waitForFunction(()=>{const el=document.querySelector('.workarea');return !!el&&el.scrollTop>=el.scrollHeight-el.clientHeight-2;});
+  const fileLayout=await page.evaluate(()=>{
+   const picker=document.querySelector('.file-picker')!.getBoundingClientRect();
+   const submit=document.querySelector('#fileForm .button')!.getBoundingClientRect();
+   const scrollArea=document.querySelector('.workarea')!.getBoundingClientRect();
+   return {pickerBottom:picker.bottom,submitTop:submit.top,submitBottom:submit.bottom,scrollAreaBottom:scrollArea.bottom,scrollTop:document.querySelector('.workarea')!.scrollTop,scrollHeight:document.querySelector('.workarea')!.scrollHeight,clientHeight:document.querySelector('.workarea')!.clientHeight};
+  });
+  assert.ok(fileLayout.submitTop>=fileLayout.pickerBottom+8,'Library picker and upload action do not overlap');
+  assert.ok(fileLayout.submitBottom<=fileLayout.scrollAreaBottom,'Library upload action remains reachable above the fixed dock: '+JSON.stringify(fileLayout));
   await page.screenshot({path:join(dir,'mobile-library.png'),fullPage:true});
   await page.locator('a[data-nav=learn]').click();
   await page.locator('#focusForm').waitFor();
