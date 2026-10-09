@@ -71,7 +71,7 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     return json(res,status,result);
    }
    if(req.method!=='GET'&&req.method!=='HEAD')throw new AppError('VALIDATION_ERROR','不支持的请求方法。');
-   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/icon.svg':'icon.svg','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png'};
+   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/glass-lab.html':'glass-lab.html','/glass-lab.css':'glass-lab.css','/glass-lab.js':'glass-lab.js','/icon.svg':'icon.svg','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png'};
    const name=routes[path];
    if(!name)return json(res,404,{error:{code:'NOT_FOUND',message:'页面不存在。'}});
    const content=await readFile(join(publicDir,name));
