@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Rebuild the opt-in Learning Liquid Glass UI from approved Home V5 optics.
+"""Rebuild the default Learning Liquid Glass UI from approved Home V5 optics.
 
-Uses the real V5 shader, not a CSS imitation. The base Learning application
-remains identical; appended code executes only for /?ui=glass.
+Uses the real V5 shader, not a CSS imitation. The Learning application
+and APIs remain identical; ?ui=classic is a recovery-only appearance fallback.
 """
 from pathlib import Path
 
@@ -43,7 +43,7 @@ def main():
     css=CSS.read_text()
     replace_or_append(APP,script,JS_START,JS_END)
     replace_or_append(STYLE,css,CSS_START,CSS_END)
-    print('Learning UI preview ready: /?ui=glass (original UI at /).')
+    print('Learning V5 is now the default UI at / (classic fallback: /?ui=classic).')
     print('Home V5 shader copied exactly, including interior lens, glints, Gaussian.')
 
 if __name__=='__main__':

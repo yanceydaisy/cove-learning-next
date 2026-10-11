@@ -1,40 +1,30 @@
-# Cove Learning · Liquid Glass V5 UI experiment
-**2026-10-11 · Explicit user request: “就要改UI”**
+# Cove Learning · Liquid Glass V5 — default UI
 
-## What is available
-- **Opt-in preview:** `https://learning-next.43.133.238.9.sslip.io/?ui=glass`
-- **Existing default:** `https://learning-next.43.133.238.9.sslip.io/` (unchanged)
-- **Branch:** `feat/learning-liquid-ui-preview`
+**2026-10-11 · User approved and requested direct promotion to the original Learning interface.**
 
-This is a **working** UI, not a generated image or static mockup. The preview uses the exact same Today/Plan/Learn/Library app and real test backend, with the existing task, focus, object and resource actions intact. It does not create a new learning domain model.
+## Live behavior
+- **Default:** `https://learning-next.43.133.238.9.sslip.io/` opens the Liquid Glass V5 UI.
+- **Legacy links:** `/?ui=glass` still opens the same UI, but is no longer needed.
+- **Emergency appearance rollback:** `/?ui=classic` displays the previous look, using the same app and data.
+- **PWA:** `./?source=pwa` now opens V5; service worker shell cache is `cove-learning-v0.12-20261011-glass`. Manifest and theme color are navy `#0b1020`.
 
-## Visual implementation
-- The original, user-approved **Home Liquid Glass V5** vertex/fragment shader is copied verbatim from `/home/ubuntu/projects/cove-home-liquid/home-liquid-v5.js` into the opt-in runtime via `ops/build_learning_glass.py`. The same full-card rounded-rectangle refraction, interior edge-gradient lens, upper-left/lower-right fine white glints and 3×3 Gaussian sampling remain.
-- Exactly **one major WebGL surface per page**: Today focus hero, Plan composer, Learn focus stage, Library object overview. The task/history lists remain open and readable. Dock uses subtle CSS blur rather than additional GPU contexts.
-- Dark ink / blue-violet atmosphere, large editorial serif titles, dusty pink accents, sparse vector ornaments, strong foreground text contrast, rounded cards and a floating four-tab dock.
-- The atmospheric wallpaper is drawn to a single canvas and shared pixel-for-pixel with the WebGL texture, so refraction samples the actual wallpaper rather than an invented separate texture.
-- The top **换背景** control accepts an image up to 8 MB **in memory only**, using FileReader data URIs allowed by the CSP. No upload, storage or background syncing is performed. The Home and Learning origins have separate localStorage; Learning cannot automatically read the photo stored under Home's origin.
-- Respects `prefers-reduced-motion`; uses low-power WebGL contexts, 1.5 DPR texture cap, ~20fps render cap, offscreen visibility tracking, and context cleanup after page navigation. If WebGL fails, a readable CSS translucent fallback is shown.
+## Design and functionality
+The exact Home V5 optical shader is extracted from `/home/ubuntu/projects/cove-home-liquid/home-liquid-v5.js` by `ops/build_learning_glass.py`. It includes rounded full-card refraction, subtle center-to-edge lens distortion, two fine white corner glints, and a mild Gaussian backdrop sample on the hero card. One WebGL focal surface is used per Learning page. All four original pages and their real API actions remain intact:
 
-## Safety
-- The opt-in mode is gated by `?ui=glass`. Standard Learning UI and original routes are unchanged.
-- Changes are **only** `public/app.js` and `public/style.css` (appended guarded preview blocks) plus test/docs/build helpers. No server restart or backend changes required.
-- The separate public Learning preview remains unauthenticated. **Do not upload private files**; changing UI does not change its security posture.
-- `/?ui=glass` and `/` use the same Learning preview data. Any tasks or focus sessions created in either are visible in the other.
-- Home, Together, Chat, Reading, and the independent Glass Lab and dawn letter are untouched.
+- **Today:** refractive focus hero; open task list and recent activity.
+- **Plan:** refractive task composer, task creation and management.
+- **Learn:** refractive focus stage, focus timer and session events.
+- **Library:** refractive object overview, course/project creation and resources.
 
-## Rebuild
-```bash
-cd /home/ubuntu/projects/cove-learning-next
-python3 ops/build_learning_glass.py
-node --check public/app.js
-npm test
-LD_LIBRARY_PATH=$PWD/.browser-deps/root/usr/lib/x86_64-linux-gnu node --import tsx --test test/glass-ui.test.ts test/browser.test.ts
-```
+The navy-violet wallpaper is drawn to one canvas and used by both CSS and the WebGL shader so the refracted texture matches the visible background. The top **换背景** control accepts images up to 8 MB through FileReader data URLs. Images stay in local browser memory and are **never uploaded**. **Background selection is currently session-only**; persistence is a separate future feature.
 
-The generator is idempotent: it replaces only its marked blocks in the existing app and stylesheet, preserving everything else. It verifies the shader still contains the V5 full-surface interior refraction, corner hairline glints and Gaussian blur. For rollback to the baseline, use Git to revert the two guarded blocks (or switch back to `main`), leaving backend data untouched.
+Performance: reduced-motion support, 1.5 DPR texture cap, 20fps maximum, offscreen visibility tracking, and old-context disposal on page navigation. If WebGL is unavailable, the card falls back to translucent CSS.
 
-## Acceptance status
-- Automated browser tests: actual 393×852 mobile, 393×700 iPhone 15 PWA, all four pages, real task/focus/object actions, WebGL shader compilation, no fallback, no overflow, background picker, old-context cleanup, default mode unchanged.
-- Existing Learning backend and browser regression tests still pass.
-- **Awaiting the user's visual approval on their physical iPhone 15.** Do not silently make V5 the default until approved.
+## Deployment and tests
+The original Learning URL now serves the V5 design without a preview query. No changes to Learning domain models, server endpoints, existing study data, Home, Together, Reading or Chat. PWA cache version increment ensures installed copies can receive updated assets.
+
+Validation: `npm test`, `npm run build`, and the Playwright browser tests `test/browser.test.ts` and `test/glass-ui.test.ts`. Browser tests cover the 393×852 iPhone view, 393×700 PWA view, real task/focus/library workflows, local-only photo selection, legacy link compatibility, emergency classic mode, no horizontal overflow, WebGL availability, and PWA cache metadata.
+
+For rollback to the previous *code*, use the Git commit preceding the default promotion; the temporary `?ui=classic` is only an appearance fallback. Do not revert Learning database or data files.
+
+**User preference:** For future Learning UI changes, edit the original UI directly; do not create additional preview URLs or duplicate pages unless explicitly requested.
