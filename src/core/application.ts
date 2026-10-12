@@ -19,7 +19,7 @@ export class LearningApplication {
   this.planning=new PlanningService(this.database,this.catalog,now);
   this.library=new LibraryService(this.database,join(dataDir,'originals'),now);
   this.activity=new ActivityService(this.database,this.catalog,clock);
-  this.today=new TodayService(this.database);
+  this.today=new TodayService(this.database,clock);
  }
  close(){this.database.close();}
 }

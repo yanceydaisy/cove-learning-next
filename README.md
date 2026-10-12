@@ -6,6 +6,10 @@ After the user approved the glass design, **Liquid Glass V5 became the default U
 
 Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
+## Priority Engine V0 · un-deployed feature branch (2026-10-12)
+
+On `feat/learning-priority-foundation` only: additive task metadata (optional planned date, UTC DDL, estimated minutes), read-only recommendation ranking, lightweight aging, and temporary +1/+2 user preference until the next local midnight. Today gains three internal pages while retaining Liquid Glass V5; Plan exposes optional task metadata and edit controls. This is **not deployed** to the public preview. No fabricated importance scores, PPT goal extraction, or scatter coordinates. Implementation contract: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md).
+
 ## App
 - **Default page is Today** (heading `Learning`): one focus hero, open task summary with real pending counts and unboxed recent study activity. No separate Home tab.
 - Plan: a single task-composer focus with an open actionable list. Create, complete and optionally link tasks to learning objects.

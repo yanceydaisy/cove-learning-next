@@ -37,6 +37,18 @@ CREATE TABLE learning_events (
 );
 CREATE INDEX idx_events_session ON learning_events(session_id,occurred_at,id);
 `}
+ ,{version:2,name:'task_decision_inputs_and_transient_preference',sql:`
+ALTER TABLE tasks ADD COLUMN due_at TEXT;
+ALTER TABLE tasks ADD COLUMN estimated_minutes INTEGER;
+ALTER TABLE tasks ADD COLUMN planned_for TEXT;
+CREATE TABLE task_preferences (
+ task_id TEXT PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+ boost INTEGER NOT NULL CHECK(boost IN (1,2)),
+ expires_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL
+);
+CREATE INDEX idx_preferences_expiry ON task_preferences(expires_at);
+`}
 ] as const;
 
 export class Database {

@@ -166,23 +166,97 @@ function historyList(sessions,max=5){
   '<div class="activity-item"><span class="activity-mark" aria-hidden="true"></span><div class="activity-copy"><strong>'+esc(date(s.started_at))+' · '+esc(time(s.started_at))+'</strong><span>'+esc(s.state==='finished'?'已完成':s.state==='paused'?'已暂停':'进行中')+'</span></div><span class="activity-duration">'+minutes(s.accumulated_ms)+'<small> min</small></span></div>'
  ).join('')+'</div>':'<p class="muted-line">还没有学习记录，第一段专注从这里开始。</p>';
 }
+let todayPane='day';
+function localDay(){
+ const n=new Date(),pad=v=>String(v).padStart(2,'0');
+ return n.getFullYear()+'-'+pad(n.getMonth()+1)+'-'+pad(n.getDate());
+}
+function localMidnight(){
+ const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate()+1).toISOString();
+}
+function decisionRow(t){
+ const status=t.due_at?'DDL · '+date(t.due_at)+' '+time(t.due_at):'未设置 DDL';
+ const note=t.reasons?.[0]||'由任务状态生成的建议';
+ const controls='<div class="priority-controls" aria-label="临时优先权重">'+
+  '<button type="button" data-preference="'+esc(t.id)+'" data-step="-1" aria-label="降低 '+esc(t.title)+' 的临时优先级" '+(t.boost===0?'disabled':'')+'>−</button>'+
+  '<span class="priority-value" aria-label="当前加权 '+Number(t.boost||0)+'">+'+Number(t.boost||0)+'</span>'+
+  '<button type="button" data-preference="'+esc(t.id)+'" data-step="1" aria-label="提高 '+esc(t.title)+' 的临时优先级" '+(t.boost>=2?'disabled':'')+'>+</button></div>';
+ return '<div class="ranked-item"><span class="ranked-mark" aria-hidden="true"></span>'+
+  '<div class="ranked-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(status)+' · '+esc(note)+'</span></div>'+controls+'</div>';
+}
 async function today(){
- const d=await api('/today');
+ const d=await api('/today?local_date='+encodeURIComponent(localDay()));
  const activity=d.activeFocus;
- const pending=d.openTasks;
+ const chosen=todayPane;
+ const planned=d.todayTasks;
+ const picks=planned.length?planned:d.recommendations.slice(0,4);
+ const deadlines=d.deadlineTasks;
  const title=activity?(activity.state==='paused'?'继续未完成的专注':'回到正在进行的学习'):'留一点时间，给学习。';
- const hint=activity?'从 '+esc(date(activity.started_at))+' '+esc(time(activity.started_at))+' 开始的记录仍在这里。':'不必计划好一整天，先从一段专注开始。';
+ const hint=activity?'上一次的学习进度还在这里，随时可以接着做。':'不必计划好一整天，先从一段专注开始。';
+ const tabs=[['day','今天'],['deadline','截止'],['all','全部任务']];
+ const switcher='<div class="today-switch" role="group" aria-label="今日工作台内部页面">'+
+  tabs.map(([id,label])=>'<button type="button" data-today-pane="'+id+'" aria-pressed="'+(chosen===id)+'">'+label+'</button>').join('')+'</div>';
+ const shortlist='<section class="task-overview" aria-label="今日任务">'+
+  sectionTitle('02 / '+(planned.length?'TODAY':'SUGGESTED'),planned.length?'今天的任务':'接下来做什么',actionLink('#/plan','打开计划'))+
+  (!planned.length?'<p class="today-disclaimer">还没有安排今日任务。以下是可调整的系统建议。</p>':'')+
+  (picks.length?'<div class="ranked-list">'+picks.map(decisionRow).join('')+'</div>':'<p class="muted-line">还没有待办任务，去 Plan 写下第一件事吧。</p>')+'</section>'+
+  '<section class="deadline-peek" aria-label="临近截止">'+sectionTitle('03 / DEADLINE','临近截止',
+   '<button class="today-text-button" data-today-pane="deadline">查看全部 '+ornament('arrow')+'</button>')+
+  (deadlines.length?'<div class="deadline-line">'+deadlines.slice(0,2).map(t=>'<div><span>'+esc(t.title)+'</span><small>'+esc(date(t.due_at))+'</small></div>').join('')+'</div>':
+   '<p class="muted-line">目前没有七天内截止的任务。</p>')+'</section>';
+ const duePage='<section class="task-overview" aria-label="截止任务">'+sectionTitle('02 / DEADLINE','截止任务',
+  '<span class="count-caption">'+deadlines.length+' 项近期截止</span>')+
+  (deadlines.length?'<div class="ranked-list">'+deadlines.map(decisionRow).join('')+'</div>':
+   '<p class="muted-line">暂无七天内截止的任务。没有 DDL 的任务不会被当成不重要。</p>')+'</section>';
+ const allPage='<section class="task-overview" aria-label="全部待办任务">'+sectionTitle('02 / TASKS','全部待办',
+  '<span class="count-caption">'+d.recommendations.length+' 项</span>')+
+  '<p class="today-disclaimer">排序仅供参考；+1 / +2 表示今天想优先做，明天自动失效。重要 × 紧急坐标图等待课程目标数据接入。</p>'+
+  (d.recommendations.length?'<div class="ranked-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
+   '<p class="muted-line">还没有待办任务。</p>')+'</section>';
  view(head('Learning','今日','TODAY / OVERVIEW')+
- '<div class="workarea daily-flow">'+
- '<section class="feature feature-today" aria-label="继续学习"><div class="feature-top"><span class="feature-index">01 / FOCUS</span><span class="feature-symbol" aria-hidden="true">'+ornament('sparkle')+'</span></div>'+
- '<div class="feature-bottom"><p class="feature-overline">'+(activity?'当前进度':'你的今日起点')+'</p><h2>'+title+'</h2><p>'+hint+'</p><a class="feature-action" href="#/learn">'+(activity?'继续学习':'开始学习')+' '+ornament('arrow')+'</a></div></section>'+
- '<section class="task-overview" aria-label="待办任务">'+
- sectionTitle('02 / TO DO','待办任务',actionLink('#/plan','打开计划'))+
- '<div class="task-countline"><strong>'+pending.length+'</strong><span>项待完成</span></div>'+
- (pending.length?'<div class="compact-list">'+pending.slice(0,3).map(t=>'<div class="compact-item"><span class="mini-indicator" aria-hidden="true"></span><span>'+esc(t.title)+'</span></div>').join('')+'</div>':'<p class="muted-line">今天还没有待办任务。</p>')+
- '</section>'+
- '<section class="history-block" aria-label="最近学习">'+sectionTitle('03 / ACTIVITY','最近学习',actionLink('#/learn','学习记录'))+
- historyList(d.recentSessions,3)+'</section></div>');
+  '<div class="workarea daily-flow">'+
+  '<section class="feature feature-today" aria-label="继续学习"><div class="feature-top"><span class="feature-index">01 / FOCUS</span><span class="feature-symbol" aria-hidden="true">'+ornament('sparkle')+'</span></div>'+
+  '<div class="feature-bottom"><p class="feature-overline">'+(activity?'当前进度':'你的今日起点')+'</p><h2>'+title+'</h2><p>'+hint+'</p><a class="feature-action" href="#/learn">'+(activity?'继续学习':'开始学习')+' '+ornament('arrow')+'</a></div></section>'+
+  switcher+(chosen==='day'?shortlist:chosen==='deadline'?duePage:allPage)+'</div>');
+ root.querySelectorAll('[data-today-pane]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  const scroll=root.querySelector('.workarea')?.scrollTop||0;
+  todayPane=button.dataset.todayPane;await today();
+  root.querySelector('.workarea').scrollTop=scroll;
+  root.querySelector('.today-switch [data-today-pane="'+todayPane+'"]')?.focus({preventScroll:true});
+ })));
+ root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  const item=d.recommendations.find(t=>t.id===button.dataset.preference);
+  if(!item)return;
+  const boost=Math.min(2,Math.max(0,item.boost+Number(button.dataset.step)));
+  const scroll=root.querySelector('.workarea')?.scrollTop||0;
+  await api('/tasks/'+item.id+'/preference','POST',{boost,...(boost?{expires_at:localMidnight()}:{})});
+  await today();root.querySelector('.workarea').scrollTop=scroll;
+  notify(boost?'临时优先 +'+boost+'，今晚失效':'已撤销临时加权');
+ })));
+}
+function localDatetimeValue(iso){
+ if(!iso)return '';
+ const d=new Date(iso);
+ return new Date(d.getTime()-d.getTimezoneOffset()*60_000).toISOString().slice(0,16);
+}
+function planTaskRow(t){
+ const done=t.status==='done',id=esc(t.id);
+ const details=[
+  t.planned_for?'计划 '+t.planned_for:'',
+  t.due_at?'DDL '+date(t.due_at)+' '+time(t.due_at):'',
+  t.estimated_minutes?t.estimated_minutes+' 分钟':''
+ ].filter(Boolean).join(' · ');
+ return '<div class="plan-task"><div class="task-item"><span class="task-check '+(done?'complete':'')+'" aria-hidden="true">'+(done?ornament('check'):'')+'</span>'+
+  '<div class="plan-task-copy"><span class="task-description '+(done?'complete':'')+'">'+esc(t.title)+'</span>'+
+  (details?'<small>'+esc(details)+'</small>':'')+'</div>'+
+  (done?'<span class="row-trailing">已完成</span>':
+   '<button type="button" class="button sm quiet-button" data-edit="'+id+'">设置</button>'+
+   '<button type="button" class="button sm quiet-button" data-done="'+id+'">完成</button>')+'</div>'+
+  (done?'':'<form class="task-inline-edit" data-edit-form="'+id+'" hidden>'+
+   '<label>计划日期<input type="date" name="planned_for" value="'+esc(t.planned_for||'')+'"></label>'+
+   '<label>截止时间<input type="datetime-local" name="due_local" value="'+esc(localDatetimeValue(t.due_at))+'"></label>'+
+   '<label>预计分钟<input type="number" name="estimated_minutes" min="1" max="20160" value="'+esc(t.estimated_minutes||'')+'"></label>'+
+   '<button class="button sm primary" type="submit">保存</button></form>')+'</div>';
 }
 async function plan(){
  const [tasks,objects]=await Promise.all([api('/tasks'),api('/objects')]);
@@ -193,13 +267,35 @@ async function plan(){
  '<p class="muted-line">一件具体的小事，就足够成为今天的开始。</p>'+
  '<form id="taskForm" class="form task-composer"><input name="title" placeholder="接下来要完成什么？" required maxlength="160" aria-label="任务名称">'+
  '<button class="button primary" type="submit">添加 '+ornament('arrow')+'</button>'+
- '<select class="wide" name="object_id" aria-label="关联课程或项目"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select></form></section>'+
+ '<select class="wide" name="object_id" aria-label="关联课程或项目"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select><details class="task-extra"><summary>计划日期 / 截止时间 / 预计耗时（可选）</summary>'+
+ '<div class="task-extra-fields"><label>安排日期<input name="planned_for" type="date" aria-label="安排日期"></label>'+
+ '<label>截止时间<input name="due_local" type="datetime-local" aria-label="截止时间"></label>'+
+ '<label>预计分钟<input name="estimated_minutes" type="number" min="1" max="20160" placeholder="不确定可留空" aria-label="预计耗时分钟"></label></div></details></form></section>'+
  '<section class="open-section">'+sectionTitle('02 / TASKS','我的任务','<span class="count-caption">'+open+' 待办 / '+tasks.length+' 全部</span>')+
- '<div class="simple-list">'+list(tasks,t=>'<div class="task-item"><span class="task-check '+(t.status==='done'?'complete':'')+'" aria-hidden="true">'+(t.status==='done'?ornament('check'):'')+'</span><span class="task-description '+(t.status==='done'?'complete':'')+'">'+esc(t.title)+'</span>'+
- (t.status==='open'?'<button type="button" class="button sm quiet-button" data-done="'+esc(t.id)+'">完成</button>':'<span class="row-trailing">已完成</span>')+'</div>')+'</div></section></div>');
+ '<div class="simple-list">'+list(tasks,planTaskRow)+'</div></section></div>');
  root.querySelector('#taskForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
-  await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null});await plan();notify('已添加任务');
+  const due=f.get('due_local');
+  await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null,
+   planned_for:f.get('planned_for')||null,
+   due_at:due?new Date(String(due)).toISOString():null,
+   estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null});
+  await plan();notify('已添加任务');
  });});
+ root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{
+  const form=root.querySelector('[data-edit-form="'+b.dataset.edit+'"]');
+  if(form)form.hidden=!form.hidden;
+ }));
+ root.querySelectorAll('[data-edit-form]').forEach(form=>form.addEventListener('submit',e=>{
+  e.preventDefault();const f=new FormData(form),due=f.get('due_local');
+  perform(async()=>{
+   await api('/tasks/'+form.dataset.editForm+'/details','POST',{
+    planned_for:f.get('planned_for')||null,
+    due_at:due?new Date(String(due)).toISOString():null,
+    estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null
+   });
+   await plan();notify('已更新任务信息');
+  });
+ }));
  root.querySelectorAll('[data-done]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
   await api('/tasks/'+b.dataset.done+'/complete','POST');await plan();notify('已完成');
  })));
