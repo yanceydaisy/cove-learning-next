@@ -3,8 +3,8 @@
 Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
 ## App
-- Home: Learning wordmark and four compact doors (Today, Plan, Learn, Library).
-- Today: real tasks, active focus and recent sessions, no fabricated progress.
+- **Default page is Today** (heading `Learning`): real tasks, active focus and recent sessions, no fabricated progress. No separate Home tab or hub page.
+- The bottom bar has exactly four business tabs: Today, Plan, Learn, Library.
 - Plan: create, complete and optionally link tasks to learning objects.
 - Learn: Focus start, pause, resume and finish with conservative duration accounting.
 - Library: Course / Project / Track plus immutable source uploads (8MB max, SHA-256).
@@ -45,13 +45,7 @@ Regression covers desktop and 393×852 mobile, 393×759 standalone viewport with
 
 `https://learning-next.43.133.238.9.sslip.io/`
 
-The independent proxy was installed and the original 502 issue was repaired using a private Unix socket. The code and `data/preview.env` were updated to remove the preview access key. The live server process must restart to load the environment change:
-
-```sh
-sudo systemctl restart cove-learning-next.service
-```
-
-Do not restart the original `cove-learning.service`. After restarting, validate `GET /api/health` returns 200 without credentials, verify browser/PWA. If the server still returns 401, it has not loaded the updated env/config.
+The independent proxy was installed and the original 502 issue was repaired using a private Unix socket. The preview access-key mode has been disabled and the running HTTPS API now returns 200 without credentials. UI changes are served directly from `public` (no backend restart required), with a new service-worker cache revision to refresh PWA assets. Do not restart the original `cove-learning.service`.
 
 Related operator scripts: `ops/enable-preview.sh` and `ops/repair-proxy-socket.sh`; both require explicit authorized administrator execution. These scripts do not touch Home or the original Learning database.
 

@@ -19,23 +19,27 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const page=await context.newPage();
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+addr.port+'/',{waitUntil:'networkidle'});
-  await page.locator('.door').first().waitFor();
-  assert.equal(await page.locator('.door').count(),4);
+  await page.locator('.head h1').waitFor();
+  assert.equal(await page.locator('.head h1').innerText(),'Learning');
+  assert.equal(await page.locator('.dock a').count(),4);
+  assert.equal(await page.locator('.dock a[data-nav=today]').getAttribute('aria-current'),'page');
+  assert.equal(await page.locator('.door').count(),0);
   assert.match(await page.title(),/Learning/);
   const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'./manifest.webmanifest');
   const sizes=await page.evaluate(()=>({
    viewport:innerWidth,doc:document.documentElement.scrollWidth,screen:document.querySelector('.screen')!.getBoundingClientRect().width,
-   cards:Array.from(document.querySelectorAll('.door')).map(e=>Math.round(e.getBoundingClientRect().width)),
+   tabs:Array.from(document.querySelectorAll('.dock a')).map(e=>Math.round(e.getBoundingClientRect().width)),
    dock:document.querySelector('.dock')!.getBoundingClientRect().bottom,
    height:innerHeight,
    serif:getComputedStyle(document.body).fontFamily
   }));
   assert.equal(sizes.viewport,393);
   assert.ok(sizes.doc<=393,'no horizontal page overflow');
-  assert.ok(sizes.cards.every(width=>width<200),'doors fit two small columns');
+  assert.equal(sizes.tabs.length,4,'only four business navigation tabs');
+  assert.ok(sizes.tabs.every(width=>width>=66),'mobile navigation tabs remain readable');
   assert.ok(sizes.dock<=sizes.height,'dock fits viewport');
   assert.match(sizes.serif,/serif/i);
-  await page.screenshot({path:join(dir,'mobile-home.png'),fullPage:true});
+  await page.screenshot({path:join(dir,'mobile-learning.png'),fullPage:true});
   await page.locator('a[data-nav=plan]').click();
   assert.equal(await page.locator('#connectDialog').count(),0);
   assert.equal(await page.getByRole('button',{name:'连接',exact:true}).count(),0);
@@ -57,12 +61,13 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const exportDir='/home/ubuntu/projects/cove-learning-next/.visual';
   const fs=await import('node:fs');
   fs.mkdirSync(exportDir,{recursive:true});
-  for(const name of ['mobile-home.png','mobile-plan.png','mobile-today.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
+  for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
   await context.close();
   const desktop=await browser.newContext({viewport:{width:1440,height:900}});
   const p2=await desktop.newPage();await p2.goto('http://127.0.0.1:'+addr.port+'/');
-  await p2.screenshot({path:join(exportDir,'desktop-home.png'),fullPage:true});
-  assert.ok(await p2.locator('.hub-grid').isVisible());
+  await p2.screenshot({path:join(exportDir,'desktop-learning.png'),fullPage:true});
+  assert.equal(await p2.locator('.head h1').innerText(),'Learning');
+  assert.equal(await p2.locator('.dock a').count(),4);
   await desktop.close();
   // iPhone 15 standalone regression: iOS can report a shorter visual viewport than screen.
   const pwa=await browser.newContext({viewport:{width:393,height:759},screen:{width:393,height:852},deviceScaleFactor:3,isMobile:true,hasTouch:true});

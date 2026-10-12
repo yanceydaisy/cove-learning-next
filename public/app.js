@@ -15,7 +15,7 @@ function notify(message){
  clearTimeout(notify.timer);
  notify.timer=setTimeout(()=>toast.classList.remove('on'),2800);
 }
-function page(){const p=(location.hash||'#/').replace(/^#\/?/,'').split('/')[0];return ['today','plan','learn','library'].includes(p)?p:'home';}
+function page(){const p=(location.hash||'#/today').replace(/^#\/?/,'').split('/')[0];return ['today','plan','learn','library'].includes(p)?p:'today';}
 function currentNav(){
  const here=page();
  document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===here?'page':'false'));
@@ -73,23 +73,14 @@ async function api(path,method='GET',data){
 }
 function panel(title,body,tag=''){return '<section class="panel"><div class="panel-title"><h2>'+title+'</h2>'+(tag?'<span class="pill">'+tag+'</span>':'')+'</div>'+body+'</section>';}
 function list(items,cb){return items.length?items.map(cb).join(''):'<p class="empty">暂无记录</p>';}
-function head(english,cn){return '<div class="head"><div><p class="kicker">COVE / LEARNING</p><h1>'+english+'</h1></div><span class="quiet">'+cn+'</span></div>';}
+function head(english,cn,kicker='COVE / LEARNING'){return '<div class="head"><div><p class="kicker">'+kicker+'</p><h1>'+english+'</h1></div><span class="quiet">'+cn+'</span></div>';}
 function row(label,sub,right=''){return '<div class="row"><div class="row-body"><div class="row-title">'+esc(label)+'</div>'+(sub?'<div class="row-sub">'+esc(sub)+'</div>':'')+'</div>'+right+'</div>';}
 function view(body){root.innerHTML='<div class="view">'+body+'</div>';}
-function hub(){
- view('<div class="view hub"><header class="head"><p class="kicker">COVE / STUDY SPACE</p><h1>Learning<span style="color:var(--pink)">.</span></h1></header>'+
- '<div class="hub-grid">'+[
- ['01','Today','今日','today'],
- ['02','Plan','计划','plan'],
- ['03','Learn','学习','learn'],
- ['04','Library','资料库','library']
- ].map(([num,en,cn,id])=>'<a class="door" href="#/'+id+'"><span class="door-number">'+num+'</span><span class="door-name">'+en+'</span><span class="door-bottom"><span>'+cn+'</span><span class="arrow">↗</span></span></a>').join('')+'</div></div>');
-}
 async function today(){
  const d=await api('/today');
  const activity=d.activeFocus;
  const pending=d.openTasks;
- view(head('Today','今天')+
+ view(head('Learning','今日','TODAY')+
  '<div class="workarea compact">'+
  panel('继续学习',activity?'<div class="row">'+
  '<div class="row-body"><div class="row-title">'+(activity.state==='paused'?'已暂停':'正在学习')+'</div><div class="row-sub">'+date(activity.started_at)+' · '+time(activity.started_at)+'</div></div>'+
@@ -159,7 +150,6 @@ async function perform(action){
 async function render(){
  currentNav();const name=page();const seq=++viewId;
  if(timer){clearInterval(timer);timer=null;}
- if(name==='home'){hub();return;}
  try{
   root.innerHTML='<div class="view"><div class="kicker">LEARNING</div><div class="quiet">正在载入…</div></div>';
   await({today,plan,learn,library}[name])();
