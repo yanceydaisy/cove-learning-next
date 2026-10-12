@@ -32,7 +32,9 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.door').count(),0);
   assert.equal(await page.locator('.feature-today').count(),1,'Today has one dominant hero');
   assert.equal(await page.locator('.task-overview').count(),1,'tasks are open information, not a card');
-  assert.equal(await page.locator('.history-block').count(),1,'history is a light activity list');
+  assert.equal(await page.locator('.history-block').count(),0,'Today V2 intentionally omits activity history');
+  assert.equal(await page.locator('.today-switch button').count(),3,'Today uses internal sections');
+  assert.equal(await page.locator('.deadline-peek').count(),1,'Today has a DDL preview');
   assert.equal(await page.locator('.feature-symbol svg.micro-sparkle').count(),1,'hero decoration is a vector, not emoji');
   assert.equal(await page.locator('.feature-action svg.micro-arrow').count(),1,'hero uses custom thin line arrow');
   const heroAlign=await page.locator('.feature-bottom').evaluate(el=>getComputedStyle(el).textAlign);
@@ -64,7 +66,17 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
 
   await page.locator('#taskForm input[name=title]').fill('极点配置');
   await page.locator('#taskForm button').click();
-  await page.getByText('极点配置',{exact:true}).waitFor();
+  await page.getByText('极点配置',{exact:true}).first().waitFor();
+  await page.locator('[data-edit]').first().click();
+  const dueDay=await page.evaluate(()=>{
+   const d=new Date(Date.now()+5*86_400_000);
+   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  });
+  await page.locator('.task-inline-edit input[name=planned_for]').fill(dueDay);
+  await page.locator('.task-inline-edit input[name=due_local]').fill(dueDay+'T20:00');
+  await page.locator('.task-inline-edit input[name=estimated_minutes]').fill('75');
+  await page.locator('.task-inline-edit button[type=submit]').click();
+  await page.locator('.task-inline-edit[hidden]').waitFor({state:'attached'});
   await page.screenshot({path:join(dir,'mobile-plan.png'),fullPage:true});
   await page.locator('a[data-nav=library]').click();
   await page.locator('#objectForm').waitFor();
@@ -114,10 +126,19 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('button[data-action=finish]').click();
   await page.getByText('学习记录',{exact:true}).waitFor();
   await page.locator('a[data-nav=today]').click();
-  await page.getByText('极点配置',{exact:true}).waitFor();
+  await page.getByText('极点配置',{exact:true}).first().waitFor();
+  assert.equal(await page.locator('.deadline-line>div').count(),1,'edited deadline appears in Today');
+  assert.equal(await page.locator('.priority-value').first().innerText(),'+0');
+  await page.locator('button[data-step="1"]').first().click();
+  await page.locator('.priority-value').first().getByText('+1').waitFor();
+  await page.locator('.today-switch button[data-today-pane=all]').click();
+  await page.getByText('全部待办',{exact:true}).waitFor();
+  await page.locator('.today-switch button[data-today-pane=deadline]').click();
+  await page.getByText('截止任务',{exact:true}).waitFor();
+  await page.locator('.today-switch button[data-today-pane=day]').click();
   await page.screenshot({path:join(dir,'mobile-today.png'),fullPage:true});
   assert.deepEqual(errors,[]);
-  const exportDir='/home/ubuntu/projects/cove-learning-next/.visual';
+  const exportDir='/home/ubuntu/projects/cove-learning-priority-foundation/.visual';
   const fs=await import('node:fs');
   fs.mkdirSync(exportDir,{recursive:true});
   for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png','mobile-library.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
@@ -132,7 +153,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const recoveryContext=await browser.newContext({viewport:{width:393,height:759},isMobile:true,hasTouch:true});
   const recoveryPage=await recoveryContext.newPage();
   let readAttempts=0;
-  await recoveryPage.route('**/api/today',async route=>{
+  await recoveryPage.route('**/api/today*',async route=>{
    readAttempts++;
    if(readAttempts<=2)await route.abort('failed');
    else await route.continue();
@@ -140,12 +161,12 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await recoveryPage.goto('http://127.0.0.1:'+addr.port+'/',{waitUntil:'domcontentloaded'});
   await recoveryPage.locator('.feature-today').waitFor({timeout:8000});
   assert.equal(readAttempts,3,'two failed GETs recover via safe retries');
-  await recoveryPage.unroute('**/api/today');
-  await recoveryPage.route('**/api/today',route=>route.abort('failed'));
+  await recoveryPage.unroute('**/api/today*');
+  await recoveryPage.route('**/api/today*',route=>route.abort('failed'));
   await recoveryPage.reload({waitUntil:'domcontentloaded'});
   await recoveryPage.locator('#retry').waitFor({timeout:8000});
   assert.match(await recoveryPage.locator('.screen').innerText(),/网络连接暂时中断/,'network errors use clear Chinese guidance');
-  await recoveryPage.unroute('**/api/today');
+  await recoveryPage.unroute('**/api/today*');
   await recoveryPage.evaluate(()=>window.dispatchEvent(new Event('online')));
   await recoveryPage.locator('.feature-today').waitFor({timeout:8000});
   assert.equal(await recoveryPage.locator('#retry').count(),0,'online event restores Today automatically');

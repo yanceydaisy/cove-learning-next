@@ -502,3 +502,77 @@ html[data-learning-ui="glass"] .toast{color:#fffaff;background:#332a44}
 }
 
 /* END OPT-IN LEARNING LIQUID GLASS UI */
+
+/* Today V2: focused inner pages, accessible preference controls, no fake 2D data. */
+.today-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
+ padding:5px;border-radius:18px;border:1px solid var(--line);background:var(--surface);
+ max-width:480px;width:100%}
+.today-switch button{background:transparent;border:0;border-radius:13px;min-height:41px;
+ color:var(--muted);font-size:12px;letter-spacing:.03em}
+.today-switch button[aria-pressed="true"]{background:var(--surface-strong);color:var(--ink);font-weight:600;
+ box-shadow:inset 0 1px var(--rule)}
+.today-disclaimer{font-size:11px;line-height:1.8;color:var(--muted);margin:3px 0 12px}
+.ranked-list{border-top:1px solid var(--line);max-height:47vh;overflow:auto;scrollbar-width:thin}
+.ranked-item{display:flex;align-items:center;gap:11px;padding:12px 2px;border-bottom:1px solid var(--line);min-height:67px}
+.ranked-mark{width:7px;height:7px;flex:0 0 auto;border:1px solid var(--muted);border-radius:50%}
+.ranked-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.ranked-copy strong{font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ranked-copy span{font-size:10px;color:var(--muted);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.priority-controls{display:flex;flex:0 0 auto;align-items:center;gap:1px;padding:3px 5px;border-radius:100px;
+ border:1px solid var(--line);background:var(--surface)}
+.priority-controls button{border:0;background:transparent;color:var(--ink);width:32px;height:37px;
+ font:400 18px/1 Arial,sans-serif;display:grid;place-items:center;border-radius:100px}
+.priority-controls button:disabled{opacity:.27}
+.priority-value{font:400 11px var(--display);font-variant-numeric:tabular-nums;color:var(--body);min-width:19px;text-align:center}
+.deadline-peek{padding:0 2px 17px}
+.today-text-button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;
+ color:var(--body);font-size:11px}
+.deadline-line{border-top:1px solid var(--line)}
+.deadline-line>div{padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;justify-content:space-between;color:var(--body);font-size:12px}
+.deadline-line>div>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.deadline-line small{white-space:nowrap;color:var(--muted)}
+html[data-learning-ui="glass"] .today-switch{background:rgba(19,23,40,.3);border-color:rgba(243,234,255,.24)}
+html[data-learning-ui="glass"] .today-switch button{color:#d4c6db}
+html[data-learning-ui="glass"] .today-switch button[aria-pressed="true"]{
+ background:rgba(237,223,249,.22);color:#fff8ff}
+html[data-learning-ui="glass"] .ranked-copy strong,
+html[data-learning-ui="glass"] .deadline-line>div{color:#f5ecf8}
+html[data-learning-ui="glass"] .ranked-copy span,
+html[data-learning-ui="glass"] .priority-value,
+html[data-learning-ui="glass"] .today-disclaimer,
+html[data-learning-ui="glass"] .deadline-line small{color:#c6bbd0}
+html[data-learning-ui="glass"] .priority-controls{background:rgba(18,20,38,.3);border-color:rgba(249,234,255,.28)}
+html[data-learning-ui="glass"] .priority-controls button,
+html[data-learning-ui="glass"] .today-text-button{color:#f4e6f6}
+@media(max-width:390px){
+ .ranked-item{gap:8px}
+ .priority-controls button{width:28px}
+ .today-switch button{min-height:43px}
+}
+
+/* Optional task inputs preserve the one-line default capture experience. */
+.task-extra{grid-column:1/-1;margin-top:3px;min-width:0}
+.task-extra summary{cursor:pointer;color:var(--muted);font-size:11px;padding:7px 2px}
+.task-extra-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+.task-extra-fields label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--muted);font-size:11px}
+.task-extra-fields input{font-family:system-ui,sans-serif;font-size:12px;min-width:0;max-width:100%;color:var(--ink);color-scheme:inherit}
+html[data-learning-ui="glass"] .task-extra summary,
+html[data-learning-ui="glass"] .task-extra-fields label{color:#d2c4dd}
+html[data-learning-ui="glass"] .task-extra-fields input{color:#f8ecfa;color-scheme:dark}
+@media(max-width:520px){.task-extra-fields{grid-template-columns:1fr}}
+
+.plan-task-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.plan-task-copy .task-description{display:block;flex:initial}
+.plan-task-copy small{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-task .task-item{gap:8px}
+.plan-task .task-item .button{padding-inline:12px}
+.task-inline-edit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:9px;
+ border-bottom:1px solid var(--line);padding:11px 1px 15px}
+.task-inline-edit label{min-width:0;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:5px}
+.task-inline-edit input{min-width:0;width:100%;min-height:40px;padding:7px;border:1px solid var(--line);
+ border-radius:10px;background:var(--surface);color:var(--ink);font:400 12px system-ui,sans-serif}
+html[data-learning-ui="glass"] .plan-task-copy small,
+html[data-learning-ui="glass"] .task-inline-edit label{color:#d1c3d9}
+html[data-learning-ui="glass"] .task-inline-edit input{color:#f8ebfa;color-scheme:dark;background:rgba(18,21,38,.36)}
+@media(max-width:610px){.task-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}.task-inline-edit button{width:max-content}}
+@media(max-width:390px){.plan-task .task-item .button{padding-inline:9px}}

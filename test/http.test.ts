@@ -27,6 +27,18 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   assert.equal((await request('/api/objects')).status,200);
   const task=await request('/api/tasks',{method:'POST',body:JSON.stringify({title:'写需求',object_id:item.id})});
   assert.equal(task.status,201);
+  const taskData=await task.json() as {id:string};
+  const meta=await request('/api/tasks/'+taskData.id+'/details',{method:'POST',body:JSON.stringify({
+   due_at:'2026-10-13T10:00:00.000Z',estimated_minutes:40,planned_for:'2026-10-12'
+  })});
+  assert.equal(meta.status,200);
+  assert.equal((await meta.json() as {estimated_minutes:number}).estimated_minutes,40);
+  assert.equal((await request('/api/tasks/'+taskData.id+'/preference',{method:'POST',body:JSON.stringify({
+   boost:1,expires_at:new Date(Date.now()+3600_000).toISOString()
+  })})).status,200);
+  const ranked=await (await request('/api/today?local_date=2026-10-12')).json() as {recommendations:{id:string;boost:number}[];todayTasks:unknown[]};
+  assert.equal(ranked.recommendations[0]?.boost,1);
+  assert.equal(ranked.todayTasks.length,1);
   const started=await request('/api/focus/start',{method:'POST',body:'{}'});assert.equal(started.status,201);
   const focus=await started.json() as {id:string};
   assert.equal((await request('/api/focus/start',{method:'POST',body:'{}'})).status,409);

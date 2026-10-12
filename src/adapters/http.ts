@@ -47,11 +47,15 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     }
     let result:unknown,status=200;
     if(path==='/api/health'&&method==='GET')result={status:'ok',product:'Cove Learning',stage:'independent-skeleton'};
-    else if(path==='/api/today'&&method==='GET')result=app.today.snapshot();
+    else if(path==='/api/today'&&method==='GET')result=app.today.snapshot(url.searchParams.get('local_date')??undefined);
     else if(path==='/api/objects'&&method==='GET')result=app.catalog.list();
     else if(path==='/api/objects'&&method==='POST'){result=app.catalog.create(await parseBody(req));status=201;}
     else if(path==='/api/tasks'&&method==='GET')result=app.planning.list();
     else if(path==='/api/tasks'&&method==='POST'){result=app.planning.create(await parseBody(req));status=201;}
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='details'&&method==='POST')
+     result=app.planning.updateDetails(parts[2]!,await parseBody(req));
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='preference'&&method==='POST')
+     result=app.planning.setPreference(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='complete'&&method==='POST')result=app.planning.complete(parts[2]!);
     else if(path==='/api/resources'&&method==='GET')result=app.library.list();
     else if(path==='/api/resources'&&method==='POST'){result=app.library.ingest(await parseBody(req));status=201;}
