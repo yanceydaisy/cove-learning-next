@@ -7,7 +7,9 @@ Fresh independent Learning application. The public test preview deliberately **d
 - Plan: a single task-composer focus with an open actionable list. Create, complete and optionally link tasks to learning objects.
 - Learn: one focus stage for start, pause, resume and finish, followed by a light activity archive.
 - Library: full-width learning-object stats and creation, followed by an independently spaced materials/upload section. No cramped twin cards. Original source upload stays capped at 8 MB (SHA-256).
-- UI direction B (product hierarchy): varied scales and surfaces, quiet dividers, Home-aligned blue-grey glass/serif typography. Four navigation tabs, a lower 52px dock respecting the visible iPhone viewport and a reduced (not removed) bottom safe-area margin.
+- UI direction B2 (breathing rhythm): one focal hero with centered copy and monochrome SVG star/arrow linework, centered Learn focus stage and Library statistics/upload surface; Plan form remains structured. No OS-rendered color emoji in the product UI.
+- Four navigation tabs with a 50px dock, 44px+ tap targets, and 2px bottom gap **within the usable viewport** on iPhone PWA. This intentionally reduces former ~16px safe-area spacing; check the home-indicator gesture region on a physical device. The shell still never exceeds `innerHeight` or the visible viewport.
+- Library file picker uses a custom, keyboard-focusable browser input overlay and an explicit file-name label rather than the overcrowded native file control.
 
 Reading anchors, ChatGPT / Bridge actions, Calendar, interpretation/RAG and the broader Learning roadmap are not yet implemented.
 

@@ -27,6 +27,12 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.feature-today').count(),1,'Today has one dominant hero');
   assert.equal(await page.locator('.task-overview').count(),1,'tasks are open information, not a card');
   assert.equal(await page.locator('.history-block').count(),1,'history is a light activity list');
+  assert.equal(await page.locator('.feature-symbol svg.micro-sparkle').count(),1,'hero decoration is a vector, not emoji');
+  assert.equal(await page.locator('.feature-action svg.micro-arrow').count(),1,'hero uses custom thin line arrow');
+  const heroAlign=await page.locator('.feature-bottom').evaluate(el=>getComputedStyle(el).textAlign);
+  assert.equal(heroAlign,'center','Hero headline and call-to-action form a centered resting point');
+  assert.doesNotMatch(await page.locator('.feature-today').innerText(),/[↗✳◌✨📚🚀]/u);
+
   assert.match(await page.title(),/Learning/);
   const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'./manifest.webmanifest');
   const sizes=await page.evaluate(()=>({
@@ -47,6 +53,9 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('#connectDialog').count(),0);
   assert.equal(await page.getByRole('button',{name:'连接',exact:true}).count(),0);
   await page.locator('#taskForm').waitFor();
+  assert.equal(await page.locator('.composer-pane h2').evaluate(el=>getComputedStyle(el).textAlign),'center');
+  assert.equal(await page.locator('#taskForm button .micro-arrow').count(),1);
+
   await page.locator('#taskForm input[name=title]').fill('极点配置');
   await page.locator('#taskForm button').click();
   await page.getByText('极点配置',{exact:true}).waitFor();
@@ -56,12 +65,17 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.library-objects').count(),1);
   assert.equal(await page.locator('.library-materials').count(),1);
   assert.equal(await page.locator('.library-flow .panel').count(),0,'Library must not use twin dense cards');
+  assert.equal(await page.locator('#objectForm button svg.micro-arrow').count(),1);
+  assert.equal(await page.locator('#fileForm .upload-mark svg.micro-plus').count(),1);
+  assert.equal(await page.locator('.object-overview>div').first().evaluate(el=>getComputedStyle(el).textAlign),'center');
+
   await page.locator('#objectForm input[name=title]').fill('现代控制');
   await page.locator('#objectForm button').click();
   await page.getByText('现代控制',{exact:true}).waitFor();
   await page.locator('#fileForm input[type=file]').setInputFiles({
    name:'study-note.txt',mimeType:'text/plain',buffer:Buffer.from('Learning browser regression note')
   });
+  assert.equal(await page.locator('#fileName').innerText(),'study-note.txt','custom file picker reflects the selected filename');
   await page.locator('#fileForm button').click();
   await page.getByText('study-note.txt',{exact:true}).waitFor();
   const libSize=await page.evaluate(()=>({
@@ -75,6 +89,10 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.screenshot({path:join(dir,'mobile-library.png'),fullPage:true});
   await page.locator('a[data-nav=learn]').click();
   await page.locator('#focusForm').waitFor();
+  assert.equal(await page.locator('.focus-stage').evaluate(el=>getComputedStyle(el).textAlign),'center');
+  assert.equal(await page.locator('.focus-decoration svg.micro-orbit').count(),1);
+  assert.equal(await page.locator('#focusForm button .micro-arrow').count(),1);
+
   await page.locator('#focusForm button').click();
   await page.locator('#elapsed').waitFor();
   await page.locator('button[data-action=finish]').click();
@@ -115,8 +133,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(pwaDims.screenHeight,852,'device reports the taller physical screen');
   assert.equal(pwaDims.shellHeight,759,'app shell fits visible PWA viewport, not screen.height');
   assert.equal(pwaDims.wallpaperHeight,759,'background paints the actual PWA viewport');
-  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom>=736&&pwaDims.dockBottom<=747,
-    'dock sits 12–23px from visible bottom after bold iPhone safe-area tightening');
+  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom>=755&&pwaDims.dockBottom<=759,
+    'iPhone PWA dock sits within 0–4px of the real visible bottom, without clipping');
   assert.ok(pwaDims.bodyWidth<=393,'no horizontal overflow with safe areas');
   await pwaPage.setViewportSize({width:393,height:700});
   await pwaPage.waitForFunction(()=>Math.round(document.querySelector('.shell')!.getBoundingClientRect().height)===innerHeight);
@@ -129,7 +147,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(resized.viewport,700,'viewport resize is reported');
   assert.equal(resized.shell,700,'PWA shell follows viewport resizing');
   assert.equal(resized.wallpaper,700,'background follows viewport resizing');
-  assert.ok(resized.dock>=677&&resized.dock<=688,'dock stays low but inside the 700px viewport after resize');
+  assert.ok(resized.dock>=696&&resized.dock<=700,'dock remains 0–4px from bottom after resizing');
   await pwa.close();
  }finally{
   await browser.close();
