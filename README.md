@@ -1,25 +1,29 @@
-# Cove Learning · standalone horizontal slice
+# Cove Learning · standalone horizontal test build
 
-Fresh, isolated standalone development application (not the original Learning inside Cove Home). Current stage: private VPS preview prepared; **public HTTPS route requires one privileged activation**.
+Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
-## Product surfaces
-- **Home:** only the Learning wordmark and four compact doors, no fake data.
-- **Today:** real pending tasks, active session and recent learning.
-- **Plan:** create and complete tasks with optional study-object links.
-- **Learn:** free Focus start/pause/resume/finish and append-only events.
-- **Library:** Course/Project/Track and immutable original file intake (8 MB limit, SHA-256).
+## App
+- Home: Learning wordmark and four compact doors (Today, Plan, Learn, Library).
+- Today: real tasks, active focus and recent sessions, no fabricated progress.
+- Plan: create, complete and optionally link tasks to learning objects.
+- Learn: Focus start, pause, resume and finish with conservative duration accounting.
+- Library: Course / Project / Track plus immutable source uploads (8MB max, SHA-256).
+- UI: Home-aligned blue-grey glass, serif typography, iPhone 15 393×852 responsive and standalone PWA with safe areas.
 
-The UI follows Home's blue-gray glass, serif typography and restrained navigation rather than long mobile cards. It is responsive at 393×852 CSS pixels and accounts for the standalone iPhone 15 full-screen/safe-area case. Includes a dedicated manifest, icons and network-first service worker. AI, Reading anchors, Calendar and Worker are **not** implemented; no fake generated content.
+Reading anchors, ChatGPT / Bridge actions, Calendar, interpretation/RAG and the broader Learning roadmap are not yet implemented.
 
-## Privacy and isolation
-- Live Home, current `/opt/cove/learning`, and their data are not touched.
-- Independent database and originals under the ignored `./data` folder; `UMask=0077`.
-- Preview API requires a randomly generated access key. The key is held in browser `sessionStorage`, not embedded in assets or query strings.
-- Backend binds only to the host Docker bridge `172.18.0.1:18982`, not a public interface. Public HTTPS must terminate at Caddy.
-- The default local development server instead binds to `127.0.0.1:8982`.
+## Public test warning
 
-## Develop
-Node 22.x:
+**Anyone who discovers this HTTPS URL can read, add or change any preview data.** No identity control exists. Upload only disposable, non-sensitive test files; do not store private class notes, credentials or personal documents here. No indexing header and browser cross-site write checks are *not* substitutes for authentication.
+
+The test database is under `./data` on the new isolated repo. Home and the original Learning service are separate.
+
+The upstream binds to a private Unix socket (not TCP on the public interface) and Caddy exposes the preview via TLS. The `LEARNING_PREVIEW_PUBLIC=1` setting intentionally disables the API access key only when `LEARNING_SOCKET` is configured; production login will be a separate implementation. Cross-site `Origin` / `Sec-Fetch-Site` and JSON-only POST checks limit browser-based accidental writes but do not block direct HTTP clients.
+
+## Run and test
+
+Requires Node 22:
+
 ```sh
 npm ci
 npm run build
@@ -27,42 +31,30 @@ npm test
 npm run dev
 ```
 
-Full browser regression is separate (Playwright Chromium and native Linux browser libraries required):
+The local dev server binds to 127.0.0.1 by default and has no required key. The test backend is isolated and all writes live in `./data` (ignored by Git).
+
+Chromium iPhone/PWA browser validation (Linux Playwright shared libraries must be present):
+
 ```sh
 LD_LIBRARY_PATH=$PWD/.browser-deps/root/usr/lib/x86_64-linux-gnu npm run test:browser
 ```
 
-Browser coverage: iPhone 15 393×852 no horizontal overflow, small cards, internal navigation, password flow, real task/focus API round-trip, 1440px desktop, and iPhone standalone 393×759 with an 852px full-screen background and 34px safe bottom.
+Regression covers desktop and 393×852 mobile, 393×759 standalone viewport with 852px screen and safe areas, no access dialogs, and real task/focus round trip.
 
-## Private HTTPS preview activation
-One-time preparation, already done:
-```sh
-node ops/init-preview-env.mjs  # idempotent, 0600 data/preview.env
-npm run build
-```
-
-Privileged proxy/service installation, **not executable by the unprivileged remote agent**:
-```sh
-sudo bash /home/ubuntu/projects/cove-learning-next/ops/enable-preview.sh
-```
-
-Script behavior: backs up the existing Caddyfile, installs a separate systemd unit, validates Caddy configuration before reload, restores on configuration failure. Does not change original Home/Learning routes or restart their applications. Target:
+## VPS preview
 
 `https://learning-next.43.133.238.9.sslip.io/`
 
-The domain is **not** claimed live until activation and external TLS/browser validation both succeed. Do not send access keys over HTTP. Use the private browser connection dialog only after verifying HTTPS.
-
-### Gateway 502 repair (2026-10-09)
-The first preview activation started the Node service, but TCP proxying from Caddy to the host Docker bridge returned HTTP 502. Direct host-to-backend HTTP returned 200. An alternative Unix-socket transport has been implemented and smoke-tested (static 200, unauthorized API 401, authorized API 200), without touching Home or the old Learning instance.
-
-A one-time restricted admin repair is available at `ops/repair-proxy-socket.sh`. Install a root-owned copy and execute it with explicit owner approval. It will create `/opt/cove/data/caddy/data/learning-next`, switch only the new systemd unit to a protected Unix socket, replace only the new Caddy site upstream, validate Caddy and reload it; it makes a rollback copy of the Caddyfile.
+The independent proxy was installed and the original 502 issue was repaired using a private Unix socket. The code and `data/preview.env` were updated to remove the preview access key. The live server process must restart to load the environment change:
 
 ```sh
-sudo install -o root -g root -m 0755 /home/ubuntu/projects/cove-learning-next/ops/repair-proxy-socket.sh /usr/local/sbin/cove-learning-repair
-sudo /usr/local/sbin/cove-learning-repair
+sudo systemctl restart cove-learning-next.service
 ```
 
-Only then check HTTPS and browser acceptance. Never grant broad Docker access or general passwordless sudo to the remote-development account. For recurring deployments, consider a narrow, root-owned audited operation via a fixed-command privilege policy; runtime tool restrictions may still require human approval.
+Do not restart the original `cove-learning.service`. After restarting, validate `GET /api/health` returns 200 without credentials, verify browser/PWA. If the server still returns 401, it has not loaded the updated env/config.
 
-## Next
-Real Reader reuse contract, official ChatGPT/Bridge adapter, and feature depth across all four modules, without prematurely building generic future APIs.
+Related operator scripts: `ops/enable-preview.sh` and `ops/repair-proxy-socket.sh`; both require explicit authorized administrator execution. These scripts do not touch Home or the original Learning database.
+
+## Future
+
+Real login/authentication is required before storing personal data or promoting the preview to a product. Next modules: Reading reuse contract, genuine Bridge/ChatGPT adapter, and deeper Today/Planning/Library capabilities; avoid premature infrastructure work.

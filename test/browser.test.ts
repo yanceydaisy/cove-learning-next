@@ -10,7 +10,7 @@ import {createHttp} from '../src/adapters/http.js';
 const root=resolve(fileURLToPath(new URL('../public',import.meta.url)));
 test('visual contract: compact iPhone app, four internal pages, real writes, PWA metadata',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'learning-visual-')),app=new LearningApplication(dir);
- const server=createHttp(app,root,'preview-only-test-key');
+ const server=createHttp(app,root);
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  const addr=server.address();if(!addr||typeof addr==='string')throw Error('No port');
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -37,9 +37,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.match(sizes.serif,/serif/i);
   await page.screenshot({path:join(dir,'mobile-home.png'),fullPage:true});
   await page.locator('a[data-nav=plan]').click();
-  await page.locator('#connectDialog').waitFor({state:'visible'});
-  await page.locator('#accessKey').fill('preview-only-test-key');
-  await page.getByRole('button',{name:'连接',exact:true}).last().click();
+  assert.equal(await page.locator('#connectDialog').count(),0);
+  assert.equal(await page.getByRole('button',{name:'连接',exact:true}).count(),0);
   await page.locator('#taskForm').waitFor();
   await page.locator('#taskForm input[name=title]').fill('极点配置');
   await page.locator('#taskForm button').click();

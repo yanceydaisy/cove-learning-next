@@ -23,9 +23,8 @@
     <header class="topbar">
       <a class="brand" href="#/" aria-label="Learning 首页">COVE <span>/</span> LEARNING</a>
       <div class="top-actions">
-        <span id="connection" class="dot" aria-label="连接状态"></span>
+        <span id="connection" class="dot" aria-label="服务状态"></span>
         <button type="button" class="top-link" id="appearance" title="切换日夜外观" aria-label="切换日夜外观">◐</button>
-        <button type="button" class="top-link" id="connectionButton">连接</button>
       </div>
     </header>
     <main id="screen" class="screen" tabindex="-1"></main>
@@ -38,10 +37,4 @@
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-  <dialog id="connectDialog" class="modal"><form method="dialog" id="connectForm">
-    <div class="modal-title">连接学习空间</div>
-    <p>请输入预览环境的访问密钥。密钥仅保存在当前标签页中。</p>
-    <input id="accessKey" type="password" autocomplete="off" spellcheck="false" placeholder="Access key">
-    <div class="modal-actions"><button type="button" id="cancelConnect" class="button secondary">取消</button><button type="submit" class="button primary">连接</button></div>
-  </form></dialog>
 </body></html>
