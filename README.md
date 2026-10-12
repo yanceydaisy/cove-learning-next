@@ -1,5 +1,9 @@
 # Cove Learning · standalone horizontal test build
 
+## Liquid Glass V5 · interactive UI preview (2026-10-11)
+
+At the user's request, the real four-page Learning UI now has an **opt-in** dark, refractive Home V5 design at `https://learning-next.43.133.238.9.sslip.io/?ui=glass`. The existing default `/` remains unchanged until reviewed on iPhone 15. This is functional code (not an image): Today / Plan / Learn / Library use the same APIs and data. A local-only “换背景” button lets you test your own photo (no upload). One WebGL glass focal surface per page preserves readability and mobile performance. See `docs/LEARNING_LIQUID_UI_V5.md`.
+
 Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
 ## App

@@ -260,3 +260,245 @@ button:disabled{opacity:.45;cursor:not-allowed}
  white-space:pre-wrap;background:rgba(17,22,33,.95);color:white;font:12px/1.65 ui-monospace,Menlo,monospace;
  padding:13px 15px;border:1px solid rgba(255,255,255,.25);border-radius:12px;pointer-events:none;
  box-shadow:0 15px 40px rgba(0,0,0,.25)}
+/* BEGIN OPT-IN LEARNING LIQUID GLASS UI */
+/* Cove Learning · Liquid Glass V5 UI preview.
+   OPT-IN ONLY: /?ui=glass. Default Learning is untouched.
+   The actual refractive material is the Home V5 fragment shader;
+   CSS provides typography, spacing and accessible foreground contrast. */
+html[data-learning-ui="glass"]{
+ color-scheme:dark;
+ --bg-a:#101526;--bg-b:#141b2e;--bg-c:#0b1020;
+ --ink:#f5f0f8;--body:#e3dfed;--muted:#b9b7cb;
+ --surface:rgba(20,25,46,.28);--surface-strong:rgba(37,43,65,.28);
+ --rule:rgba(245,241,255,.28);--line:rgba(238,231,252,.18);
+ --shadow:rgba(1,4,15,.30);--primary:#eee2ee;--on-primary:#282237;
+ --pink:#ebc3dc;--input:rgba(9,12,25,.36);
+ --hero-a:#1a2238;--hero-b:#1c2137;
+ --hero-text:#fff9ff;--hero-sub:rgba(246,236,251,.86);
+ --display:Didot,"Bodoni 72","Times New Roman",Georgia,serif;
+ --serif:"Noto Serif SC","Songti SC","Noto Serif CJK SC",STSong,Georgia,serif;
+ background:#0b1020!important;
+}
+html[data-learning-ui="glass"] body{
+ background:#0b1020!important;color:var(--body);
+ -webkit-font-smoothing:antialiased;
+}
+html[data-learning-ui="glass"] .wallpaper{
+ background-color:#0b1020!important;
+ background-position:center!important;
+ background-size:100% 100%!important;
+ background-repeat:no-repeat!important;
+}
+html[data-learning-ui="glass"] .wallpaper::after{content:none!important;display:none!important}
+html[data-learning-ui="glass"] .shell{
+ padding-inline:clamp(18px,4.4vw,38px);
+ gap:clamp(12px,2.4vh,22px);
+}
+html[data-learning-ui="glass"] .topbar{
+ height:36px;
+}
+html[data-learning-ui="glass"] .brand{
+ font:400 12px/1.4 var(--display);letter-spacing:.19em;color:#f0e7f1;
+}
+html[data-learning-ui="glass"] .brand span{color:#a49caf}
+html[data-learning-ui="glass"] .top-actions{gap:13px}
+/* V5 preview is intentionally a single dark optical art direction. */
+html[data-learning-ui="glass"] #appearance{display:none}
+html[data-learning-ui="glass"] .top-link{
+ color:#e3dbe8;font-size:14px;padding:7px 5px;min-width:30px;
+}
+html[data-learning-ui="glass"] .wallpaper-picker{
+ font:400 10px/1.4 var(--serif);letter-spacing:.10em;
+ color:#e6d9e9;border:0;background:transparent;
+ padding:9px 4px;cursor:pointer;
+}
+html[data-learning-ui="glass"] .view{gap:clamp(17px,3vh,28px)}
+html[data-learning-ui="glass"] .head{
+ align-items:flex-end;padding:3px 1px 2px;
+}
+html[data-learning-ui="glass"] .head h1{
+ color:#fff8ff;font:400 clamp(62px,14.8vw,92px)/.92 var(--display);
+ letter-spacing:-.075em;
+ text-shadow:0 2px 28px rgba(0,0,0,.16);
+}
+html[data-learning-ui="glass"] .head .kicker{
+ font:400 11px/1.6 var(--display);letter-spacing:.31em;
+ color:#d2c2d9;margin-bottom:13px;
+}
+html[data-learning-ui="glass"] .head .quiet{
+ color:#c7bdd0;font:400 11px/1.6 var(--serif);padding-bottom:4px;
+}
+html[data-learning-ui="glass"] .workarea{
+ gap:clamp(25px,4vh,40px);
+ padding:1px 2px 34px;
+ scrollbar-color:rgba(233,217,248,.26) transparent;
+}
+html[data-learning-ui="glass"] .daily-flow,
+html[data-learning-ui="glass"] .spacious-flow,
+html[data-learning-ui="glass"] .library-flow{width:min(100%,780px)}
+html[data-learning-ui="glass"] .section-eyebrow,
+html[data-learning-ui="glass"] .feature-index,
+html[data-learning-ui="glass"] .focus-eyebrow{
+ font:400 11px/1.55 var(--display);letter-spacing:.24em;
+ color:#d3c5db;
+}
+html[data-learning-ui="glass"] .section-heading h2{
+ font:400 clamp(20px,5vw,26px)/1.4 var(--serif);
+ color:#f9f3fb;
+}
+html[data-learning-ui="glass"] .muted-line,
+html[data-learning-ui="glass"] .quiet,
+html[data-learning-ui="glass"] .notice{color:#c3bdcf}
+html[data-learning-ui="glass"] .text-action{color:#e9d5eb}
+html[data-learning-ui="glass"] .count-caption{color:#bcb3c8}
+html[data-learning-ui="glass"] .learning-liquid{
+ position:relative;isolation:isolate;overflow:hidden;
+ background:transparent!important;
+ border:0!important;
+ box-shadow:0 16px 42px rgba(2,4,16,.22)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ transition:transform .23s cubic-bezier(.2,.8,.35,1.1);
+}
+html[data-learning-ui="glass"] .learning-liquid::before,
+html[data-learning-ui="glass"] .learning-liquid::after{
+ content:none!important;display:none!important;
+}
+html[data-learning-ui="glass"] .learning-liquid > canvas.learning-liquid-optics{
+ position:absolute;inset:0;width:100%;height:100%;z-index:0;
+ border-radius:inherit;display:block;pointer-events:none;
+}
+html[data-learning-ui="glass"] .learning-liquid > :not(canvas.learning-liquid-optics):not(.focus-decoration){
+ position:relative;z-index:1;
+}
+html[data-learning-ui="glass"] .learning-liquid.liquid-fallback{
+ background:rgba(24,29,47,.54)!important;
+ border:1px solid rgba(244,235,255,.24)!important;
+ -webkit-backdrop-filter:blur(12px)!important;backdrop-filter:blur(12px)!important;
+}
+html[data-learning-ui="glass"] .learning-liquid:active{transform:scale(.994)}
+html[data-learning-ui="glass"] .feature-today{
+ min-height:clamp(240px,34vh,320px);
+ padding:25px clamp(23px,5vw,38px) 30px;
+ justify-content:space-between;
+}
+html[data-learning-ui="glass"] .feature-symbol{color:#e6c5df;opacity:.9}
+html[data-learning-ui="glass"] .feature-bottom{
+ max-width:530px;text-shadow:0 1px 10px rgba(4,6,19,.68);
+}
+html[data-learning-ui="glass"] .feature h2{
+ font:400 clamp(24px,6.1vw,36px)/1.5 var(--serif);
+ color:#fffaff;
+}
+html[data-learning-ui="glass"] .feature p{color:rgba(255,250,255,.91)}
+html[data-learning-ui="glass"] .feature-action{
+ background:rgba(247,234,246,.93);color:#282133;
+ box-shadow:0 8px 25px rgba(0,0,0,.15);
+ padding:11px 19px;
+}
+html[data-learning-ui="glass"] .task-overview,
+html[data-learning-ui="glass"] .history-block{
+ padding-inline:5px;
+}
+html[data-learning-ui="glass"] .task-countline strong{
+ color:#fff7ff;font-size:50px;
+}
+html[data-learning-ui="glass"] .compact-item,
+html[data-learning-ui="glass"] .row-title,
+html[data-learning-ui="glass"] .task-description,
+html[data-learning-ui="glass"] .activity-copy strong{color:#f5eef9}
+html[data-learning-ui="glass"] .activity-duration{color:#fff5ff}
+html[data-learning-ui="glass"] .composer-pane{
+ padding:clamp(22px,5vw,36px) clamp(20px,5vw,36px) 29px;
+}
+html[data-learning-ui="glass"] .composer-pane h2{
+ font-size:clamp(26px,6vw,34px);color:#fff6ff;
+ text-shadow:0 1px 12px rgba(2,3,11,.4);
+}
+html[data-learning-ui="glass"] .composer-pane .muted-line{
+ color:#e2d6e7;
+}
+html[data-learning-ui="glass"] .form input,
+html[data-learning-ui="glass"] .form select,
+html[data-learning-ui="glass"] .focus-form select{
+ background:rgba(9,12,26,.44);color:#fff9ff;
+ border:1px solid rgba(243,233,255,.29);
+}
+html[data-learning-ui="glass"] .form input::placeholder{color:#c1b8cd}
+html[data-learning-ui="glass"] select option{background:#1a2033;color:#f4eefa}
+html[data-learning-ui="glass"] .button.primary,
+html[data-learning-ui="glass"] .focus-main{
+ background:#eee1ed;color:#302739;
+}
+html[data-learning-ui="glass"] .button.secondary{
+ background:rgba(240,231,248,.15);color:#fff6ff;
+ border-color:rgba(248,239,255,.32);
+}
+html[data-learning-ui="glass"] .focus-stage{
+ min-height:clamp(260px,37vh,360px);
+ padding:27px 24px 33px;
+}
+html[data-learning-ui="glass"] .focus-prompt{
+ color:#fff6ff;text-shadow:0 2px 14px rgba(2,4,15,.5);
+ margin-top:26px;
+}
+html[data-learning-ui="glass"] .focus-stage > .focus-decoration{
+ position:absolute;top:-41px;right:-22px;z-index:1;
+ color:#d7c1ec;opacity:.25;pointer-events:none;
+}
+html[data-learning-ui="glass"] .focus-time{color:#fffaff}
+html[data-learning-ui="glass"] .focus-caption{color:#e2d6eb}
+html[data-learning-ui="glass"] .focus-outline,
+html[data-learning-ui="glass"] .button.quiet-button{
+ color:#f1e6f2;border-color:rgba(248,239,255,.26);
+}
+html[data-learning-ui="glass"] .object-overview{
+ border-radius:25px;padding:23px 12px 20px;
+ max-width:100%;margin:15px 0 22px;
+}
+html[data-learning-ui="glass"] .object-overview strong{color:#fff7ff}
+html[data-learning-ui="glass"] .object-overview span{color:#d5cbdc}
+html[data-learning-ui="glass"] .library-materials{border-color:var(--line)}
+html[data-learning-ui="glass"] .upload-strip{
+ background:rgba(18,23,41,.32);
+ border:1px solid rgba(247,237,255,.21);
+ -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+}
+html[data-learning-ui="glass"] .file-picker{
+ background:rgba(16,19,35,.40);border-color:rgba(250,240,255,.25);
+}
+html[data-learning-ui="glass"] .file-picker-label{color:#f8f0fa}
+html[data-learning-ui="glass"] .dock{
+ width:min(100%,430px);height:65px;
+ border-radius:30px;padding:4px;
+ border:1px solid rgba(255,255,255,.42);
+ background:rgba(235,225,245,.12);
+ box-shadow:0 10px 34px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.18);
+ -webkit-backdrop-filter:blur(19px) saturate(1.12);
+ backdrop-filter:blur(19px) saturate(1.12);
+}
+html[data-learning-ui="glass"] .dock a{
+ border-radius:24px;min-height:54px;
+ color:#d6cbdc;font-size:10px;
+}
+html[data-learning-ui="glass"] .dock a[aria-current="page"]{
+ color:#fffaff;background:rgba(240,230,248,.20);
+ box-shadow:inset 0 1px rgba(255,255,255,.24),0 2px 9px rgba(0,0,0,.12);
+}
+html[data-learning-ui="glass"] .dock svg{width:19px;height:19px;stroke-width:1.35}
+html[data-learning-ui="glass"] .toast{color:#fffaff;background:#332a44}
+@media(max-width:390px){
+ html[data-learning-ui="glass"] .shell{padding-inline:17px}
+ html[data-learning-ui="glass"] .head h1{font-size:61px}
+ html[data-learning-ui="glass"] .feature-today{min-height:240px}
+}
+@media(max-height:700px){
+ html[data-learning-ui="glass"] .feature-today{min-height:212px}
+ html[data-learning-ui="glass"] .focus-stage{min-height:235px}
+ html[data-learning-ui="glass"] .dock{height:59px}
+ html[data-learning-ui="glass"] .dock a{min-height:48px}
+}
+@media(prefers-reduced-motion:reduce){
+ html[data-learning-ui="glass"] .learning-liquid{transition:none}
+}
+
+/* END OPT-IN LEARNING LIQUID GLASS UI */
