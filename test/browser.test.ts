@@ -157,8 +157,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(rootUnit.body,'759px','the body resolves 100vh without the 100%-root WebKit gap');
   assert.equal(pwaDims.shellHeight,759,'app shell fits visible PWA viewport, not screen.height');
   assert.equal(pwaDims.wallpaperHeight,759,'background paints the actual PWA viewport');
-  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom>=751&&pwaDims.dockBottom<=753,
-    'iPhone PWA dock sits 6–8px from viewport bottom after the requested 4px lift');
+  assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom>=749&&pwaDims.dockBottom<=751,
+    'iPhone PWA dock sits 8–10px from viewport bottom after an additional 2px lift');
   assert.ok(pwaDims.bodyWidth<=393,'no horizontal overflow with safe areas');
   await pwaPage.setViewportSize({width:393,height:700});
   await pwaPage.waitForFunction(()=>Math.round(document.querySelector('.shell')!.getBoundingClientRect().height)===innerHeight);
@@ -171,7 +171,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(resized.viewport,700,'viewport resize is reported');
   assert.equal(resized.shell,700,'PWA shell follows viewport resizing');
   assert.equal(resized.wallpaper,700,'background follows viewport resizing');
-  assert.ok(resized.dock>=692&&resized.dock<=694,'dock remains 6–8px from bottom after resizing');
+  assert.ok(resized.dock>=690&&resized.dock<=692,'dock remains 8–10px from bottom after resizing');
   await pwa.close();
  }finally{
   await browser.close();
