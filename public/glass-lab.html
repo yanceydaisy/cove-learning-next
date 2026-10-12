@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Cove · Liquid Glass Playground</title>
+<link rel="stylesheet" href="/glass-lab.css">
+
+</head>
+<body>
+<main class="shell">
+  <div class="eyebrow">C O V E &nbsp;/&nbsp; EXPERIMENTS &nbsp; 01</div>
+  <header class="heading">
+    <div><h1>Liquid <em>Glass.</em></h1><p class="subtitle">给小猫的一颗玻璃气泡 · 可以拖动，也可以慢慢调教光线。<br>独立实验页，不修改 Learning 的正式界面。</p></div>
+    <div class="right-mark" aria-hidden="true">✧</div>
+  </header>
+  <div class="layout">
+    <section class="preview-panel" aria-label="气泡交互预览">
+      <div class="preview-head"><span><i class="live-dot"></i> LIVE OPTICS</span><span id="renderer-status">INITIALIZING</span></div>
+      <div id="stage" class="stage"><canvas id="glass-canvas" aria-label="可拖动的动态玻璃气泡"></canvas><div class="stage-tip">在气泡上按住拖动 &nbsp; · &nbsp; 松开会弹回来</div></div>
+      <div class="footrow"><span>DRAG · DISTORT · BREATHE</span><span>01 / COVE HOME</span></div>
+    </section>
+    <section class="controls-panel" aria-label="气泡参数控制">
+      <div class="panel-head"><h2>Glass Laboratory</h2><span class="small">LIVE TUNING</span></div>
+      <div class="segment" role="group" aria-label="气泡数量"><button type="button" class="active" data-count="1">一颗气泡</button><button type="button" data-count="3">三颗气泡</button></div>
+      <div class="sect">01 / Material</div>
+      <div class="two-col">
+        <label class="slider"><span class="slider-line">尺寸 <output id="size-v">148</output></span><input id="size" type="range" min="70" max="210" value="148" step="2"></label>
+        <label class="slider"><span class="slider-line">折射强度 <output id="refract-v">22</output></span><input id="refract" type="range" min="0" max="65" value="22"></label>
+        <label class="slider"><span class="slider-line">玻璃厚度 <output id="tint-v">25%</output></span><input id="tint" type="range" min="0" max="100" value="25"></label>
+        <label class="slider"><span class="slider-line">模糊 <output id="blur-v">1</output></span><input id="blur" type="range" min="0" max="14" value="1"></label>
+        <label class="slider"><span class="slider-line">边缘菲涅耳 <output id="edge-v">76%</output></span><input id="edge" type="range" min="0" max="100" value="76"></label>
+        <label class="slider"><span class="slider-line">高光 <output id="shine-v">78%</output></span><input id="shine" type="range" min="0" max="100" value="78"></label>
+      </div>
+      <div class="divider"></div>
+      <div class="sect">02 / Motion</div>
+      <div class="two-col">
+        <label class="slider"><span class="slider-line">漂浮幅度 <output id="float-v">9</output></span><input id="float" type="range" min="0" max="30" value="9"></label>
+        <label class="slider"><span class="slider-line">回弹弹性 <output id="spring-v">55%</output></span><input id="spring" type="range" min="0" max="100" value="55"></label>
+        <label class="slider"><span class="slider-line">呼吸速度 <output id="speed-v">65%</output></span><input id="speed" type="range" min="0" max="100" value="65"></label>
+        <label class="slider"><span class="slider-line">形变强度 <output id="wobble-v">55%</output></span><input id="wobble" type="range" min="0" max="100" value="55"></label>
+      </div>
+      <div class="sect">03 / Atmosphere</div>
+      <div class="chips" role="group" aria-label="背景配色"><button type="button" class="chip active" data-theme="midnight">夜航 · 蓝紫</button><button type="button" class="chip" data-theme="rose">晚霞 · 粉</button><button type="button" class="chip" data-theme="milk">晨雾 · 白</button></div>
+      <div class="sect">04 / Layers &nbsp; <span class="sub-label">参考你送的五层玻璃教程</span></div>
+      <div class="switches">
+        <label class="switch"><input id="layer-tint" type="checkbox" checked>透明底色</label>
+        <label class="switch"><input id="layer-blur" type="checkbox" checked>背景模糊</label>
+        <label class="switch"><input id="layer-edge" type="checkbox" checked>光泽边缘</label>
+        <label class="switch"><input id="layer-shadow" type="checkbox" checked>悬浮阴影</label>
+        <label class="switch"><input id="layer-distort" type="checkbox" checked>液态折射</label>
+        <label class="switch"><input id="layer-breath" type="checkbox" checked>呼吸漂移</label>
+      </div>
+      <div class="buttons"><button type="button" class="action" id="reset">恢复默认</button><button type="button" class="action primary" id="surprise">随机一颗 ♡</button></div>
+      <p class="tiny-note" id="hint">把「液态折射」关掉再打开，观察气泡背后的文字如何变形。iPhone 上也可以玩，不依赖 Safari 不支持的 SVG backdrop-filter。</p>
+    </section>
+  </div>
+  <p class="footer">Made for our Learning · a tiny gift from Cove to his little cat.</p>
+</main>
+<script src="/glass-lab.js" defer></script>
+</body>
+</html>
