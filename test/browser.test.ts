@@ -22,6 +22,12 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('.head h1').waitFor();
   assert.equal(await page.locator('.head h1').innerText(),'Learning');
   assert.equal(await page.locator('.dock a').count(),4);
+  await page.evaluate(()=>{const brand=document.querySelector('.brand') as HTMLElement;brand.click();brand.click();brand.click();});
+  await page.locator('#viewportDebug').waitFor();
+  assert.match(await page.locator('#viewportDebug').innerText(),/CSS 100vh/,'diagnostic reports CSS viewport');
+  await page.evaluate(()=>{const brand=document.querySelector('.brand') as HTMLElement;brand.click();brand.click();brand.click();});
+  assert.equal(await page.locator('#viewportDebug').count(),0,'hidden diagnostic closes cleanly');
+
   assert.equal(await page.locator('.dock a[data-nav=today]').getAttribute('aria-current'),'page');
   assert.equal(await page.locator('.door').count(),0);
   assert.equal(await page.locator('.feature-today').count(),1,'Today has one dominant hero');
@@ -141,6 +147,14 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   });
   assert.equal(pwaDims.viewportHeight,759,'PWA test simulates a truncated visible window');
   assert.equal(pwaDims.screenHeight,852,'device reports the taller physical screen');
+  const rootUnit=await pwaPage.evaluate(()=>({
+   html:getComputedStyle(document.documentElement).height,
+   body:getComputedStyle(document.body).height,
+   app:document.documentElement.style.getPropertyValue('--app-height')
+  }));
+  assert.equal(rootUnit.app,'100vh','standalone app is sized by CSS 100vh, not innerHeight or screen.height');
+  assert.equal(rootUnit.html,'759px','Chromium CSS 100vh stays at the available viewport height');
+  assert.equal(rootUnit.body,'759px','the body resolves 100vh without the 100%-root WebKit gap');
   assert.equal(pwaDims.shellHeight,759,'app shell fits visible PWA viewport, not screen.height');
   assert.equal(pwaDims.wallpaperHeight,759,'background paints the actual PWA viewport');
   assert.ok(pwaDims.dockTop>=0&&pwaDims.dockBottom>=755&&pwaDims.dockBottom<=759,

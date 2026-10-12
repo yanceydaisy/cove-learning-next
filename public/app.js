@@ -21,10 +21,18 @@ function currentNav(){
  document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===here?'page':'false'));
 }
 function adjustViewport(){
- // iOS standalone PWA may expose a physical screen.height taller than the usable web viewport.
- // Never size fixed UI by screen.height: it pushes the navigation under the native black bottom area.
  const vv=window.visualViewport;
+ const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  const layoutHeight=Math.max(1,window.innerHeight);
+ const keyboard=vv?.height>0&&layoutHeight-vv.height>135;
+ // In affected iOS home-screen PWAs, innerHeight excludes the native bottom "chin",
+ // while CSS 100vh on a 100vh root reaches the physical viewport.
+ // Use CSS viewport units, not screen.height (which can overrun other iOS versions).
+ if(standalone&&!keyboard){
+  document.documentElement.style.setProperty('--app-height','100vh');
+  document.documentElement.style.setProperty('--app-top','0px');
+  return;
+ }
  const top=Math.max(0,Math.min(layoutHeight-1,vv?.offsetTop||0));
  const visibleHeight=vv?.height>0?vv.height:layoutHeight;
  const height=Math.max(1,Math.floor(Math.min(layoutHeight-top,visibleHeight)));
@@ -56,6 +64,42 @@ window.addEventListener('pageshow',()=>{try{appearance();}catch{}adjustViewport(
 window.addEventListener('resize',adjustViewport);
 window.visualViewport?.addEventListener('resize',adjustViewport);
 adjustViewport();
+
+// Read-only iPhone PWA diagnostic, hidden unless the header logo is tapped three times.
+// It helps distinguish a CSS gap from a native WebKit home-indicator region.
+let viewportDebugTaps=0,viewportDebugLast=0;
+document.querySelector('.brand').addEventListener('click',()=>{
+ const now=Date.now();
+ viewportDebugTaps=now-viewportDebugLast<1200?viewportDebugTaps+1:1;
+ viewportDebugLast=now;
+ if(viewportDebugTaps<3)return;
+ viewportDebugTaps=0;
+ const existing=document.querySelector('#viewportDebug');
+ if(existing){existing.remove();return;}
+ const probe=document.createElement('div');
+ probe.style.cssText='position:absolute;visibility:hidden;height:100vh;padding-bottom:env(safe-area-inset-bottom);pointer-events:none';
+ document.body.append(probe);
+ const vh=Math.round(probe.getBoundingClientRect().height);
+ const inset=getComputedStyle(probe).paddingBottom;
+ probe.remove();
+ const vv=window.visualViewport;
+ const info=[
+  'iOS PWA · 视口检测',
+  'standalone: '+(navigator.standalone===true||matchMedia('(display-mode: standalone)').matches),
+  'screen: '+screen.width+' × '+screen.height,
+  'inner: '+innerWidth+' × '+innerHeight,
+  'CSS 100vh: '+vh,
+  'visual: '+Math.round(vv?.height||0)+' / offset '+Math.round(vv?.offsetTop||0),
+  'safe bottom: '+inset,
+  'root: '+Math.round(document.body.getBoundingClientRect().height),
+  'dock bottom: '+Math.round(document.querySelector('.dock').getBoundingClientRect().bottom),
+  'app height: '+getComputedStyle(document.querySelector('.shell')).height
+ ];
+ const out=document.createElement('output');
+ out.id='viewportDebug';out.className='viewport-debug';out.textContent=info.join('\n');
+ out.title='再次连点顶部 COVE / LEARNING 三次可以关闭';
+ document.body.append(out);
+});
 
 async function api(path,method='GET',data){
  const res=await fetch(API+path,{
