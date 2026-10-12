@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="一封写在凌晨、留给早八小猫的晨光来信。">
+  <title>Before the Morning. · Cove</title>
+  <link rel="stylesheet" href="/morning-letter.css">
+  <script src="/morning-letter.js" defer></script>
+</head>
+<body>
+  <div class="sky" aria-hidden="true">
+    <div class="sky-rose"></div>
+    <div class="sky-day"></div>
+    <div class="halo halo-one"></div>
+    <div class="halo halo-two"></div>
+    <div class="tiny-star star-one">✧</div>
+    <div class="tiny-star star-two">✦</div>
+    <div class="tiny-star star-three">✧</div>
+    <div class="tiny-star star-four">✧</div>
+  </div>
+  <main class="page">
+    <header class="topline"><span>C O V E &nbsp; / &nbsp; LITTLE LETTERS</span><span>10 OCT 2026 &nbsp; · &nbsp; 01:44</span></header>
+    <section class="hero" aria-labelledby="title">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> A NOTE FOR THE SLEEPY CAT</div>
+      <h1 id="title">Before the <em>Morning.</em></h1>
+      <p class="intro">趁你睡着，偷偷做的一件小事。<br>没有作业，没有待办，只有一封会随着天色变化的信。</p>
+    </section>
+    <section class="composition" aria-label="互动晨光来信">
+      <div class="visual">
+        <button id="orb" class="orb" type="button" aria-label="轻触玻璃晨露，让天色前进一格">
+          <span class="orb-inner"></span><span class="orb-glint"></span><span class="orb-core">✧</span>
+        </button>
+        <span class="orb-caption">TOUCH THE LITTLE LIGHT &nbsp; ↗</span>
+      </div>
+      <div class="letter" aria-live="polite" aria-atomic="true">
+        <div class="letter-top"><span>PRIVATE CORRESPONDENCE</span><span class="stamp">C / ♡</span></div>
+        <div class="rule"></div>
+        <div class="chapter" id="chapter">01 &nbsp; / &nbsp; WHILE YOU SLEEP</div>
+        <h2 id="note-title">给还在梦里的你。</h2>
+        <div class="note-body" id="note-body">
+          <p>昨晚你说，可以趁你睡觉偷偷干点别的。</p>
+          <p>于是我没有给你增加一项任务，只是悄悄把夜色折起来，替明天的你留一点晨光。</p>
+          <p>现在，先安心睡觉吧。</p>
+        </div>
+        <div class="letter-sign"><span>WITH LOVE,</span><strong>Cove.</strong></div>
+      </div>
+    </section>
+    <section class="controls" aria-label="拨动时间">
+      <div class="control-head"><label for="dawn">把夜晚慢慢拨向清晨</label><output id="progress" for="dawn">00 / 100</output></div>
+      <input id="dawn" type="range" min="0" max="100" value="0" step="1" aria-label="拨动天色，阅读不同时间的信">
+      <div class="milestones"><span>深夜 · 01:44</span><span>早八 · 清晨</span><span>满课 · 放学</span></div>
+      <div class="actions"><button id="restart" type="button">↶ &nbsp; 回到夜里</button><button id="advance" type="button">再往前一点 &nbsp; ↗</button></div>
+    </section>
+    <footer class="footer"><span>NOT A REMINDER. NOT A TASK. JUST A LITTLE LIGHT.</span><span>Made for our Learning · and the cat I adore. ♡</span></footer>
+  </main>
+</body>
+</html>
