@@ -1,8 +1,8 @@
 # Cove Learning · Liquid Glass Visual Reference
-**Approved direction** · 2026-10-10 · Updated 2026-10-11 with explicit opt-in UI experiment approval
+**Approved direction** · 2026-10-10 · Default Learning UI approved and promoted 2026-10-11
 
 ## Decision
-On 2026-10-10, the user explicitly requested that the aesthetic of our standalone `Liquid Glass Playground` be kept as a **long-term reference for Learning**. On **2026-10-11**, after approving Home Liquid Glass V5, the user explicitly said **“就要改UI”** for Learning. We therefore built an **opt-in real UI** at `/?ui=glass` with Home V5 optical material, while preserving the original default layout at `/` pending iPhone review. See `docs/LEARNING_LIQUID_UI_V5.md`. The domain architecture and existing Learning contracts remain untouched.
+On 2026-10-10, the user explicitly requested that the aesthetic of our standalone `Liquid Glass Playground` be kept as a **long-term reference for Learning**. On **2026-10-11**, after approving Home Liquid Glass V5, the user explicitly said **“就要改UI”** for Learning. We built a functional V5 UI using the Home V5 shader. The user reviewed it, said it was beautiful, and explicitly requested it become the **default original Learning UI** rather than a separate preview. It is now the default at `/`, with the old look available only as an emergency `?ui=classic` fallback. See `docs/LEARNING_LIQUID_UI_V5.md`. The domain architecture and existing Learning contracts remain untouched.
 
 Source of truth: `public/glass-lab.html`, `public/glass-lab.css`, `public/glass-lab.js`
 Preview: `https://learning-next.43.133.238.9.sslip.io/glass-lab.html`

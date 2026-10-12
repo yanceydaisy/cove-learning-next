@@ -1,5 +1,5 @@
-/* Cove Learning · Liquid Glass V5 UI preview.
-   OPT-IN ONLY: /?ui=glass. Default Learning is untouched.
+/* Cove Learning · Liquid Glass V5 default UI.
+   Live on /; ?ui=classic retains the previous look as a recovery option.
    The actual refractive material is the Home V5 fragment shader;
    CSS provides typography, spacing and accessible foreground contrast. */
 html[data-learning-ui="glass"]{

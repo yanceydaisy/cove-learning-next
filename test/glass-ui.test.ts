@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync,mkdirSync} from 'node:fs';
+import {mkdtempSync,rmSync,mkdirSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -11,7 +11,7 @@ import {createHttp} from '../src/adapters/http.js';
 const root=resolve(fileURLToPath(new URL('../public',import.meta.url)));
 const shots=resolve(fileURLToPath(new URL('../.visual',import.meta.url)));
 
-test('opt-in V5 Learning UI preserves standard mode and full study workflow',async()=>{
+test('default V5 Learning UI keeps real study workflow and offers classic rollback',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'learning-glass-'));
  const app=new LearningApplication(dir);
  const server=createHttp(app,root);
@@ -25,7 +25,7 @@ test('opt-in V5 Learning UI preserves standard mode and full study workflow',asy
   const context=await browser.newContext({viewport:{width:393,height:852},screen:{width:393,height:852},deviceScaleFactor:2,isMobile:true,hasTouch:true});
   const page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?ui=glass',{waitUntil:'domcontentloaded'});
+  await page.goto(url+'/',{waitUntil:'domcontentloaded'});
   await page.locator('.feature-today canvas.learning-liquid-optics').waitFor({timeout:9000});
   await page.waitForFunction(()=>Boolean((window as any).__coveLearningGlass?.activeCards()===1));
   const details=await page.evaluate(()=>{
@@ -42,6 +42,9 @@ test('opt-in V5 Learning UI preserves standard mode and full study workflow',asy
    };
   });
   assert.equal(details.mode,'glass');
+  assert.equal(await page.evaluate(()=>(window as any).__coveLearningGlass?.mode),'default');
+  assert.equal(await page.locator('.wallpaper-picker').count(),1,'wallpaper picker is available on the real Learning homepage');
+  assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'),'#0b1020');
   assert.equal(details.webgl,true);
   assert.equal(details.fallback,false);
   assert.match(details.wallpaper,/data:image\/png/);
@@ -89,7 +92,7 @@ test('opt-in V5 Learning UI preserves standard mode and full study workflow',asy
   assert.equal(await page.locator('.dock a').count(),4);
   await context.close();
   const baseline=await browser.newPage({viewport:{width:393,height:852}});
-  await baseline.goto(url+'/');
+  await baseline.goto(url+'/?ui=classic');
   await baseline.locator('.feature-today').waitFor();
   assert.equal(await baseline.locator('.learning-liquid').count(),0);
   assert.equal(await baseline.evaluate(()=>document.documentElement.dataset.learningUi),undefined);
@@ -100,7 +103,7 @@ test('opt-in V5 Learning UI preserves standard mode and full study workflow',asy
   await pwa.addInitScript(()=>Object.defineProperty(navigator,'standalone',{value:true,configurable:true}));
   const pwaPage=await pwa.newPage();
   pwaPage.on('pageerror',e=>errors.push(e.message));
-  await pwaPage.goto(url+'/?ui=glass#/learn');
+  await pwaPage.goto(url+'/?source=pwa#/learn');
   await pwaPage.locator('.focus-stage canvas.learning-liquid-optics').waitFor();
   const pwaSize=await pwaPage.evaluate(()=>({
    dock:document.querySelector('.dock')!.getBoundingClientRect().bottom,
@@ -109,6 +112,16 @@ test('opt-in V5 Learning UI preserves standard mode and full study workflow',asy
   assert.ok(pwaSize.dock<=pwaSize.viewport,'glass dock fits short PWA viewport');
   assert.ok(pwaSize.body<=393&&pwaSize.root<=393,'glass PWA never overflows horizontally');
   await pwa.close();
+  const legacyLink=await browser.newPage();
+  await legacyLink.goto(url+'/?ui=glass');
+  await legacyLink.locator('.feature-today canvas.learning-liquid-optics').waitFor();
+  assert.equal(await legacyLink.locator('.wallpaper-picker').count(),1,'old glass link remains compatible');
+  await legacyLink.close();
+  const sw=readFileSync(join(root,'sw.js'),'utf8');
+  assert.match(sw,/cove-learning-v0\.12-20261011-glass/,'PWA shell cache must be refreshed');
+  const manifest=JSON.parse(readFileSync(join(root,'manifest.webmanifest'),'utf8'));
+  assert.equal(manifest.theme_color,'#0b1020');
+  assert.equal(manifest.background_color,'#0b1020');
   assert.deepEqual(errors,[],'no uncaught browser errors');
  }finally{
   await browser.close();

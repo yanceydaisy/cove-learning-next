@@ -298,10 +298,10 @@ if('serviceWorker' in navigator && location.protocol==='https:'){
  window.addEventListener('load',()=>navigator.serviceWorker.register(base+'/sw.js',{scope:base+'/'}).catch(()=>{}));
 }
 /* BEGIN OPT-IN LEARNING LIQUID GLASS UI */
-/* Cove Learning Liquid Glass UI (opt-in preview: ?ui=glass).
+/* Cove Learning Liquid Glass V5 — default UI for all four Learning pages.
    Uses the EXACT Home V5 GLSL material extracted by build-learning-glass.py.
-   Does not modify API, Learning domain data, or standard UI mode. */
-if (new URLSearchParams(location.search).get('ui') === 'glass') {
+   Emergency classic-mode fallback: ?ui=classic. Learning data and APIs unchanged. */
+if (new URLSearchParams(location.search).get('ui') !== 'classic') {
   (() => {
     'use strict';
     const doc = document.documentElement;
@@ -662,7 +662,10 @@ void main(){
     syncCards();
     document.addEventListener('scroll',()=>{for(const o of optics.values())o.refresh();},true);
     window.addEventListener('resize',()=>{renderWallpaper();for(const o of optics.values())o.refresh();},{passive:true});
-    window.addEventListener('pageshow',()=>{wallpaperLayer.style.backgroundImage='url('+JSON.stringify(bgUrl)+')';});
+    window.addEventListener('pageshow',()=>{
+      wallpaperLayer.style.backgroundImage='url('+JSON.stringify(bgUrl)+')';
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0b1020');
+    });
     if(!reduced) {
       const frame=ms=>{
         for(const optic of optics.values())optic.frame(ms);
@@ -671,7 +674,7 @@ void main(){
       requestAnimationFrame(frame);
     }
     window.__coveLearningGlass={
-      version:'V5',mode:'opt-in',material:'Home-V5-full-surface',
+      version:'V5',mode:'default',material:'Home-V5-full-surface',
       activeCards:()=>optics.size,
       isUsingPhoto:()=>Boolean(chosenImage),
       sampleSource:'same-canvas-wallpaper'
