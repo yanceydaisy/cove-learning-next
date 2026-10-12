@@ -1,0 +1,23 @@
+[Unit]
+Description=Cove Learning Next · private preview
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/projects/cove-learning-next
+EnvironmentFile=/home/ubuntu/projects/cove-learning-next/data/preview.env
+ExecStart=/usr/bin/node /home/ubuntu/projects/cove-learning-next/dist/src/server.js
+Restart=on-failure
+RestartSec=4
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/projects/cove-learning-next/data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -29,7 +29,8 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
   res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',"default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
   try{
-   const url=new URL(req.url??'/','http://localhost'),path=url.pathname;
+   const url=new URL(req.url??'/','http://localhost');
+   const path=url.pathname.replace(/^\/learning-next(?=\/|$)/,'')||'/';
    if(path.startsWith('/api/')){
     if(accessKey && !equals(String(req.headers['x-learning-key']??''),accessKey))throw new AppError('UNAUTHORIZED','访问密钥不正确。');
     const method=req.method??'GET',parts=path.split('/').filter(Boolean);
@@ -59,11 +60,11 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     return json(res,status,result);
    }
    if(req.method!=='GET'&&req.method!=='HEAD')throw new AppError('VALIDATION_ERROR','不支持的请求方法。');
-   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css'};
+   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/icon.svg':'icon.svg','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png'};
    const name=routes[path];
    if(!name)return json(res,404,{error:{code:'NOT_FOUND',message:'页面不存在。'}});
    const content=await readFile(join(publicDir,name));
-   const contentType=name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
+   const contentType=name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.webmanifest')?'application/manifest+json':name.endsWith('.svg')?'image/svg+xml':name.endsWith('.png')?'image/png':name.endsWith('.js')?'text/javascript; charset=utf-8':'application/octet-stream';
    res.writeHead(200,{'content-type':contentType,'cache-control':'no-store'});
    res.end(req.method==='HEAD'?undefined:content);
   }catch(error){
