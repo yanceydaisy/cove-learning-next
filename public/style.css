@@ -13,7 +13,7 @@
  --glass-input:rgba(255,255,255,.54);--glass-input-border:rgba(64,78,99,.18);
  --glass-dock:rgba(255,255,255,.40);--glass-dock-active:rgba(255,255,255,.64);--glass-shadow:rgba(52,64,83,.12);
  --glass-primary:rgba(255,252,247,.82);--glass-primary-text:#252c39;
- --title-haze:rgba(244,248,252,.72);--title-haze-mid:rgba(244,248,252,.38);--title-haze-edge:rgba(244,248,252,0);
+ --theme-page-overlay:rgba(255,255,255,.46);
  --milk-glass:rgba(255,252,247,.78);--milk-border:rgba(255,255,255,.72);--milk-text:#242b38;--milk-shadow:rgba(35,43,57,.14);
  --display:Didot,"Bodoni 72","Bodoni MT",Georgia,serif;
  --serif:"Noto Serif SC","Songti SC","Noto Serif CJK SC",STSong,Georgia,serif;
@@ -33,7 +33,7 @@
  --glass-input:rgba(9,12,26,.44);--glass-input-border:rgba(243,233,255,.29);
  --glass-dock:rgba(235,225,245,.12);--glass-dock-active:rgba(240,230,248,.20);--glass-shadow:rgba(0,0,0,.28);
  --glass-primary:rgba(247,234,246,.92);--glass-primary-text:#302739;
- --title-haze:rgba(11,17,31,.48);--title-haze-mid:rgba(11,17,31,.30);--title-haze-edge:rgba(11,17,31,0);
+ --theme-page-overlay:rgba(0,0,0,.46);
  --milk-glass:rgba(255,250,244,.78);--milk-border:rgba(255,255,255,.46);--milk-text:#2a2a37;--milk-shadow:rgba(0,0,0,.20);
 }
 *{box-sizing:border-box}
@@ -322,7 +322,7 @@ html[data-learning-ui="glass"] .wallpaper{
  background-size:100% 100%!important;
  background-repeat:no-repeat!important;
 }
-html[data-learning-ui="glass"] .wallpaper::after{content:none!important;display:none!important}
+html[data-learning-ui="glass"] .wallpaper::after{content:""!important;display:block!important;position:absolute;inset:0;pointer-events:none;background:var(--theme-page-overlay)!important;backdrop-filter:saturate(92%);-webkit-backdrop-filter:saturate(92%)}
 html[data-learning-ui="glass"] .shell{
  padding-inline:clamp(18px,4.4vw,38px);
  gap:clamp(12px,2.4vh,22px);
@@ -554,12 +554,7 @@ html[data-learning-ui="glass"] .toast{color:var(--glass-text-strong);background:
 
 /* Today V3: follows the approved sketch — compact header, daily brief, list/matrix backlog. */
 .today-v3{width:min(100%,760px);gap:18px;padding-bottom:26px}
-.today-head{align-items:center;padding-bottom:2px;position:relative;isolation:isolate}
-.today-head::before{content:"";position:absolute;z-index:0;pointer-events:none;left:-24px;right:-18px;top:15px;height:146px;
- border-radius:48px;background:radial-gradient(ellipse at 35% 34%,var(--title-haze) 0%,var(--title-haze-mid) 48%,var(--title-haze-edge) 79%);
- -webkit-backdrop-filter:blur(18px) saturate(1.10);backdrop-filter:blur(18px) saturate(1.10);
- -webkit-mask-image:radial-gradient(ellipse at 35% 34%,#000 0%,rgba(0,0,0,.94) 48%,rgba(0,0,0,.58) 67%,transparent 88%);mask-image:radial-gradient(ellipse at 35% 34%,#000 0%,rgba(0,0,0,.94) 48%,rgba(0,0,0,.58) 67%,transparent 88%)}
-.today-head>*{position:relative;z-index:1}
+.today-head{align-items:center;padding-bottom:2px}
 .today-head .kicker{margin-bottom:8px}
 .today-start-action{display:inline-flex;align-items:center;gap:8px;flex:none;min-height:40px;padding:8px 14px;
  border:1px solid var(--milk-border);border-radius:100px;background:var(--milk-glass);color:var(--milk-text);font-size:11px;
