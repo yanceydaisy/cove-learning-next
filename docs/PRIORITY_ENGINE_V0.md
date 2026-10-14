@@ -1,6 +1,6 @@
 # Learning Priority Engine · V0 foundation (2026-10-12)
 
-Status: **isolated worktree only**. Branch `feat/learning-priority-foundation`; not released to the public preview.
+Status: **released to `main` on 2026-10-12**. The original development branch was `feat/learning-priority-foundation`.
 
 ## Product contract
 
@@ -13,7 +13,7 @@ The Today view retains the accepted Liquid Glass V5 hero and keeps 4 primary nav
 - Required per task: title (and auto-generated creation time).
 - Optional at task creation or edit: course/project link, `planned_for` (client-local calendar date, YYYY-MM-DD), UTC `due_at`, `estimated_minutes`.
 - Automatic: actual current time, waiting age, today's explicit user preference.
-- Not yet available: course syllabus or PPT learning goals, assessment weight, mastery gap, topic dependencies. The importance coordinate is **null**, not a meaningless guess.
+- Not yet consumed by this engine: course goals, assessment evidence, mastery gap, topic dependencies. Course Context V0 can now store confirmed goals / assessment evidence, but there is still no task-to-evidence relation. The importance coordinate therefore remains **null**, not a meaningless guess.
 
 ## Transparent heuristic, subject to future revision
 
@@ -35,7 +35,7 @@ A DDL counts as “at risk” only when the user has supplied a remaining time e
 
 ## Temporary preference and expiry
 
-`POST /api/tasks/:id/preference` accepts `boost: 0|1|2`. For nonzero boosts, the browser provides `expires_at` equal to its next local midnight, encoded as UTC ISO. Server validates expiry is in the future and at most 36h out. Expired preferences are ignored by reads; an explicit zero deletes the row. Completing a task deletes its preference. This is stored in SQLite, so a refresh does not discard today's choice.
+`POST /api/tasks/:id/preference` accepts `boost: 0|1|2`. The numeric boost is an internal scheduler detail: the product UI exposes only the semantic action **“今天先做” / “已优先”** and currently maps that explicit intent to `boost=2`; cancelling maps to zero. `boost=1` remains API-compatible for existing data/tests but is not a user-facing weight control. For nonzero boosts, the browser provides `expires_at` equal to its next local midnight, encoded as UTC ISO. Server validates expiry is in the future and at most 36h out. Expired preferences are ignored by reads; an explicit zero deletes the row. Completing a task deletes its preference. This is stored in SQLite, so a refresh does not discard today's choice.
 
 Timezone policy: v0 adopts the current device's local midnight at the moment of explicit user input. Cross-timezone devices may have different interpretations of "today"; for single-user MVP this is acceptable but should be revisited if multi-device behavior matters.
 

@@ -49,6 +49,24 @@ CREATE TABLE task_preferences (
 );
 CREATE INDEX idx_preferences_expiry ON task_preferences(expires_at);
 `}
+ ,{version:3,name:'course_context_evidence',sql:`
+CREATE TABLE course_context_items (
+ id TEXT PRIMARY KEY,
+ object_id TEXT NOT NULL REFERENCES learning_objects(id) ON DELETE CASCADE,
+ kind TEXT NOT NULL CHECK(kind IN ('objective','assessment')),
+ title TEXT NOT NULL,
+ weight_percent REAL CHECK(weight_percent IS NULL OR (weight_percent>=0 AND weight_percent<=100)),
+ source_resource_id TEXT REFERENCES resources(id) ON DELETE SET NULL,
+ source_locator TEXT,
+ source_excerpt TEXT,
+ status TEXT NOT NULL CHECK(status IN ('suggested','confirmed')),
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL,
+ CHECK(kind='assessment' OR weight_percent IS NULL)
+);
+CREATE INDEX idx_course_context_object ON course_context_items(object_id,kind,status,created_at);
+CREATE INDEX idx_course_context_source ON course_context_items(source_resource_id);
+`}
 ] as const;
 
 export class Database {

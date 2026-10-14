@@ -28,7 +28,7 @@ export function rankTasks(tasks:DecisionInput[], now:Date):RankedTask[]{
   const waitingDays=Math.max(0,Math.floor((current-new Date(task.created_at).getTime())/DAY));
   const aging=Math.min(14,waitingDays*2);
   if(aging>0)reasons.push('等待 '+waitingDays+' 天，获得适度补偿');
-  if(task.boost>0)reasons.push('你今天想优先做（+'+task.boost+'）');
+  if(task.boost>0)reasons.push('你今天想优先做');
   return {...task,urgency,importance:null,score:base+aging+task.boost*40,reasons};
  }).sort((a,b)=>b.score-a.score||a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id));
 }

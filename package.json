@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node --import tsx --test test/core.test.ts test/http.test.ts test/public-preview.test.ts test/priority.test.ts",
+    "test": "node --import tsx --test test/core.test.ts test/http.test.ts test/public-preview.test.ts test/priority.test.ts test/course-context.test.ts",
     "test:browser": "node --import tsx --test test/browser.test.ts",
     "start": "node dist/src/server.js",
     "dev": "node --import tsx src/server.ts"

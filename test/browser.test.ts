@@ -89,16 +89,35 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
 
   await page.locator('#objectForm input[name=title]').fill('现代控制');
   await page.locator('#objectForm button').click();
-  await page.getByText('现代控制',{exact:true}).waitFor();
+  await page.getByText('现代控制',{exact:true}).first().waitFor();
+  await page.locator('.course-context-panel').waitFor();
+  assert.match(await page.locator('.course-context-panel').innerText(),/确认前不会进入重要度判断/);
+  const objectiveForm=page.locator('form[data-context-add=objective]');
+  await objectiveForm.locator('input[name=title]').fill('掌握状态空间模型分析');
+  await objectiveForm.locator('button[type=submit]').click();
+  await page.getByText('掌握状态空间模型分析',{exact:true}).waitFor();
+  const assessmentForm=page.locator('form[data-context-add=assessment]');
+  await assessmentForm.locator('input[name=title]').fill('期末考试');
+  await assessmentForm.locator('input[name=weight_percent]').fill('60');
+  await assessmentForm.locator('button[type=submit]').click();
+  await page.getByText('期末考试',{exact:true}).waitFor();
+  assert.match(await page.locator('.context-evidence').innerText(),/已确认目标\s*1/);
+  assert.match(await page.locator('.context-evidence').innerText(),/有权重考核\s*1/);
   await page.locator('#fileForm input[type=file]').setInputFiles({
    name:'study-note.txt',mimeType:'text/plain',buffer:Buffer.from('Learning browser regression note')
   });
   assert.equal(await page.locator('#fileName').innerText(),'study-note.txt','custom file picker reflects the selected filename');
   await page.locator('#fileForm button').click();
   await page.locator('.resource-list .row-title',{hasText:'study-note.txt'}).waitFor();
+  await page.locator('[data-context-edit]').first().click();
+  const objectiveEdit=page.locator('[data-context-edit-form]').first();
+  await objectiveEdit.locator('select[name=source_resource_id]').selectOption({label:'study-note.txt'});
+  await objectiveEdit.locator('input[name=source_locator]').fill('第 1 章 · 学习目标');
+  await objectiveEdit.locator('button[type=submit]').click();
+  await page.getByText(/来源 study-note\.txt/).first().waitFor();
   const libSize=await page.evaluate(()=>({
    viewport:innerWidth,scroll:document.documentElement.scrollWidth,
-   sections:Array.from(document.querySelectorAll('.library-objects,.library-materials')).map(el=>({
+   sections:Array.from(document.querySelectorAll('.library-objects,.course-context-panel,.library-materials')).map(el=>({
     width:Math.round(el.getBoundingClientRect().width),left:Math.round(el.getBoundingClientRect().left)
    }))
   }));
@@ -128,9 +147,9 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('a[data-nav=today]').click();
   await page.getByText('极点配置',{exact:true}).first().waitFor();
   assert.equal(await page.locator('.deadline-line>div').count(),1,'edited deadline appears in Today');
-  assert.equal(await page.locator('.priority-value').first().innerText(),'+0');
-  await page.locator('button[data-step="1"]').first().click();
-  await page.locator('.priority-value').first().getByText('+1').waitFor();
+  assert.equal(await page.locator('.today-priority-button').first().innerText(),'今天先做');
+  await page.locator('.today-priority-button').first().click();
+  await page.locator('.today-priority-button').first().getByText('已优先').waitFor();
   await page.locator('.today-switch button[data-today-pane=all]').click();
   await page.getByText('全部待办',{exact:true}).waitFor();
   await page.locator('.today-switch button[data-today-pane=deadline]').click();
@@ -138,7 +157,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('.today-switch button[data-today-pane=day]').click();
   await page.screenshot({path:join(dir,'mobile-today.png'),fullPage:true});
   assert.deepEqual(errors,[]);
-  const exportDir='/home/ubuntu/projects/cove-learning-priority-foundation/.visual';
+  const exportDir=join(process.cwd(),'.visual');
   const fs=await import('node:fs');
   fs.mkdirSync(exportDir,{recursive:true});
   for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png','mobile-library.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));

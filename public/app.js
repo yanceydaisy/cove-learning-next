@@ -167,6 +167,7 @@ function historyList(sessions,max=5){
  ).join('')+'</div>':'<p class="muted-line">还没有学习记录，第一段专注从这里开始。</p>';
 }
 let todayPane='day';
+let courseContextId=null;
 function localDay(){
  const n=new Date(),pad=v=>String(v).padStart(2,'0');
  return n.getFullYear()+'-'+pad(n.getMonth()+1)+'-'+pad(n.getDate());
@@ -177,12 +178,11 @@ function localMidnight(){
 function decisionRow(t){
  const status=t.due_at?'DDL · '+date(t.due_at)+' '+time(t.due_at):'未设置 DDL';
  const note=t.reasons?.[0]||'由任务状态生成的建议';
- const controls='<div class="priority-controls" aria-label="临时优先权重">'+
-  '<button type="button" data-preference="'+esc(t.id)+'" data-step="-1" aria-label="降低 '+esc(t.title)+' 的临时优先级" '+(t.boost===0?'disabled':'')+'>−</button>'+
-  '<span class="priority-value" aria-label="当前加权 '+Number(t.boost||0)+'">+'+Number(t.boost||0)+'</span>'+
-  '<button type="button" data-preference="'+esc(t.id)+'" data-step="1" aria-label="提高 '+esc(t.title)+' 的临时优先级" '+(t.boost>=2?'disabled':'')+'>+</button></div>';
+ const preferred=Number(t.boost||0)>0;
+ const control='<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+esc(t.id)+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销 '+esc(t.title)+' 的今日优先':'今天先做 '+esc(t.title))+'">'+
+  (preferred?'已优先':'今天先做')+'</button>';
  return '<div class="ranked-item"><span class="ranked-mark" aria-hidden="true"></span>'+
-  '<div class="ranked-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(status)+' · '+esc(note)+'</span></div>'+controls+'</div>';
+  '<div class="ranked-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(status)+' · '+esc(note)+'</span></div>'+control+'</div>';
 }
 async function today(){
  const d=await api('/today?local_date='+encodeURIComponent(localDay()));
@@ -210,7 +210,7 @@ async function today(){
    '<p class="muted-line">暂无七天内截止的任务。没有 DDL 的任务不会被当成不重要。</p>')+'</section>';
  const allPage='<section class="task-overview" aria-label="全部待办任务">'+sectionTitle('02 / TASKS','全部待办',
   '<span class="count-caption">'+d.recommendations.length+' 项</span>')+
-  '<p class="today-disclaimer">排序仅供参考；+1 / +2 表示今天想优先做，明天自动失效。重要 × 紧急坐标图等待课程目标数据接入。</p>'+
+  '<p class="today-disclaimer">排序仅供参考；“今天先做”只改变今天的推荐顺序，明天自动失效，不改变客观重要度与紧急度。重要 × 紧急坐标图等待课程证据接入。</p>'+
   (d.recommendations.length?'<div class="ranked-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
    '<p class="muted-line">还没有待办任务。</p>')+'</section>';
  view(head('Learning','今日','TODAY / OVERVIEW')+
@@ -227,11 +227,11 @@ async function today(){
  root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
   const item=d.recommendations.find(t=>t.id===button.dataset.preference);
   if(!item)return;
-  const boost=Math.min(2,Math.max(0,item.boost+Number(button.dataset.step)));
+  const boost=Number(item.boost||0)>0?0:2;
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
   await api('/tasks/'+item.id+'/preference','POST',{boost,...(boost?{expires_at:localMidnight()}:{})});
   await today();root.querySelector('.workarea').scrollTop=scroll;
-  notify(boost?'临时优先 +'+boost+'，今晚失效':'已撤销临时加权');
+  notify(boost?'已标记：今天先做，今晚失效':'已撤销今天优先');
  })));
 }
 function localDatetimeValue(iso){
@@ -330,13 +330,64 @@ async function learn(){
   await api('/focus/'+active.id+'/'+b.dataset.action,'POST');await learn();notify('已保存');
  })));
 }
+function sourceOptions(resources,current=''){
+ return '<option value="">无来源资料 · 手动录入</option>'+resources.map(r=>
+  '<option value="'+esc(r.id)+'" '+(r.id===current?'selected':'')+'>'+esc(r.title)+'</option>'
+ ).join('');
+}
+function contextItemRow(item,resources){
+ const source=resources.find(r=>r.id===item.source_resource_id);
+ const meta=[
+  item.kind==='assessment'&&item.weight_percent!=null?'占比 '+item.weight_percent+'%':'',
+  item.status==='suggested'?'待确认':'已确认',
+  source?'来源 '+source.title:'',
+  item.source_locator||''
+ ].filter(Boolean).join(' · ');
+ const id=esc(item.id);
+ return '<div class="context-item"><div class="context-item-main"><span class="context-kind">'+(item.kind==='objective'?'目标':'考核')+'</span>'+
+  '<div class="context-copy"><strong>'+esc(item.title)+'</strong><small>'+esc(meta)+'</small></div>'+
+  '<div class="context-actions">'+
+   (item.status==='suggested'?'<button type="button" class="button sm quiet-button" data-context-confirm="'+id+'">确认</button>':'')+
+   '<button type="button" class="button sm quiet-button" data-context-edit="'+id+'">修改</button>'+
+   '<button type="button" class="button sm quiet-button danger-quiet" data-context-remove="'+id+'">删除</button></div></div>'+
+  '<form class="context-edit-form" data-context-edit-form="'+id+'" data-kind="'+esc(item.kind)+'" hidden>'+
+   '<label>内容<input name="title" value="'+esc(item.title)+'" required maxlength="160"></label>'+
+   (item.kind==='assessment'?'<label>权重 %<input name="weight_percent" type="number" min="0" max="100" step="0.1" value="'+esc(item.weight_percent??'')+'"></label>':'')+
+   '<label>来源资料<select name="source_resource_id">'+sourceOptions(resources,item.source_resource_id||'')+'</select></label>'+
+   '<label>来源位置<input name="source_locator" maxlength="300" value="'+esc(item.source_locator||'')+'" placeholder="例如：第 2 页 / 第一章目标"></label>'+
+   '<label>状态<select name="status"><option value="confirmed" '+(item.status==='confirmed'?'selected':'')+'>已确认</option><option value="suggested" '+(item.status==='suggested'?'selected':'')+'>待确认</option></select></label>'+
+   '<button class="button sm primary" type="submit">保存</button></form></div>';
+}
 async function library(){
  const [objects,resources]=await Promise.all([api('/objects'),api('/resources')]);
  const kinds={course:'课程',project:'项目',track:'路线'};
- const counts={course:objects.filter(o=>o.kind==='course').length,project:objects.filter(o=>o.kind==='project').length,track:objects.filter(o=>o.kind==='track').length};
- const objectList=objects.length?objects.map(o=>row(o.title,kinds[o.kind]||o.kind)).join(''):'<p class="muted-line">还没有课程或项目，从上方创建一个。</p>';
+ const courses=objects.filter(o=>o.kind==='course');
+ if(courseContextId&&!courses.some(o=>o.id===courseContextId))courseContextId=null;
+ const context=courseContextId?await api('/courses/'+courseContextId+'/context'):null;
+ const counts={course:courses.length,project:objects.filter(o=>o.kind==='project').length,track:objects.filter(o=>o.kind==='track').length};
+ const objectList=objects.length?objects.map(o=>row(o.title,kinds[o.kind]||o.kind,
+  o.kind==='course'?'<button type="button" class="button sm quiet-button" data-context-course="'+esc(o.id)+'">'+(courseContextId===o.id?'收起档案':'课程档案')+'</button>':''
+ )).join(''):'<p class="muted-line">还没有课程或项目，从上方创建一个。</p>';
  const resourceList=resources.length?resources.map(r=>row(r.title,Math.ceil(r.size_bytes/1024)+' KB · 原始资料',
   '<button type="button" class="button sm quiet-button" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button>')).join(''):'<p class="muted-line">还没有保存的资料。</p>';
+ const objectiveItems=context?context.items.filter(i=>i.kind==='objective'):[];
+ const assessmentItems=context?context.items.filter(i=>i.kind==='assessment'):[];
+ const contextPanel=context?'<section class="course-context-panel" aria-label="课程档案">'+
+  sectionTitle('02 / CONTEXT','课程档案','<span class="count-caption">'+esc(context.course.title)+'</span>')+
+  '<p class="context-intro">这里只保存可追溯的课程证据。PPT 或教学大纲以后可以生成“待确认”条目；确认前不会进入重要度判断。</p>'+
+  '<div class="context-evidence"><span>已确认目标 <strong>'+context.evidence.confirmedObjectives+'</strong></span><span>已确认考核 <strong>'+context.evidence.confirmedAssessments+'</strong></span><span>有权重考核 <strong>'+context.evidence.weightedAssessments+'</strong></span></div>'+
+  '<div class="context-columns"><div class="context-column">'+
+   '<h3>学习目标</h3><p class="context-hint">课程要求真正学会什么。</p>'+
+   '<form class="context-add-form" data-context-add="objective"><input name="title" placeholder="例如：掌握状态空间模型分析" required maxlength="160">'+
+    '<select name="source_resource_id">'+sourceOptions(resources)+'</select><input name="source_locator" maxlength="300" placeholder="来源位置（可选）">'+
+    '<button class="button sm primary" type="submit">添加目标</button></form>'+
+   '<div class="context-list">'+(objectiveItems.length?objectiveItems.map(i=>contextItemRow(i,resources)).join(''):'<p class="muted-line">还没有已记录的学习目标。</p>')+'</div></div>'+
+  '<div class="context-column"><h3>考核项</h3><p class="context-hint">课程最终如何评价学习结果。</p>'+
+   '<form class="context-add-form context-assessment-form" data-context-add="assessment"><input name="title" placeholder="例如：期末考试" required maxlength="160">'+
+    '<input name="weight_percent" type="number" min="0" max="100" step="0.1" placeholder="权重 %（可选）">'+
+    '<select name="source_resource_id">'+sourceOptions(resources)+'</select><input name="source_locator" maxlength="300" placeholder="来源位置（可选）">'+
+    '<button class="button sm primary" type="submit">添加考核</button></form>'+
+   '<div class="context-list">'+(assessmentItems.length?assessmentItems.map(i=>contextItemRow(i,resources)).join(''):'<p class="muted-line">还没有已记录的考核信息。</p>')+'</div></div></div></section>':'';
  view(head('Library','资料库')+
  '<div class="workarea library-flow">'+
  '<section class="library-objects">'+sectionTitle('01 / COLLECTION','学习对象','<span class="count-caption">'+objects.length+' 个</span>')+
@@ -345,14 +396,46 @@ async function library(){
  '<button class="button primary">创建 '+ornament('arrow')+'</button>'+
  '<select class="wide" name="kind" aria-label="学习对象类型"><option value="course">课程</option><option value="project">项目</option><option value="track">学习路线</option></select></form>'+
  '<div class="simple-list object-list">'+objectList+'</div></section>'+
- '<section class="library-materials">'+sectionTitle('02 / MATERIALS','我的资料','<span class="count-caption">'+resources.length+' 份</span>')+
- '<p class="muted-line">保存原始文件，随时回到学习资料。</p>'+
+ contextPanel+
+ '<section class="library-materials">'+sectionTitle(context?'03 / MATERIALS':'02 / MATERIALS','我的资料','<span class="count-caption">'+resources.length+' 份</span>')+
+ '<p class="muted-line">保存原始文件，随时回到学习资料。课程档案可以把条目追溯到这里的原件。</p>'+
  '<form id="fileForm" class="upload-strip"><div class="upload-copy"><span class="upload-mark" aria-hidden="true">'+ornament('plus')+'</span><label for="sourceFile">选择文件</label><small>支持 8MB 以内文件 · 公开测试版请勿上传隐私资料</small></div>'+
  '<div class="file-picker"><span class="file-picker-label">浏览文件</span><span class="file-picker-name" id="fileName" aria-live="polite">尚未选择</span><input id="sourceFile" type="file" name="file" aria-label="选择资料" required></div><button class="button secondary">保存原件 '+ornament('arrow')+'</button></form>'+
  '<div class="simple-list resource-list">'+resourceList+'</div></section></div>');
  root.querySelector('#objectForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
-  await api('/objects','POST',{title:f.get('title'),kind:f.get('kind')});await library();notify('已创建');
+  const created=await api('/objects','POST',{title:f.get('title'),kind:f.get('kind')});
+  if(created.kind==='course')courseContextId=created.id;
+  await library();notify('已创建');
  });});
+ root.querySelectorAll('[data-context-course]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
+  courseContextId=courseContextId===b.dataset.contextCourse?null:b.dataset.contextCourse;
+  await library();
+ })));
+ root.querySelectorAll('[data-context-add]').forEach(form=>form.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(form);perform(async()=>{
+  const kind=form.dataset.contextAdd;
+  const body={kind,title:f.get('title'),source_resource_id:f.get('source_resource_id')||null,source_locator:f.get('source_locator')||null};
+  if(kind==='assessment')body.weight_percent=f.get('weight_percent')?Number(f.get('weight_percent')):null;
+  await api('/courses/'+courseContextId+'/context','POST',body);
+  await library();notify(kind==='objective'?'已添加学习目标':'已添加考核信息');
+ });}));
+ root.querySelectorAll('[data-context-edit]').forEach(b=>b.addEventListener('click',()=>{
+  const form=root.querySelector('[data-context-edit-form="'+b.dataset.contextEdit+'"]');
+  if(form)form.hidden=!form.hidden;
+ }));
+ root.querySelectorAll('[data-context-edit-form]').forEach(form=>form.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(form);perform(async()=>{
+  const body={title:f.get('title'),source_resource_id:f.get('source_resource_id')||null,source_locator:f.get('source_locator')||null,status:f.get('status')};
+  if(form.dataset.kind==='assessment')body.weight_percent=f.get('weight_percent')?Number(f.get('weight_percent')):null;
+  await api('/course-context/'+form.dataset.contextEditForm,'POST',body);
+  await library();notify('课程档案已更新');
+ });}));
+ root.querySelectorAll('[data-context-confirm]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
+  await api('/course-context/'+b.dataset.contextConfirm,'POST',{status:'confirmed'});
+  await library();notify('已确认这条课程证据');
+ })));
+ root.querySelectorAll('[data-context-remove]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
+  await api('/course-context/'+b.dataset.contextRemove+'/remove','POST',{});
+  await library();notify('已删除课程档案条目');
+ })));
  root.querySelector('#sourceFile').addEventListener('change',e=>{
   root.querySelector('#fileName').textContent=e.currentTarget.files?.[0]?.name||'尚未选择';
  });
