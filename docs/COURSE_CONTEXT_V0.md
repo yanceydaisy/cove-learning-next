@@ -1,6 +1,6 @@
 # Course Context V0
 
-Status: feature branch `feat/course-context-v0` · not deployed.
+Status: deployed to `main` on 2026-10-14.
 
 ## Product contract
 

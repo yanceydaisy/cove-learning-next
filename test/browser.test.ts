@@ -30,16 +30,17 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
 
   assert.equal(await page.locator('.dock a[data-nav=today]').getAttribute('aria-current'),'page');
   assert.equal(await page.locator('.door').count(),0);
-  assert.equal(await page.locator('.feature-today').count(),1,'Today has one dominant hero');
-  assert.equal(await page.locator('.task-overview').count(),1,'tasks are open information, not a card');
-  assert.equal(await page.locator('.history-block').count(),0,'Today V2 intentionally omits activity history');
-  assert.equal(await page.locator('.today-switch button').count(),3,'Today uses internal sections');
-  assert.equal(await page.locator('.deadline-peek').count(),1,'Today has a DDL preview');
-  assert.equal(await page.locator('.feature-symbol svg.micro-sparkle').count(),1,'hero decoration is a vector, not emoji');
-  assert.equal(await page.locator('.feature-action svg.micro-arrow').count(),1,'hero uses custom thin line arrow');
-  const heroAlign=await page.locator('.feature-bottom').evaluate(el=>getComputedStyle(el).textAlign);
-  assert.equal(heroAlign,'center','Hero headline and call-to-action form a centered resting point');
-  assert.doesNotMatch(await page.locator('.feature-today').innerText(),/[↗✳◌✨📚🚀]/u);
+  assert.equal(await page.locator('.feature-today').count(),0,'Today V3 removes the oversized hero');
+  assert.equal(await page.locator('.today-brief').count(),1,'Today follows the approved daily brief layout');
+  assert.equal(await page.locator('.today-agenda').count(),1);
+  assert.equal(await page.locator('.today-review').count(),1);
+  assert.equal(await page.locator('.today-view-switch button').count(),2,'backlog switches only between list and matrix');
+  assert.equal(await page.locator('.today-start-action').innerText().then(v=>v.includes('开始学习')),true);
+  await page.locator('.today-view-switch button[data-task-view=matrix]').click();
+  await page.locator('.today-matrix').waitFor();
+  assert.equal(await page.locator('.matrix-axis').count(),2,'matrix frame is visible without invented task points');
+  assert.match(await page.locator('.today-matrix-note').innerText(),/不伪造任务位置/);
+  await page.locator('.today-view-switch button[data-task-view=list]').click();
 
   assert.match(await page.title(),/Learning/);
   const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'./manifest.webmanifest');
@@ -56,6 +57,16 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.ok(sizes.tabs.every(width=>width>=66),'mobile navigation tabs remain readable');
   assert.ok(sizes.dock<=sizes.height,'dock fits viewport');
   assert.match(sizes.serif,/serif/i);
+  assert.match(await page.locator('meta[name=viewport]').getAttribute('content')??'',/interactive-widget=overlays-content/,'software keyboard overlays instead of resizing layout');
+  const wallpaperInput=page.locator('.top-actions input[type=file][accept="image/*"]');
+  await wallpaperInput.setInputFiles({
+   name:'wallpaper.svg',mimeType:'image/svg+xml',
+   buffer:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="30"><rect width="20" height="30" fill="#24304b"/></svg>')
+  });
+  await page.waitForFunction(()=>Boolean((window as any).__coveLearningGlass?.isUsingPhoto()));
+  await page.reload({waitUntil:'networkidle'});
+  await page.waitForFunction(()=>Boolean((window as any).__coveLearningGlass?.isUsingPhoto()),null,{timeout:5000});
+  assert.equal(await page.locator('.head h1').innerText(),'Learning','saved wallpaper survives a full reload');
   await page.screenshot({path:join(dir,'mobile-learning.png'),fullPage:true});
   await page.locator('a[data-nav=plan]').click();
   assert.equal(await page.locator('#connectDialog').count(),0);
@@ -63,6 +74,17 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('#taskForm').waitFor();
   assert.equal(await page.locator('.composer-pane h2').evaluate(el=>getComputedStyle(el).textAlign),'center');
   assert.equal(await page.locator('#taskForm button .micro-arrow').count(),1);
+  const keyboardLayout=await page.evaluate(()=>{
+   const viewport=(window as any).__coveLearningViewport;
+   const shell=document.querySelector('.shell')!.getBoundingClientRect().height;
+   viewport.simulateKeyboard(420);
+   const frozen=document.querySelector('.shell')!.getBoundingClientRect().height;
+   const marked=viewport.isKeyboardOpen();
+   viewport.adjust();
+   return {shell,frozen,marked};
+  });
+  assert.equal(keyboardLayout.marked,true,'keyboard state is detected');
+  assert.equal(Math.round(keyboardLayout.frozen),Math.round(keyboardLayout.shell),'keyboard does not squash the app shell');
 
   await page.locator('#taskForm input[name=title]').fill('极点配置');
   await page.locator('#taskForm button').click();
@@ -146,15 +168,16 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.getByText('学习记录',{exact:true}).waitFor();
   await page.locator('a[data-nav=today]').click();
   await page.getByText('极点配置',{exact:true}).first().waitFor();
-  assert.equal(await page.locator('.deadline-line>div').count(),1,'edited deadline appears in Today');
+  assert.equal(await page.locator('.today-task-card').count(),1,'ranked task appears in the backlog card list');
+  assert.match(await page.locator('.today-task-card').first().innerText(),/距截止/,'deadline distance is visible in the approved compact layout');
   assert.equal(await page.locator('.today-priority-button').first().innerText(),'今天先做');
   await page.locator('.today-priority-button').first().click();
   await page.locator('.today-priority-button').first().getByText('已优先').waitFor();
-  await page.locator('.today-switch button[data-today-pane=all]').click();
-  await page.getByText('全部待办',{exact:true}).waitFor();
-  await page.locator('.today-switch button[data-today-pane=deadline]').click();
-  await page.getByText('截止任务',{exact:true}).waitFor();
-  await page.locator('.today-switch button[data-today-pane=day]').click();
+  await page.locator('.today-view-switch button[data-task-view=matrix]').click();
+  await page.locator('.today-matrix').waitFor();
+  assert.match(await page.locator('.today-matrix-note').innerText(),/不伪造任务位置/);
+  await page.locator('.today-view-switch button[data-task-view=list]').click();
+  await page.getByText('极点配置',{exact:true}).first().waitFor();
   await page.screenshot({path:join(dir,'mobile-today.png'),fullPage:true});
   assert.deepEqual(errors,[]);
   const exportDir=join(process.cwd(),'.visual');
@@ -178,7 +201,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
    else await route.continue();
   });
   await recoveryPage.goto('http://127.0.0.1:'+addr.port+'/',{waitUntil:'domcontentloaded'});
-  await recoveryPage.locator('.feature-today').waitFor({timeout:8000});
+  await recoveryPage.locator('.today-brief').waitFor({timeout:8000});
   assert.equal(readAttempts,3,'two failed GETs recover via safe retries');
   await recoveryPage.unroute('**/api/today*');
   await recoveryPage.route('**/api/today*',route=>route.abort('failed'));
@@ -187,7 +210,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.match(await recoveryPage.locator('.screen').innerText(),/网络连接暂时中断/,'network errors use clear Chinese guidance');
   await recoveryPage.unroute('**/api/today*');
   await recoveryPage.evaluate(()=>window.dispatchEvent(new Event('online')));
-  await recoveryPage.locator('.feature-today').waitFor({timeout:8000});
+  await recoveryPage.locator('.today-brief').waitFor({timeout:8000});
   assert.equal(await recoveryPage.locator('#retry').count(),0,'online event restores Today automatically');
   await recoveryContext.close();
   // iPhone 15 PWA regression: the CSS layout viewport can be shorter than screen.height.
