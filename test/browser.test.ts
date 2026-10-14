@@ -60,11 +60,16 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const lightTheme=await page.evaluate(()=>({
    bg:getComputedStyle(document.body).backgroundColor,
    title:getComputedStyle(document.querySelector('.head h1')!).color,
+   muted:getComputedStyle(document.querySelector('.today-disclaimer')!).color,
+   divider:getComputedStyle(document.querySelector('.today-brief')!).borderTopColor,
    dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor,
    button:getComputedStyle(document.querySelector('.today-start-action')!).color,
    overlay:getComputedStyle(document.querySelector('.wallpaper')!,'::after').backgroundColor
   }));
-  assert.notEqual(lightTheme.title,'rgb(255, 248, 255)','day theme no longer inherits hard-coded night text');
+  assert.equal(lightTheme.title,'rgb(0, 0, 0)','day headings are pure black');
+  assert.equal(lightTheme.muted,'rgb(0, 0, 0)','day secondary copy is pure black');
+  assert.equal(lightTheme.divider,'rgb(0, 0, 0)','day dividers are pure black');
+  assert.equal(lightTheme.button,'rgb(0, 0, 0)','day primary action text is pure black');
   await page.screenshot({path:join(dir,'mobile-today-light.png'),fullPage:true});
   await page.locator('#appearance').click();
   await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
