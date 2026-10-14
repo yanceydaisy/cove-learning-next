@@ -19,6 +19,12 @@
  --serif:"Noto Serif SC","Songti SC","Noto Serif CJK SC",STSong,Georgia,serif;
  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
 }
+:root[data-theme="light"]{
+ --ink:#000;--body:#000;--muted:#000;
+ --rule:#000;--line:#000;
+ --glass-text:#000;--glass-text-strong:#000;--glass-muted:#000;--glass-subtle:#000;
+ --glass-primary-text:#000;--milk-text:#000;--on-primary:#000;
+}
 :root[data-theme="dark"]{
  color-scheme:dark;
  --bg-a:#303341;--bg-b:#272b37;--bg-c:#202330;
