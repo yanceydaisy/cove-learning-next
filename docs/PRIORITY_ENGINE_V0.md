@@ -6,7 +6,7 @@ Status: **released to `main` on 2026-10-12**. The original development branch wa
 
 Learning is decision support, **not** an automatic executor or a math-contest accuracy benchmark. A user may temporarily prefer any task, including a low-urgency task, without changing that task's objective urgency. Never fabricate importance scores from the absence of course context.
 
-The Today view retains the accepted Liquid Glass V5 hero and keeps 4 primary navigation tabs. Within Today, 3 internal sections replace a long activity recap: **今天**, **截止**, **全部任务**.
+The Today view keeps 4 primary navigation tabs but now follows the approved compact sketch: a start action, **今日任务 / 回顾总结**, then **待办任务** with **列表 / 坐标图** views. The coordinate frame is shown without task points until importance evidence is real.
 
 ## Sources of ranking information
 

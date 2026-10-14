@@ -20,24 +20,51 @@ function currentNav(){
  const here=page();
  document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===here?'page':'false'));
 }
-function adjustViewport(){
- const vv=window.visualViewport;
- const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
- const layoutHeight=Math.max(1,window.innerHeight);
- const keyboard=vv?.height>0&&layoutHeight-vv.height>135;
+let stableLayoutHeight=Math.max(1,window.innerHeight);
+let stableVisualHeight=Math.max(1,window.visualViewport?.height||stableLayoutHeight);
+function isEditingControl(){
+ const el=document.activeElement;
+ return !!el&&['INPUT','TEXTAREA','SELECT'].includes(el.tagName);
+}
+function applyViewportMetrics(layoutHeight,visibleHeight,offsetTop,standalone,editing){
+ const keyboard=editing&&(
+  stableVisualHeight-visibleHeight>120||
+  stableLayoutHeight-layoutHeight>120||
+  layoutHeight-visibleHeight>120
+ );
+ // Keep the layout viewport frozen while the software keyboard is visible.
+ // The keyboard may cover the lower part of the page, but it must not squash cards,
+ // resize the dock, or rebuild the wallpaper around a temporary visual viewport.
+ if(keyboard){
+  document.documentElement.dataset.keyboard='open';
+  return;
+ }
+ delete document.documentElement.dataset.keyboard;
+ stableLayoutHeight=layoutHeight;
+ stableVisualHeight=visibleHeight;
  // In affected iOS home-screen PWAs, innerHeight excludes the native bottom "chin",
  // while CSS 100vh on a 100vh root reaches the physical viewport.
  // Use CSS viewport units, not screen.height (which can overrun other iOS versions).
- if(standalone&&!keyboard){
+ if(standalone){
   document.documentElement.style.setProperty('--app-height','100vh');
   document.documentElement.style.setProperty('--app-top','0px');
   return;
  }
- const top=Math.max(0,Math.min(layoutHeight-1,vv?.offsetTop||0));
- const visibleHeight=vv?.height>0?vv.height:layoutHeight;
+ const top=Math.max(0,Math.min(layoutHeight-1,offsetTop||0));
  const height=Math.max(1,Math.floor(Math.min(layoutHeight-top,visibleHeight)));
  document.documentElement.style.setProperty('--app-height',height+'px');
  document.documentElement.style.setProperty('--app-top',top+'px');
+}
+function adjustViewport(){
+ const vv=window.visualViewport;
+ const layoutHeight=Math.max(1,window.innerHeight);
+ applyViewportMetrics(
+  layoutHeight,
+  Math.max(1,vv?.height||layoutHeight),
+  vv?.offsetTop||0,
+  window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true,
+  isEditingControl()
+ );
 }
 function appearance(){
  const mode=localStorage.getItem('cove.home.themeMode')||'system';
@@ -63,6 +90,9 @@ window.addEventListener('storage',event=>{if(['cove.home.themeMode','cove.home.b
 window.addEventListener('pageshow',()=>{try{appearance();}catch{}adjustViewport();});
 window.addEventListener('resize',adjustViewport);
 window.visualViewport?.addEventListener('resize',adjustViewport);
+window.addEventListener('focusin',adjustViewport);
+window.addEventListener('focusout',()=>setTimeout(adjustViewport,80));
+window.__coveLearningViewport={adjust:adjustViewport,isKeyboardOpen:()=>document.documentElement.dataset.keyboard==='open',simulateKeyboard:visibleHeight=>applyViewportMetrics(stableLayoutHeight,Math.max(1,visibleHeight),0,false,true)};
 adjustViewport();
 
 // Read-only iPhone PWA diagnostic, hidden unless the header logo is tapped three times.
@@ -166,7 +196,7 @@ function historyList(sessions,max=5){
   '<div class="activity-item"><span class="activity-mark" aria-hidden="true"></span><div class="activity-copy"><strong>'+esc(date(s.started_at))+' · '+esc(time(s.started_at))+'</strong><span>'+esc(s.state==='finished'?'已完成':s.state==='paused'?'已暂停':'进行中')+'</span></div><span class="activity-duration">'+minutes(s.accumulated_ms)+'<small> min</small></span></div>'
  ).join('')+'</div>':'<p class="muted-line">还没有学习记录，第一段专注从这里开始。</p>';
 }
-let todayPane='day';
+let todayTaskView='list';
 let courseContextId=null;
 function localDay(){
  const n=new Date(),pad=v=>String(v).padStart(2,'0');
@@ -175,54 +205,79 @@ function localDay(){
 function localMidnight(){
  const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate()+1).toISOString();
 }
-function decisionRow(t){
- const status=t.due_at?'DDL · '+date(t.due_at)+' '+time(t.due_at):'未设置 DDL';
+function deadlineDistance(iso){
+ if(!iso)return '未设置截止';
+ const delta=Date.parse(iso)-Date.now();
+ if(delta<0)return '已超过截止';
+ const mins=Math.max(1,Math.ceil(delta/60_000));
+ if(mins<60)return '距截止 '+mins+'min';
+ const hours=Math.ceil(mins/60);
+ if(hours<48)return '距截止 '+hours+'h';
+ return '距截止 '+Math.ceil(hours/24)+'d';
+}
+function todayAgendaRow(t){
+ const detail=t.due_at?deadlineDistance(t.due_at):(t.estimated_minutes?t.estimated_minutes+' min':'今日安排');
+ return '<div class="today-agenda-item"><span class="today-agenda-dot" aria-hidden="true"></span>'+
+  '<div class="today-agenda-copy"><strong>'+esc(t.title)+'</strong><small>'+esc(t.reasons?.[0]||'今日安排')+'</small></div>'+
+  '<span class="today-agenda-time">'+esc(detail)+'</span></div>';
+}
+function decisionRow(t,index=0){
  const note=t.reasons?.[0]||'由任务状态生成的建议';
  const preferred=Number(t.boost||0)>0;
  const control='<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+esc(t.id)+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销 '+esc(t.title)+' 的今日优先':'今天先做 '+esc(t.title))+'">'+
   (preferred?'已优先':'今天先做')+'</button>';
- return '<div class="ranked-item"><span class="ranked-mark" aria-hidden="true"></span>'+
-  '<div class="ranked-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(status)+' · '+esc(note)+'</span></div>'+control+'</div>';
+ return '<article class="today-task-card"><span class="today-task-index">'+String(index+1).padStart(2,'0')+'</span>'+
+  '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(deadlineDistance(t.due_at))+' · '+esc(note)+'</span></div>'+control+'</article>';
+}
+function todayMatrix(model){
+ const ready=Boolean(model?.importanceAvailable);
+ return '<div class="today-matrix-wrap"><div class="today-matrix" aria-label="重要度与紧急度坐标图">'+
+  '<span class="matrix-y-label">重要</span><span class="matrix-x-label">紧急</span>'+
+  '<span class="matrix-axis matrix-axis-y" aria-hidden="true"></span><span class="matrix-axis matrix-axis-x" aria-hidden="true"></span>'+
+  '<span class="matrix-origin" aria-hidden="true"></span></div>'+
+  '<p class="today-matrix-note">'+(ready?'坐标数据已就绪，任务点将在下一阶段接入。':'课程证据与任务还没有建立足够关联，所以现在只保留坐标框架，不伪造任务位置。')+'</p></div>';
 }
 async function today(){
  const d=await api('/today?local_date='+encodeURIComponent(localDay()));
  const activity=d.activeFocus;
- const chosen=todayPane;
  const planned=d.todayTasks;
- const picks=planned.length?planned:d.recommendations.slice(0,4);
- const deadlines=d.deadlineTasks;
- const title=activity?(activity.state==='paused'?'继续未完成的专注':'回到正在进行的学习'):'留一点时间，给学习。';
- const hint=activity?'上一次的学习进度还在这里，随时可以接着做。':'不必计划好一整天，先从一段专注开始。';
- const tabs=[['day','今天'],['deadline','截止'],['all','全部任务']];
- const switcher='<div class="today-switch" role="group" aria-label="今日工作台内部页面">'+
-  tabs.map(([id,label])=>'<button type="button" data-today-pane="'+id+'" aria-pressed="'+(chosen===id)+'">'+label+'</button>').join('')+'</div>';
- const shortlist='<section class="task-overview" aria-label="今日任务">'+
-  sectionTitle('02 / '+(planned.length?'TODAY':'SUGGESTED'),planned.length?'今天的任务':'接下来做什么',actionLink('#/plan','打开计划'))+
-  (!planned.length?'<p class="today-disclaimer">还没有安排今日任务。以下是可调整的系统建议。</p>':'')+
-  (picks.length?'<div class="ranked-list">'+picks.map(decisionRow).join('')+'</div>':'<p class="muted-line">还没有待办任务，去 Plan 写下第一件事吧。</p>')+'</section>'+
-  '<section class="deadline-peek" aria-label="临近截止">'+sectionTitle('03 / DEADLINE','临近截止',
-   '<button class="today-text-button" data-today-pane="deadline">查看全部 '+ornament('arrow')+'</button>')+
-  (deadlines.length?'<div class="deadline-line">'+deadlines.slice(0,2).map(t=>'<div><span>'+esc(t.title)+'</span><small>'+esc(date(t.due_at))+'</small></div>').join('')+'</div>':
-   '<p class="muted-line">目前没有七天内截止的任务。</p>')+'</section>';
- const duePage='<section class="task-overview" aria-label="截止任务">'+sectionTitle('02 / DEADLINE','截止任务',
-  '<span class="count-caption">'+deadlines.length+' 项近期截止</span>')+
-  (deadlines.length?'<div class="ranked-list">'+deadlines.map(decisionRow).join('')+'</div>':
-   '<p class="muted-line">暂无七天内截止的任务。没有 DDL 的任务不会被当成不重要。</p>')+'</section>';
- const allPage='<section class="task-overview" aria-label="全部待办任务">'+sectionTitle('02 / TASKS','全部待办',
-  '<span class="count-caption">'+d.recommendations.length+' 项</span>')+
-  '<p class="today-disclaimer">排序仅供参考；“今天先做”只改变今天的推荐顺序，明天自动失效，不改变客观重要度与紧急度。重要 × 紧急坐标图等待课程证据接入。</p>'+
-  (d.recommendations.length?'<div class="ranked-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
-   '<p class="muted-line">还没有待办任务。</p>')+'</section>';
- view(head('Learning','今日','TODAY / OVERVIEW')+
-  '<div class="workarea daily-flow">'+
-  '<section class="feature feature-today" aria-label="继续学习"><div class="feature-top"><span class="feature-index">01 / FOCUS</span><span class="feature-symbol" aria-hidden="true">'+ornament('sparkle')+'</span></div>'+
-  '<div class="feature-bottom"><p class="feature-overline">'+(activity?'当前进度':'你的今日起点')+'</p><h2>'+title+'</h2><p>'+hint+'</p><a class="feature-action" href="#/learn">'+(activity?'继续学习':'开始学习')+' '+ornament('arrow')+'</a></div></section>'+
-  switcher+(chosen==='day'?shortlist:chosen==='deadline'?duePage:allPage)+'</div>');
- root.querySelectorAll('[data-today-pane]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+ const latest=d.recentSessions?.[0]||null;
+ const startLabel=activity?'继续学习':'开始学习';
+ const agenda=planned.length?planned.slice(0,4).map(todayAgendaRow).join(''):
+  '<p class="today-empty">今天还没有安排任务。去 Plan 放一件真正想完成的事进来。</p>';
+ const review=latest?
+  '<div class="today-review-stat"><strong>'+minutes(latest.accumulated_ms)+'</strong><span>min</span></div>'+
+  '<p>'+esc(date(latest.started_at))+' · '+esc(time(latest.started_at))+' '+esc(latest.state==='finished'?'完成':'暂停')+'</p>':
+  '<div class="today-review-stat"><strong>—</strong></div><p>还没有可回顾的学习记录。</p>';
+ const switcher='<div class="today-view-switch" role="group" aria-label="待办任务视图">'+
+  [['list','列表'],['matrix','坐标图']].map(([id,label])=>
+   '<button type="button" data-task-view="'+id+'" aria-pressed="'+(todayTaskView===id)+'">'+label+'</button>').join('')+'</div>';
+ const taskBody=todayTaskView==='list'?
+  (d.recommendations.length?'<div class="today-task-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
+   '<p class="today-empty">还没有待办任务。</p>'):
+  todayMatrix(d.priorityModel);
+ view(
+  '<header class="head today-head"><div><p class="kicker">TODAY / OVERVIEW</p><h1>Learning</h1></div>'+
+   '<a class="today-start-action" href="#/learn">'+startLabel+' '+ornament('plus')+'</a></header>'+
+  '<div class="workarea daily-flow today-v3">'+
+   '<section class="today-brief" aria-label="今日任务与学习回顾">'+
+    '<div class="today-agenda"><div class="today-mini-head"><span>01 / TODAY</span><h2>今日任务</h2></div>'+
+     '<div class="today-agenda-list">'+agenda+'</div></div>'+
+    '<aside class="today-review"><div class="today-mini-head"><span>REVIEW</span><h2>回顾 / 总结</h2></div>'+
+     review+'<a href="#/learn">学习记录 '+ornament('arrow')+'</a></aside>'+
+   '</section>'+
+   '<section class="today-backlog" aria-label="待办任务">'+
+    '<div class="today-backlog-head"><div><span class="section-eyebrow">02 / TASKS</span><h2>待办任务</h2></div>'+switcher+'</div>'+
+    '<p class="today-disclaimer">列表按当前证据给出可解释建议；“今天先做”只改变今天的推荐顺序。坐标图只有在重要度证据成立后才放置任务点。</p>'+
+    taskBody+
+   '</section>'+
+  '</div>'
+ );
+ root.querySelectorAll('[data-task-view]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
-  todayPane=button.dataset.todayPane;await today();
+  todayTaskView=button.dataset.taskView;await today();
   root.querySelector('.workarea').scrollTop=scroll;
-  root.querySelector('.today-switch [data-today-pane="'+todayPane+'"]')?.focus({preventScroll:true});
+  root.querySelector('.today-view-switch [data-task-view="'+todayTaskView+'"]')?.focus({preventScroll:true});
  })));
  root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
   const item=d.recommendations.find(t=>t.id===button.dataset.preference);
@@ -488,15 +543,58 @@ if (new URLSearchParams(location.search).get('ui') !== 'classic') {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0b1020');
     const wallpaperLayer = document.querySelector('.wallpaper');
     const screen = document.querySelector('#screen');
+    const shell = document.querySelector('.shell');
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const preset = Object.freeze({refract:26,tint:0,blur:0,edge:25,shine:13,wobble:15});
     const bg = document.createElement('canvas');
     let chosenImage = null;
     const optics = new Map();
     let bgUrl = '';
+    const WALLPAPER_DB='cove-learning-local-ui';
+    const WALLPAPER_STORE='settings';
+    const WALLPAPER_KEY='wallpaper-v1';
+    function wallpaperDb(){
+      return new Promise((resolve,reject)=>{
+        const request=indexedDB.open(WALLPAPER_DB,1);
+        request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(WALLPAPER_STORE))request.result.createObjectStore(WALLPAPER_STORE);};
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+    }
+    async function loadSavedWallpaper(){
+      try{
+        const db=await wallpaperDb();
+        const value=await new Promise((resolve,reject)=>{
+          const tx=db.transaction(WALLPAPER_STORE,'readonly');
+          const req=tx.objectStore(WALLPAPER_STORE).get(WALLPAPER_KEY);
+          req.onsuccess=()=>resolve(req.result||'');
+          req.onerror=()=>reject(req.error);
+        });
+        db.close();
+        return typeof value==='string'?value:'';
+      }catch{return '';}
+    }
+    async function saveWallpaper(dataUrl){
+      try{
+        const db=await wallpaperDb();
+        await new Promise((resolve,reject)=>{
+          const tx=db.transaction(WALLPAPER_STORE,'readwrite');
+          tx.objectStore(WALLPAPER_STORE).put(dataUrl,WALLPAPER_KEY);
+          tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+        });
+        db.close();return true;
+      }catch{return false;}
+    }
+    function useWallpaperData(dataUrl,notifyOnLoad=false){
+      if(!dataUrl||!/^data:image\//.test(dataUrl))return;
+      const image=new Image();
+      image.onload=()=>{chosenImage=image;renderWallpaper();if(notifyOnLoad)notify('背景已保存到本机 · 未上传');};
+      image.onerror=()=>notify('图片无法读取');
+      image.src=dataUrl;
+    }
     const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
     const screenW = () => Math.max(1,window.innerWidth);
-    const screenH = () => Math.max(1,window.innerHeight);
+    const screenH = () => Math.max(1,window.innerHeight,shell?.getBoundingClientRect().height||0);
 
       const vertex = `attribute vec2 a_position;
 varying vec2 v_uv;
@@ -684,14 +782,11 @@ void main(){
         if(file.size>8*1024*1024){notify('预览图片请小于 8MB');input.value='';return;}
         // CSP allows data: images but not blob: URLs. FileReader never uploads.
         const reader=new FileReader();
-        reader.onload=()=>{
-          const image=new Image();
-          image.onload=()=>{
-            chosenImage=image;renderWallpaper();
-            notify('已在本机预览背景 · 未上传');
-          };
-          image.onerror=()=>notify('图片无法读取');
-          image.src=String(reader.result);
+        reader.onload=async()=>{
+          const dataUrl=String(reader.result||'');
+          const stored=await saveWallpaper(dataUrl);
+          useWallpaperData(dataUrl,stored);
+          if(!stored)notify('背景已预览，但本机保存失败');
         };
         reader.onerror=()=>notify('文件无法读取');
         reader.readAsDataURL(file);
@@ -837,10 +932,11 @@ void main(){
     }
     addWallpaperPicker();
     renderWallpaper();
+    loadSavedWallpaper().then(dataUrl=>{if(dataUrl)useWallpaperData(dataUrl);});
     new MutationObserver(syncCards).observe(screen,{childList:true});
     syncCards();
     document.addEventListener('scroll',()=>{for(const o of optics.values())o.refresh();},true);
-    window.addEventListener('resize',()=>{renderWallpaper();for(const o of optics.values())o.refresh();},{passive:true});
+    window.addEventListener('resize',()=>{if(doc.dataset.keyboard==='open')return;renderWallpaper();for(const o of optics.values())o.refresh();},{passive:true});
     window.addEventListener('pageshow',()=>{
       wallpaperLayer.style.backgroundImage='url('+JSON.stringify(bgUrl)+')';
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0b1020');
