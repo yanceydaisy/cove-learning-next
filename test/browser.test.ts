@@ -157,7 +157,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('.today-switch button[data-today-pane=day]').click();
   await page.screenshot({path:join(dir,'mobile-today.png'),fullPage:true});
   assert.deepEqual(errors,[]);
-  const exportDir='/home/ubuntu/projects/cove-learning-priority-foundation/.visual';
+  const exportDir=join(process.cwd(),'.visual');
   const fs=await import('node:fs');
   fs.mkdirSync(exportDir,{recursive:true});
   for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png','mobile-library.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));

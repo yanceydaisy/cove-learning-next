@@ -6,9 +6,13 @@ After the user approved the glass design, **Liquid Glass V5 became the default U
 
 Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
-## Priority Engine V0 · un-deployed feature branch (2026-10-12)
+## Priority Engine V0 · deployed (2026-10-12)
 
-On `feat/learning-priority-foundation` only: additive task metadata (optional planned date, UTC DDL, estimated minutes), read-only recommendation ranking, lightweight aging, and temporary +1/+2 user preference until the next local midnight. Today gains three internal pages while retaining Liquid Glass V5; Plan exposes optional task metadata and edit controls. This is **not deployed** to the public preview. No fabricated importance scores, PPT goal extraction, or scatter coordinates. Implementation contract: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md).
+Additive task metadata (optional planned date, UTC DDL, estimated minutes), explainable recommendation ranking, bounded aging, and temporary +1/+2 user preference until the next local midnight are now part of `main`. Today has three internal pages while retaining Liquid Glass V5; Plan exposes optional task metadata and edit controls. Importance remains deliberately `null`: there are no fabricated PPT goals or scatter coordinates. Implementation contract: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md).
+
+## Course Context V0 · feature branch (2026-10-14)
+
+`feat/course-context-v0` adds the evidence layer needed before task importance can be real: confirmed or suggested course objectives, assessment items, optional assessment weights, immutable Library source references, source locators, and edit / confirm / delete controls in Library. Suggested evidence must retain a source and is never treated as confirmed automatically. **Task importance is still `null`** until a later task-to-evidence relation exists. This branch is not deployed. Contract: [`docs/COURSE_CONTEXT_V0.md`](docs/COURSE_CONTEXT_V0.md).
 
 ## App
 - **Default page is Today** (heading `Learning`): one focus hero, open task summary with real pending counts and unboxed recent study activity. No separate Home tab.
