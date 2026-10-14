@@ -24,6 +24,15 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   const noKey=await fetch(base+'/api/today');assert.equal(noKey.status,401);
   const object=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'project',title:'我们的项目'})});
   assert.equal(object.status,201);const item=await object.json() as {id:string};
+  const courseRes=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'course',title:'现代控制'})});
+  assert.equal(courseRes.status,201);const course=await courseRes.json() as {id:string};
+  const objectiveRes=await request('/api/courses/'+course.id+'/context',{method:'POST',body:JSON.stringify({kind:'objective',title:'掌握状态空间模型分析'})});
+  assert.equal(objectiveRes.status,201);const objective=await objectiveRes.json() as {id:string};
+  const assessmentRes=await request('/api/courses/'+course.id+'/context',{method:'POST',body:JSON.stringify({kind:'assessment',title:'期末考试',weight_percent:60})});
+  assert.equal(assessmentRes.status,201);
+  const contextRead=await (await request('/api/courses/'+course.id+'/context')).json() as {items:unknown[];evidence:{confirmedObjectives:number;weightedAssessments:number}};
+  assert.equal(contextRead.items.length,2);assert.equal(contextRead.evidence.confirmedObjectives,1);assert.equal(contextRead.evidence.weightedAssessments,1);
+  assert.equal((await request('/api/course-context/'+objective.id,{method:'POST',body:JSON.stringify({title:'掌握状态空间分析'})})).status,200);
   assert.equal((await request('/api/objects')).status,200);
   const task=await request('/api/tasks',{method:'POST',body:JSON.stringify({title:'写需求',object_id:item.id})});
   assert.equal(task.status,201);

@@ -171,6 +171,34 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .object-overview span{font-size:11px;color:var(--muted)}
 .object-composer{max-width:580px;margin:0 0 14px}
 .object-list{margin-top:15px}
+.course-context-panel{padding-top:23px;border-top:1px solid var(--line);min-width:0}
+.context-intro{margin:10px 0 15px;color:var(--muted);font-size:11px;line-height:1.75;max-width:680px}
+.context-evidence{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.context-evidence span{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:100px;padding:6px 10px;background:var(--surface)}
+.context-evidence strong{color:var(--ink);font-weight:600;margin-left:4px}
+.context-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.context-column{border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:16px;min-width:0}
+.context-column h3{font:400 18px/1.2 var(--serif);margin:0;color:var(--ink)}
+.context-hint{font-size:10px;color:var(--muted);margin:5px 0 13px;line-height:1.6}
+.context-add-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:14px}
+.context-add-form input,.context-add-form select,.context-edit-form input,.context-edit-form select{min-width:0;width:100%;min-height:38px;padding:7px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-strong);color:var(--ink);font-size:11px}
+.context-add-form select,.context-add-form input[name="source_locator"]{grid-column:1/-1}
+.context-assessment-form{grid-template-columns:minmax(0,1fr) 94px auto}
+.context-assessment-form select,.context-assessment-form input[name="source_locator"]{grid-column:1/-1}
+.context-list{border-top:1px solid var(--line)}
+.context-item{padding:10px 0;border-bottom:1px solid var(--line)}
+.context-item-main{display:flex;gap:9px;align-items:center;min-width:0}
+.context-kind{flex:none;font-size:9px;letter-spacing:.08em;color:var(--muted);border:1px solid var(--line);border-radius:100px;padding:4px 6px}
+.context-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.context-copy strong{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.context-copy small{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.context-actions{display:flex;gap:5px;flex:none}
+.danger-quiet{opacity:.72}
+.context-edit-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;padding:10px;border-radius:14px;background:var(--surface)}
+.context-edit-form[hidden]{display:none}
+.context-edit-form label{display:flex;flex-direction:column;gap:4px;font-size:9px;color:var(--muted);min-width:0}
+.context-edit-form button{align-self:end;width:max-content}
+@media(max-width:680px){.context-columns{grid-template-columns:1fr}.context-actions{gap:3px}.context-item-main{align-items:flex-start;flex-wrap:wrap}.context-copy{min-width:180px}.context-add-form,.context-assessment-form{grid-template-columns:1fr}.context-add-form select,.context-add-form input[name="source_locator"],.context-assessment-form select,.context-assessment-form input[name="source_locator"]{grid-column:auto}.context-edit-form{grid-template-columns:1fr}}
 .upload-strip{display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;padding:19px 20px;
  border:1px dashed var(--line);border-radius:20px;margin-top:19px;background:var(--surface)}
 .upload-copy{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
@@ -457,7 +485,22 @@ html[data-learning-ui="glass"] .object-overview{
 }
 html[data-learning-ui="glass"] .object-overview strong{color:#fff7ff}
 html[data-learning-ui="glass"] .object-overview span{color:#d5cbdc}
-html[data-learning-ui="glass"] .library-materials{border-color:var(--line)}
+html[data-learning-ui="glass"] .library-materials,
+html[data-learning-ui="glass"] .course-context-panel{border-color:var(--line)}
+html[data-learning-ui="glass"] .context-column,
+html[data-learning-ui="glass"] .context-evidence span,
+html[data-learning-ui="glass"] .context-edit-form{background:rgba(18,23,41,.30);border-color:rgba(247,237,255,.20)}
+html[data-learning-ui="glass"] .context-add-form input,
+html[data-learning-ui="glass"] .context-add-form select,
+html[data-learning-ui="glass"] .context-edit-form input,
+html[data-learning-ui="glass"] .context-edit-form select{background:rgba(9,12,26,.42);color:#fff8ff;border-color:rgba(243,233,255,.26);color-scheme:dark}
+html[data-learning-ui="glass"] .context-copy strong,
+html[data-learning-ui="glass"] .context-column h3,
+html[data-learning-ui="glass"] .context-evidence strong{color:#fff8ff}
+html[data-learning-ui="glass"] .context-intro,
+html[data-learning-ui="glass"] .context-hint,
+html[data-learning-ui="glass"] .context-copy small,
+html[data-learning-ui="glass"] .context-edit-form label{color:#cfc3d7}
 html[data-learning-ui="glass"] .upload-strip{
  background:rgba(18,23,41,.32);
  border:1px solid rgba(247,237,255,.21);

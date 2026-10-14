@@ -1,6 +1,7 @@
 import {join} from 'node:path';
 import {Database} from './database.js';
 import {CatalogService} from '../modules/catalog/service.js';
+import {CourseContextService} from '../modules/catalog/course-context.js';
 import {PlanningService} from '../modules/planning/service.js';
 import {LibraryService} from '../modules/library/service.js';
 import {ActivityService} from '../modules/activity/service.js';
@@ -8,6 +9,7 @@ import {TodayService} from '../modules/today/service.js';
 export class LearningApplication {
  readonly database:Database;
  readonly catalog:CatalogService;
+ readonly courseContext:CourseContextService;
  readonly planning:PlanningService;
  readonly library:LibraryService;
  readonly activity:ActivityService;
@@ -16,6 +18,7 @@ export class LearningApplication {
   this.database=new Database(memory?':memory:':join(dataDir,'learning.sqlite'));
   const now=()=>clock().toISOString();
   this.catalog=new CatalogService(this.database,now);
+  this.courseContext=new CourseContextService(this.database,this.catalog,now);
   this.planning=new PlanningService(this.database,this.catalog,now);
   this.library=new LibraryService(this.database,join(dataDir,'originals'),now);
   this.activity=new ActivityService(this.database,this.catalog,clock);
