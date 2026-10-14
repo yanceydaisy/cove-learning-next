@@ -874,6 +874,10 @@ void main(){
         ctx.setTransform(dpr,0,0,dpr,0,0);
         const rect=card.getBoundingClientRect();
         ctx.drawImage(bg,-rect.left,-rect.top,screenW(),screenH());
+        // Match Home: refractive cards sample the same day/night page overlay
+        // that the user sees over the full-screen wallpaper.
+        const overlay=getComputedStyle(doc).getPropertyValue('--theme-page-overlay').trim();
+        if(overlay){ctx.fillStyle=overlay;ctx.fillRect(0,0,w,h);}
         gl.bindTexture(gl.TEXTURE_2D,texture);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,backdrop);
         dirty=false;

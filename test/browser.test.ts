@@ -43,13 +43,15 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('.today-view-switch button[data-task-view=list]').click();
   await page.waitForFunction(()=>document.querySelector('.today-start-action')?.classList.contains('learning-liquid'));
   assert.equal(await page.locator('.today-start-action canvas.learning-liquid-optics').count(),1,'start action uses the real liquid-glass shader');
-  const titleMask=await page.locator('.today-head').evaluate(el=>{
-   const s=getComputedStyle(el,'::before');
-   return {content:s.content,filter:s.backdropFilter,background:s.backgroundImage};
+  const titleMask=await page.locator('.today-head').evaluate(el=>getComputedStyle(el,'::before').content);
+  assert.equal(titleMask,'none','Today no longer draws a local title-card mask');
+  const wallpaperMask=await page.locator('.wallpaper').evaluate(el=>{
+   const s=getComputedStyle(el,'::after');
+   return {content:s.content,background:s.backgroundColor,filter:s.backdropFilter};
   });
-  assert.notEqual(titleMask.content,'none','Learning heading has a readability haze');
-  assert.notEqual(titleMask.filter,'none','heading haze blurs the wallpaper underneath');
-  assert.match(titleMask.background,/gradient/i);
+  assert.notEqual(wallpaperMask.content,'none','the wallpaper owns a full-screen theme mask');
+  assert.notEqual(wallpaperMask.background,'rgba(0, 0, 0, 0)');
+  assert.match(wallpaperMask.filter,/saturate/i);
 
   await page.evaluate(()=>localStorage.setItem('cove.home.themeMode','light'));
   await page.reload({waitUntil:'networkidle'});
@@ -59,7 +61,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
    bg:getComputedStyle(document.body).backgroundColor,
    title:getComputedStyle(document.querySelector('.head h1')!).color,
    dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor,
-   button:getComputedStyle(document.querySelector('.today-start-action')!).color
+   button:getComputedStyle(document.querySelector('.today-start-action')!).color,
+   overlay:getComputedStyle(document.querySelector('.wallpaper')!,'::after').backgroundColor
   }));
   assert.notEqual(lightTheme.title,'rgb(255, 248, 255)','day theme no longer inherits hard-coded night text');
   await page.screenshot({path:join(dir,'mobile-today-light.png'),fullPage:true});
@@ -68,10 +71,12 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('#appearance').innerText(),'夜');
   const darkTheme=await page.evaluate(()=>({
    title:getComputedStyle(document.querySelector('.head h1')!).color,
-   dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor
+   dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor,
+   overlay:getComputedStyle(document.querySelector('.wallpaper')!,'::after').backgroundColor
   }));
   assert.notEqual(darkTheme.title,lightTheme.title,'day and night have distinct foreground colors');
   assert.notEqual(darkTheme.dock,lightTheme.dock,'day and night have distinct glass surfaces');
+  assert.notEqual(darkTheme.overlay,lightTheme.overlay,'day brightens and night darkens the entire wallpaper');
   await page.screenshot({path:join(dir,'mobile-today-dark.png'),fullPage:true});
   await page.reload({waitUntil:'networkidle'});
   assert.equal(await page.locator('html').getAttribute('data-theme'),'dark','manual night choice survives reload');
