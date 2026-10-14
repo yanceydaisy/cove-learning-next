@@ -41,6 +41,43 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.matrix-axis').count(),2,'matrix frame is visible without invented task points');
   assert.match(await page.locator('.today-matrix-note').innerText(),/不伪造任务位置/);
   await page.locator('.today-view-switch button[data-task-view=list]').click();
+  await page.waitForFunction(()=>document.querySelector('.today-start-action')?.classList.contains('learning-liquid'));
+  assert.equal(await page.locator('.today-start-action canvas.learning-liquid-optics').count(),1,'start action uses the real liquid-glass shader');
+  const titleMask=await page.locator('.today-head').evaluate(el=>{
+   const s=getComputedStyle(el,'::before');
+   return {content:s.content,filter:s.backdropFilter,background:s.backgroundImage};
+  });
+  assert.notEqual(titleMask.content,'none','Learning heading has a readability haze');
+  assert.notEqual(titleMask.filter,'none','heading haze blurs the wallpaper underneath');
+  assert.match(titleMask.background,/gradient/i);
+
+  await page.evaluate(()=>localStorage.setItem('cove.home.themeMode','light'));
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
+  assert.equal(await page.locator('#appearance').innerText(),'日');
+  const lightTheme=await page.evaluate(()=>({
+   bg:getComputedStyle(document.body).backgroundColor,
+   title:getComputedStyle(document.querySelector('.head h1')!).color,
+   dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor,
+   button:getComputedStyle(document.querySelector('.today-start-action')!).color
+  }));
+  assert.notEqual(lightTheme.title,'rgb(255, 248, 255)','day theme no longer inherits hard-coded night text');
+  await page.screenshot({path:join(dir,'mobile-today-light.png'),fullPage:true});
+  await page.locator('#appearance').click();
+  await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
+  assert.equal(await page.locator('#appearance').innerText(),'夜');
+  const darkTheme=await page.evaluate(()=>({
+   title:getComputedStyle(document.querySelector('.head h1')!).color,
+   dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor
+  }));
+  assert.notEqual(darkTheme.title,lightTheme.title,'day and night have distinct foreground colors');
+  assert.notEqual(darkTheme.dock,lightTheme.dock,'day and night have distinct glass surfaces');
+  await page.screenshot({path:join(dir,'mobile-today-dark.png'),fullPage:true});
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('html').getAttribute('data-theme'),'dark','manual night choice survives reload');
+  assert.equal(await page.locator('#appearance').innerText(),'夜');
+  await page.locator('#appearance').click();
+  assert.equal(await page.locator('#appearance').innerText(),'自动','third mode follows the system');
 
   assert.match(await page.title(),/Learning/);
   const manifest=await page.locator('link[rel=manifest]').getAttribute('href');assert.equal(manifest,'./manifest.webmanifest');
@@ -183,7 +220,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const exportDir=join(process.cwd(),'.visual');
   const fs=await import('node:fs');
   fs.mkdirSync(exportDir,{recursive:true});
-  for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png','mobile-library.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
+  for(const name of ['mobile-learning.png','mobile-plan.png','mobile-today.png','mobile-library.png','mobile-today-light.png','mobile-today-dark.png'])fs.copyFileSync(join(dir,name),join(exportDir,name));
   await context.close();
   const desktop=await browser.newContext({viewport:{width:1440,height:900}});
   const p2=await desktop.newPage();await p2.goto('http://127.0.0.1:'+addr.port+'/');
