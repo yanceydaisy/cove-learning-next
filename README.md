@@ -2,7 +2,7 @@
 
 ## Liquid Glass V5 · default Learning UI (2026-10-11)
 
-After the user approved the glass design, **Liquid Glass V5 became the default UI** at `https://learning-next.43.133.238.9.sslip.io/`. Today / Plan / Learn / Library use the original APIs and data, now with the same full-surface refraction as Home V5. The **换背景** button remains in the header: images are local-only, never uploaded, and are persisted in browser IndexedDB across app restarts. One WebGL focal surface per page preserves mobile performance. The former `?ui=glass` URL remains compatible; `?ui=classic` is reserved as an emergency appearance fallback, not a separate user-facing preview. The PWA shell cache was bumped for the rollout. See `docs/LEARNING_LIQUID_UI_V5.md`.
+After the user approved the glass design, **Liquid Glass V5 became the default UI** at `https://learning-next.43.133.238.9.sslip.io/`. Today / Plan / Learn / Library use the original APIs and data, now with the same full-surface refraction as Home V5. The UI now supports **日间 / 夜间 / 跟随系统** through the shared `cove.home.themeMode` preference; both the wallpaper canvas and WebGL glass material respond to the resolved theme. The **换背景** button remains in the header: images are local-only, never uploaded, and are persisted in browser IndexedDB across app restarts. One WebGL focal surface per page preserves mobile performance. The former `?ui=glass` URL remains compatible; `?ui=classic` is reserved as an emergency appearance fallback, not a separate user-facing preview. The PWA shell cache was bumped for the rollout. See `docs/LEARNING_LIQUID_UI_V5.md`.
 
 Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
 
@@ -15,7 +15,7 @@ Additive task metadata (optional planned date, UTC DDL, estimated minutes), expl
 Course Context V0 adds the evidence layer needed before task importance can be real: confirmed or suggested course objectives, assessment items, optional assessment weights, immutable Library source references, source locators, and edit / confirm / delete controls in Library. Suggested evidence must retain a source and is never treated as confirmed automatically. **Task importance is still `null`** until a later task-to-evidence relation exists. Contract: [`docs/COURSE_CONTEXT_V0.md`](docs/COURSE_CONTEXT_V0.md).
 
 ## App
-- **Default page is Today** (heading `Learning`): compact `开始学习` action, side-by-side 今日任务 / 回顾总结, then a 待办任务 workspace with 列表 / 坐标图 views. The coordinate frame stays empty until importance evidence is real. No separate Home tab.
+- **Default page is Today** (heading `Learning`): a soft local readability haze sits behind the title, the `开始学习` action uses a milk-white refractive glass pill, followed by side-by-side 今日任务 / 回顾总结 and a 待办任务 workspace with 列表 / 坐标图 views. The coordinate frame stays empty until importance evidence is real. No separate Home tab.
 - Plan: a single task-composer focus with an open actionable list. Create, complete and optionally link tasks to learning objects.
 - Learn: one focus stage for start, pause, resume and finish, followed by a light activity archive.
 - Library: full-width learning-object stats and creation, followed by an independently spaced materials/upload section. No cramped twin cards. Original source upload stays capped at 8 MB (SHA-256).

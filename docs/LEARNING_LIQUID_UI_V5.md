@@ -6,17 +6,17 @@
 - **Default:** `https://learning-next.43.133.238.9.sslip.io/` opens the Liquid Glass V5 UI.
 - **Legacy links:** `/?ui=glass` still opens the same UI, but is no longer needed.
 - **Emergency appearance rollback:** `/?ui=classic` displays the previous look, using the same app and data.
-- **PWA:** `./?source=pwa` now opens V5; service worker shell cache is `cove-learning-v0.12-20261011-glass`. Manifest and theme color are navy `#0b1020`.
+- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.16-20261014-day-night-glass`. Theme color follows the resolved day/night appearance instead of being forced to navy.
 
 ## Design and functionality
 The exact Home V5 optical shader is extracted from `/home/ubuntu/projects/cove-home-liquid/home-liquid-v5.js` by `ops/build_learning_glass.py`. It includes rounded full-card refraction, subtle center-to-edge lens distortion, two fine white corner glints, and a mild Gaussian backdrop sample on the hero card. One WebGL focal surface is used per Learning page. All four original pages and their real API actions remain intact:
 
-- **Today:** compact Learning header with start action, side-by-side daily tasks / review, then backlog list / coordinate views.
+- **Today:** compact Learning header with a soft blurred readability haze and a milk-white WebGL liquid-glass start action, side-by-side daily tasks / review, then backlog list / coordinate views.
 - **Plan:** refractive task composer, task creation and management.
 - **Learn:** refractive focus stage, focus timer and session events.
 - **Library:** refractive object overview, course/project creation and resources.
 
-The navy-violet wallpaper is drawn to one canvas and used by both CSS and the WebGL shader so the refracted texture matches the visible background. The top **换背景** control accepts images up to 8 MB through FileReader data URLs. Images are **never uploaded**. The selected wallpaper is persisted locally in browser IndexedDB and restored on later app launches.
+The wallpaper is drawn to one canvas and used by both CSS and the WebGL shader so the refracted texture matches the visible background. Its palette resolves to a pale misty day surface or the original navy-violet night surface; `system`, `light`, and `dark` reuse the shared Home appearance preference. The top **换背景** control accepts images up to 8 MB through FileReader data URLs. Images are **never uploaded**. The selected wallpaper is persisted locally in browser IndexedDB and restored on later app launches.
 
 Performance: reduced-motion support, 1.5 DPR texture cap, 20fps maximum, offscreen visibility tracking, and old-context disposal on page navigation. If WebGL is unavailable, the card falls back to translucent CSS.
 

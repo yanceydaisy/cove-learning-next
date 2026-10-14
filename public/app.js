@@ -70,21 +70,32 @@ function appearance(){
  const mode=localStorage.getItem('cove.home.themeMode')||'system';
  const prefers=window.matchMedia('(prefers-color-scheme: dark)').matches;
  const dark=mode==='dark'||mode==='system'&&prefers;
- document.documentElement.dataset.theme=dark?'dark':'light';
+ const resolved=dark?'dark':'light';
+ document.documentElement.dataset.theme=resolved;
+ document.documentElement.dataset.themeMode=mode;
  const meta=document.querySelector('meta[name="theme-color"]');
- if(meta)meta.content=dark?'#252936':'#dee1e8';
+ if(meta)meta.content=dark?'#202330':'#e4eaf2';
+ const appearanceButton=document.querySelector('#appearance');
+ if(appearanceButton){
+  appearanceButton.textContent=mode==='system'?'自动':dark?'夜':'日';
+  appearanceButton.title=mode==='system'?'外观：跟随系统（点击切换）':dark?'外观：夜间（点击切换）':'外观：日间（点击切换）';
+  appearanceButton.setAttribute('aria-label',appearanceButton.title);
+ }
  const bg=localStorage.getItem('cove.home.background')||'';
  const layer=document.querySelector('.wallpaper');
  // Only honor images already stored by Cove Home; never use untrusted arbitrary page markup.
  if(bg&&(/^(data:image\/|blob:)/.test(bg))) {layer.style.backgroundImage='url('+JSON.stringify(bg)+')';layer.classList.add('custom');}
  else{layer.style.backgroundImage='';layer.classList.remove('custom');}
+ window.dispatchEvent(new CustomEvent('cove-theme-change',{detail:{mode,resolved}}));
 }
 try{appearance();}catch{}
+const systemTheme=window.matchMedia('(prefers-color-scheme: dark)');
+systemTheme.addEventListener?.('change',()=>{if((localStorage.getItem('cove.home.themeMode')||'system')==='system')appearance();});
 document.querySelector('#appearance').addEventListener('click',()=>{
  const current=localStorage.getItem('cove.home.themeMode')||'system';
  const next=current==='light'?'dark':current==='dark'?'system':'light';
  localStorage.setItem('cove.home.themeMode',next);appearance();
- notify(next==='system'?'已跟随系统外观':next==='dark'?'已切换深色':'已切换浅色');
+ notify(next==='system'?'已跟随系统外观':next==='dark'?'已切换夜间':'已切换日间');
 });
 window.addEventListener('storage',event=>{if(['cove.home.themeMode','cove.home.background'].includes(event.key))try{appearance();}catch{}});
 window.addEventListener('pageshow',()=>{try{appearance();}catch{}adjustViewport();});
@@ -258,7 +269,7 @@ async function today(){
   todayMatrix(d.priorityModel);
  view(
   '<header class="head today-head"><div><p class="kicker">TODAY / OVERVIEW</p><h1>Learning</h1></div>'+
-   '<a class="today-start-action" href="#/learn">'+startLabel+' '+ornament('plus')+'</a></header>'+
+   '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span>'+ornament('plus')+'</a></header>'+
   '<div class="workarea daily-flow today-v3">'+
    '<section class="today-brief" aria-label="今日任务与学习回顾">'+
     '<div class="today-agenda"><div class="today-mini-head"><span>01 / TODAY</span><h2>今日任务</h2></div>'+
@@ -540,7 +551,6 @@ if (new URLSearchParams(location.search).get('ui') !== 'classic') {
     'use strict';
     const doc = document.documentElement;
     doc.dataset.learningUi = 'glass';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0b1020');
     const wallpaperLayer = document.querySelector('.wallpaper');
     const screen = document.querySelector('#screen');
     const shell = document.querySelector('.shell');
@@ -726,21 +736,22 @@ void main(){
 
     function renderWallpaper() {
       const w=screenW(),h=screenH();
+      const light=doc.dataset.theme==='light';
       bg.width=w;bg.height=h;
       const ctx=bg.getContext('2d');
       const grad=ctx.createLinearGradient(0,0,w*.78,h);
-      grad.addColorStop(0,'#080d18');
-      grad.addColorStop(.46,'#11192c');
-      grad.addColorStop(1,'#19182c');
+      grad.addColorStop(0,light?'#f5f8fb':'#080d18');
+      grad.addColorStop(.46,light?'#e6edf5':'#11192c');
+      grad.addColorStop(1,light?'#d7e1ec':'#19182c');
       ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
       function glow(x,y,r,c) {
         const g=ctx.createRadialGradient(x,y,0,x,y,r);
         g.addColorStop(0,c);g.addColorStop(1,'rgba(0,0,0,0)');
         ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
       }
-      glow(w*.89,h*.16,Math.max(w,h)*.76,'rgba(169,129,192,.23)');
-      glow(w*.03,h*.72,Math.max(w,h)*.65,'rgba(84,114,188,.20)');
-      glow(w*.62,h*.98,Math.max(w,h)*.60,'rgba(214,151,188,.10)');
+      glow(w*.89,h*.16,Math.max(w,h)*.76,light?'rgba(255,255,255,.58)':'rgba(169,129,192,.23)');
+      glow(w*.03,h*.72,Math.max(w,h)*.65,light?'rgba(157,181,218,.18)':'rgba(84,114,188,.20)');
+      glow(w*.62,h*.98,Math.max(w,h)*.60,light?'rgba(232,190,218,.13)':'rgba(214,151,188,.10)');
       // Quiet, curved filaments give refraction something real to bend.
       // They are painted ONCE into the actual wallpaper, not over the glass.
       ctx.save();
@@ -749,7 +760,9 @@ void main(){
         ctx.beginPath();
         ctx.moveTo(x-w*.44,-h*.18);
         ctx.bezierCurveTo(x+w*.18,h*.24+offset,x-w*.40,h*.56+offset,x+w*.34,h*1.12);
-        ctx.strokeStyle=i%2?'rgba(236,202,233,.10)':'rgba(180,193,250,.11)';
+        ctx.strokeStyle=light
+          ?(i%2?'rgba(167,151,183,.10)':'rgba(111,139,184,.10)')
+          :(i%2?'rgba(236,202,233,.10)':'rgba(180,193,250,.11)');
         ctx.lineWidth=i%3===0?1.15:.68;ctx.stroke();
       }
       ctx.restore();
@@ -758,7 +771,7 @@ void main(){
         const iw=chosenImage.naturalWidth,ih=chosenImage.naturalHeight;
         const scale=Math.max(w/iw,h/ih),dw=iw*scale,dh=ih*scale;
         ctx.drawImage(chosenImage,(w-dw)*.5,(h-dh)*.5,dw,dh);
-        ctx.fillStyle='rgba(8,11,23,.29)';
+        ctx.fillStyle=light?'rgba(246,249,252,.18)':'rgba(8,11,23,.29)';
         ctx.fillRect(0,0,w,h);
       }
       bgUrl=bg.toDataURL('image/png');
@@ -798,6 +811,7 @@ void main(){
 
     function createOptics(card) {
       const isHero=card.classList.contains('feature-today');
+      const isStart=card.classList.contains('today-start-action');
       const canvas=document.createElement('canvas');
       canvas.className='learning-liquid-optics';
       canvas.setAttribute('aria-hidden','true');
@@ -874,19 +888,22 @@ void main(){
         gl.uniform2f(loc.u_res,w,h);
         gl.uniform1f(loc.u_corner,corner);
         gl.uniform1f(loc.u_time,time);
+        const light=doc.dataset.theme==='light';
         gl.uniform1f(loc.u_shape,preset.wobble/100*.09*.25);
-        gl.uniform1f(loc.u_refract,preset.refract*1.36);
-        gl.uniform1f(loc.u_tint,preset.tint/100);
+        gl.uniform1f(loc.u_refract,preset.refract*(isStart?1.52:1.36));
+        gl.uniform1f(loc.u_tint,isStart?(light?1.42:1.52):preset.tint/100);
         gl.uniform1f(loc.u_blur,preset.blur);
         gl.uniform1f(loc.u_edge,preset.edge/100);
-        gl.uniform1f(loc.u_shine,preset.shine/100);
-        gl.uniform1f(loc.u_lTint,1);
+        gl.uniform1f(loc.u_shine,isStart ? .22 : preset.shine/100);
+        gl.uniform1f(loc.u_lTint,isStart ? 1.34 : 1);
         gl.uniform1f(loc.u_lBlur,1);
         gl.uniform1f(loc.u_lEdge,1);
-        gl.uniform1f(loc.u_lShadow,1);
+        gl.uniform1f(loc.u_lShadow,isStart ? .72 : 1);
         gl.uniform1f(loc.u_lDistort,1);
-        gl.uniform1f(loc.u_softBlur,isHero?1.7:0.0);
-        gl.uniform3f(loc.u_color,.81,.71,.94);
+        gl.uniform1f(loc.u_softBlur,isHero?1.7:isStart?1.15:0.0);
+        if(isStart)gl.uniform3f(loc.u_color,.99,.965,.91);
+        else if(light)gl.uniform3f(loc.u_color,.84,.89,.96);
+        else gl.uniform3f(loc.u_color,.81,.71,.94);
         gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
       }
       function resize(){
@@ -921,7 +938,7 @@ void main(){
     }
     function syncCards(){
       const selected=new Set(screen.querySelectorAll(
-        '.feature-today,.composer-pane,.focus-stage,.object-overview'
+        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-start-action'
       ));
       for(const [card,optic] of optics){
         if(!selected.has(card)){optic.dispose();optics.delete(card);}
@@ -937,10 +954,8 @@ void main(){
     syncCards();
     document.addEventListener('scroll',()=>{for(const o of optics.values())o.refresh();},true);
     window.addEventListener('resize',()=>{if(doc.dataset.keyboard==='open')return;renderWallpaper();for(const o of optics.values())o.refresh();},{passive:true});
-    window.addEventListener('pageshow',()=>{
-      wallpaperLayer.style.backgroundImage='url('+JSON.stringify(bgUrl)+')';
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#0b1020');
-    });
+    window.addEventListener('cove-theme-change',()=>{renderWallpaper();for(const o of optics.values())o.refresh();});
+    window.addEventListener('pageshow',()=>{renderWallpaper();});
     if(!reduced) {
       const frame=ms=>{
         for(const optic of optics.values())optic.frame(ms);
