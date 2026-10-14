@@ -561,12 +561,9 @@ html[data-learning-ui="glass"] .toast{color:#fffaff;background:#332a44}
 .ranked-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
 .ranked-copy strong{font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ranked-copy span{font-size:10px;color:var(--muted);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.priority-controls{display:flex;flex:0 0 auto;align-items:center;gap:1px;padding:3px 5px;border-radius:100px;
- border:1px solid var(--line);background:var(--surface)}
-.priority-controls button{border:0;background:transparent;color:var(--ink);width:32px;height:37px;
- font:400 18px/1 Arial,sans-serif;display:grid;place-items:center;border-radius:100px}
-.priority-controls button:disabled{opacity:.27}
-.priority-value{font:400 11px var(--display);font-variant-numeric:tabular-nums;color:var(--body);min-width:19px;text-align:center}
+.today-priority-button{flex:0 0 auto;min-height:36px;padding:7px 11px;border-radius:100px;
+ border:1px solid var(--line);background:var(--surface);color:var(--body);font-size:10px;white-space:nowrap}
+.today-priority-button.active{background:var(--surface-strong);color:var(--ink);box-shadow:inset 0 1px var(--rule)}
 .deadline-peek{padding:0 2px 17px}
 .today-text-button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;
  color:var(--body);font-size:11px}
@@ -581,15 +578,14 @@ html[data-learning-ui="glass"] .today-switch button[aria-pressed="true"]{
 html[data-learning-ui="glass"] .ranked-copy strong,
 html[data-learning-ui="glass"] .deadline-line>div{color:#f5ecf8}
 html[data-learning-ui="glass"] .ranked-copy span,
-html[data-learning-ui="glass"] .priority-value,
 html[data-learning-ui="glass"] .today-disclaimer,
 html[data-learning-ui="glass"] .deadline-line small{color:#c6bbd0}
-html[data-learning-ui="glass"] .priority-controls{background:rgba(18,20,38,.3);border-color:rgba(249,234,255,.28)}
-html[data-learning-ui="glass"] .priority-controls button,
+html[data-learning-ui="glass"] .today-priority-button{background:rgba(18,20,38,.30);border-color:rgba(249,234,255,.28);color:#f4e6f6}
+html[data-learning-ui="glass"] .today-priority-button.active{background:rgba(237,223,249,.22);color:#fff8ff}
 html[data-learning-ui="glass"] .today-text-button{color:#f4e6f6}
 @media(max-width:390px){
  .ranked-item{gap:8px}
- .priority-controls button{width:28px}
+ .today-priority-button{padding-inline:9px}
  .today-switch button{min-height:43px}
 }
 

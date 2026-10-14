@@ -147,9 +147,9 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('a[data-nav=today]').click();
   await page.getByText('极点配置',{exact:true}).first().waitFor();
   assert.equal(await page.locator('.deadline-line>div').count(),1,'edited deadline appears in Today');
-  assert.equal(await page.locator('.priority-value').first().innerText(),'+0');
-  await page.locator('button[data-step="1"]').first().click();
-  await page.locator('.priority-value').first().getByText('+1').waitFor();
+  assert.equal(await page.locator('.today-priority-button').first().innerText(),'今天先做');
+  await page.locator('.today-priority-button').first().click();
+  await page.locator('.today-priority-button').first().getByText('已优先').waitFor();
   await page.locator('.today-switch button[data-today-pane=all]').click();
   await page.getByText('全部待办',{exact:true}).waitFor();
   await page.locator('.today-switch button[data-today-pane=deadline]').click();

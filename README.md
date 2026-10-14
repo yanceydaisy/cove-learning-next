@@ -8,7 +8,7 @@ Fresh independent Learning application. The public test preview deliberately **d
 
 ## Priority Engine V0 · deployed (2026-10-12)
 
-Additive task metadata (optional planned date, UTC DDL, estimated minutes), explainable recommendation ranking, bounded aging, and temporary +1/+2 user preference until the next local midnight are now part of `main`. Today has three internal pages while retaining Liquid Glass V5; Plan exposes optional task metadata and edit controls. Importance remains deliberately `null`: there are no fabricated PPT goals or scatter coordinates. Implementation contract: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md).
+Additive task metadata (optional planned date, UTC DDL, estimated minutes), explainable recommendation ranking, bounded aging, and a temporary “今天先做” user preference until the next local midnight are now part of `main`. Today has three internal pages while retaining Liquid Glass V5; Plan exposes optional task metadata and edit controls. Importance remains deliberately `null`: there are no fabricated PPT goals or scatter coordinates. Implementation contract: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md).
 
 ## Course Context V0 · feature branch (2026-10-14)
 

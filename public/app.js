@@ -178,12 +178,11 @@ function localMidnight(){
 function decisionRow(t){
  const status=t.due_at?'DDL · '+date(t.due_at)+' '+time(t.due_at):'未设置 DDL';
  const note=t.reasons?.[0]||'由任务状态生成的建议';
- const controls='<div class="priority-controls" aria-label="临时优先权重">'+
-  '<button type="button" data-preference="'+esc(t.id)+'" data-step="-1" aria-label="降低 '+esc(t.title)+' 的临时优先级" '+(t.boost===0?'disabled':'')+'>−</button>'+
-  '<span class="priority-value" aria-label="当前加权 '+Number(t.boost||0)+'">+'+Number(t.boost||0)+'</span>'+
-  '<button type="button" data-preference="'+esc(t.id)+'" data-step="1" aria-label="提高 '+esc(t.title)+' 的临时优先级" '+(t.boost>=2?'disabled':'')+'>+</button></div>';
+ const preferred=Number(t.boost||0)>0;
+ const control='<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+esc(t.id)+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销 '+esc(t.title)+' 的今日优先':'今天先做 '+esc(t.title))+'">'+
+  (preferred?'已优先':'今天先做')+'</button>';
  return '<div class="ranked-item"><span class="ranked-mark" aria-hidden="true"></span>'+
-  '<div class="ranked-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(status)+' · '+esc(note)+'</span></div>'+controls+'</div>';
+  '<div class="ranked-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(status)+' · '+esc(note)+'</span></div>'+control+'</div>';
 }
 async function today(){
  const d=await api('/today?local_date='+encodeURIComponent(localDay()));
@@ -211,7 +210,7 @@ async function today(){
    '<p class="muted-line">暂无七天内截止的任务。没有 DDL 的任务不会被当成不重要。</p>')+'</section>';
  const allPage='<section class="task-overview" aria-label="全部待办任务">'+sectionTitle('02 / TASKS','全部待办',
   '<span class="count-caption">'+d.recommendations.length+' 项</span>')+
-  '<p class="today-disclaimer">排序仅供参考；+1 / +2 表示今天想优先做，明天自动失效。重要 × 紧急坐标图等待课程目标数据接入。</p>'+
+  '<p class="today-disclaimer">排序仅供参考；“今天先做”只改变今天的推荐顺序，明天自动失效，不改变客观重要度与紧急度。重要 × 紧急坐标图等待课程证据接入。</p>'+
   (d.recommendations.length?'<div class="ranked-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
    '<p class="muted-line">还没有待办任务。</p>')+'</section>';
  view(head('Learning','今日','TODAY / OVERVIEW')+
@@ -228,11 +227,11 @@ async function today(){
  root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
   const item=d.recommendations.find(t=>t.id===button.dataset.preference);
   if(!item)return;
-  const boost=Math.min(2,Math.max(0,item.boost+Number(button.dataset.step)));
+  const boost=Number(item.boost||0)>0?0:2;
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
   await api('/tasks/'+item.id+'/preference','POST',{boost,...(boost?{expires_at:localMidnight()}:{})});
   await today();root.querySelector('.workarea').scrollTop=scroll;
-  notify(boost?'临时优先 +'+boost+'，今晚失效':'已撤销临时加权');
+  notify(boost?'已标记：今天先做，今晚失效':'已撤销今天优先');
  })));
 }
 function localDatetimeValue(iso){
