@@ -1,5 +1,6 @@
 // Decision support, not an automatic scheduler. All scores are transparent heuristics.
-// No importance coordinate is fabricated before course goals/assessment context exists.
+// Base urgency ranking never fabricates importance. Today may enrich a task with a user-confirmed
+// ordinal importance (low / medium / high), but that signal is intentionally not folded into score yet.
 export type DeadlineState = 'overdue'|'at-risk'|'within-day'|'within-three-days'|'within-week'|'later'|'unknown';
 export type DecisionInput = {
  id:string; title:string; created_at:string; due_at:string|null;

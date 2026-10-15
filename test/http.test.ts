@@ -40,10 +40,14 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   assert.equal(evidenceRead.available.length,2);assert.equal(evidenceRead.links.length,0);
   const evidenceSet=await request('/api/tasks/'+courseTask.id+'/evidence',{method:'POST',body:JSON.stringify({context_item_id:objective.id,linked:true})});
   assert.equal(evidenceSet.status,200);
-  const evidenceToday=await (await request('/api/today?local_date=2026-10-12')).json() as {recommendations:{id:string;importance:null;evidence:{id:string}[];reasons:string[]}[]};
+  const importanceSet=await request('/api/tasks/'+courseTask.id+'/importance',{method:'POST',body:JSON.stringify({context_item_id:objective.id,contribution:'high'})});
+  assert.equal(importanceSet.status,200);
+  const evidenceToday=await (await request('/api/today?local_date=2026-10-12')).json() as {recommendations:{id:string;importance:'low'|'medium'|'high'|null;evidence:{id:string}[];reasons:string[]}[];priorityModel:{importanceAvailable:boolean;importanceScale:string}};
   const evidenceTask=evidenceToday.recommendations.find(t=>t.id===courseTask.id)!;
-  assert.equal(evidenceTask.importance,null);assert.equal(evidenceTask.evidence.length,1);
-  assert.ok(evidenceTask.reasons.some(reason=>reason.includes('关联课程目标')));
+  assert.equal(evidenceTask.importance,'high');assert.equal(evidenceTask.evidence.length,1);
+  assert.ok(evidenceTask.reasons.some(reason=>reason.includes('重要度：高')));
+  assert.equal(evidenceToday.priorityModel.importanceAvailable,true);
+  assert.equal(evidenceToday.priorityModel.importanceScale,'ordinal-low-medium-high');
   assert.equal((await request('/api/tasks/'+courseTask.id+'/complete',{method:'POST',body:'{}'})).status,200);
   const task=await request('/api/tasks',{method:'POST',body:JSON.stringify({title:'写需求',object_id:item.id})});
   assert.equal(task.status,201);

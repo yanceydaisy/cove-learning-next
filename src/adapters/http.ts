@@ -65,6 +65,8 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
      result=app.taskEvidence.list(parts[2]!);
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='evidence'&&method==='POST')
      result=app.taskEvidence.set(parts[2]!,await parseBody(req));
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='importance'&&method==='POST')
+     result=app.taskEvidence.setImportance(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='details'&&method==='POST')
      result=app.planning.updateDetails(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='preference'&&method==='POST')

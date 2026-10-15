@@ -29,12 +29,27 @@ export class TodayService {
    const rows=evidenceByTask.get(row.task_id)??[];
    rows.push(row);evidenceByTask.set(row.task_id,rows);
   }
+  const importanceRows=this.db.raw.prepare(
+   `SELECT i.task_id,i.context_item_id,i.contribution,
+           c.kind,c.title,c.weight_percent
+    FROM task_importance_inputs i
+    JOIN course_context_items c ON c.id=i.context_item_id
+    JOIN tasks t ON t.id=i.task_id
+    WHERE t.status='open' AND c.status='confirmed'`
+  ).all() as unknown as {task_id:string;context_item_id:string;contribution:'low'|'medium'|'high';kind:'objective'|'assessment';title:string;weight_percent:number|null}[];
+  const importanceByTask=new Map(importanceRows.map(row=>[row.task_id,row]));
+  const importanceName={low:'低',medium:'中',high:'高'} as const;
   const recommendations=ranked.map(task=>{
    const evidence=evidenceByTask.get(task.id)??[];
+   const importanceInput=importanceByTask.get(task.id)??null;
    const evidenceReasons=evidence.map(item=>item.kind==='objective'
     ?'关联课程目标：'+item.title
     :'关联考核：'+item.title+(item.weight_percent!=null?'（'+item.weight_percent+'%）':''));
-   return {...task,evidence,reasons:[...task.reasons,...evidenceReasons]};
+   const importanceReasons=importanceInput
+    ?['重要度：'+importanceName[importanceInput.contribution]+' · 主依据：'+importanceInput.title]
+    :[];
+   return {...task,importance:importanceInput?.contribution??null,importance_input:importanceInput,evidence,
+    reasons:[...task.reasons,...importanceReasons,...evidenceReasons]};
   });
   const activeFocus=this.db.raw.prepare("SELECT * FROM focus_sessions WHERE state IN ('running','paused') LIMIT 1").get()??null;
   const recentSessions=this.db.raw.prepare("SELECT id,state,started_at,ended_at,accumulated_ms,object_id FROM focus_sessions ORDER BY started_at DESC,id DESC LIMIT 5").all();
@@ -44,7 +59,9 @@ export class TodayService {
   const todayTasks=recommendations.filter(t=>t.planned_for===today);
   return {openTasks,activeFocus,recentSessions,recentResources,
    todayTasks,deadlineTasks,recommendations,
-   priorityModel:{version:'rules-v0',importanceAvailable:false,evidenceLinksAvailable:evidenceRows.length>0,description:'课程证据已可显式关联到任务；重要度仍等待任务贡献语义，不把考核权重直接冒充任务重要度。'},
+   priorityModel:{version:'rules-v0+importance-ordinal-v1',importanceAvailable:importanceRows.length>0,
+    importanceScale:'ordinal-low-medium-high',evidenceLinksAvailable:evidenceRows.length>0,
+    description:'重要度只来自你确认的主依据与低/中/高贡献等级；当前仍不与紧急度合并成一个黑箱分数。'},
    generated_at:instant.toISOString()};
  }
 }

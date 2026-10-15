@@ -29,7 +29,7 @@ The Today view keeps 4 primary navigation tabs but now follows the approved comp
 | Later | 25 |
 | Deadline unknown | 35 (neutral fallback, **not a claim of low urgency**) |
 
-Waiting age contributes `min(14, floor(waitingDays)*2)` points (simple aging). Temporary subjective preference adds `40 * boost`, where `boost ∈ {0,1,2}`. The ranking score is an **internal ordering heuristic**, not an objective probability or accuracy statistic. Task urgency is returned separately and stays unchanged by preference. Importance stays null.
+Waiting age contributes `min(14, floor(waitingDays)*2)` points (simple aging). Temporary subjective preference adds `40 * boost`, where `boost ∈ {0,1,2}`. The ranking score is an **internal ordering heuristic**, not an objective probability or accuracy statistic. Task urgency is returned separately and stays unchanged by preference. The base `rankTasks` engine still emits `importance: null`; Today may overlay a user-confirmed ordinal importance from Task Importance V1, but V1 deliberately does not fold that value back into the score.
 
 A DDL counts as “at risk” only when the user has supplied a remaining time estimate; in its absence the system uses calendar proximity but does not invent effort estimates. The engine never starts, stops, or completes work for a user.
 
@@ -48,7 +48,8 @@ Migration v2 adds nullable task columns `due_at`, `estimated_minutes`, `planned_
 - `POST /api/tasks/:id/preference`: adjust or clear temporary boost.
 - `GET /api/tasks/:id/evidence`: read confirmed evidence available to a course task plus its current links.
 - `POST /api/tasks/:id/evidence`: explicitly link or unlink one course-context item; this does not alter the ranking score.
-- `GET /api/today?local_date=YYYY-MM-DD`: backward-compatible `openTasks` / activity projection plus `todayTasks`, `deadlineTasks`, evidence-enriched `recommendations`, and `priorityModel`.
+- `POST /api/tasks/:id/importance`: set / replace or clear the task's primary evidence + low / medium / high contribution input.
+- `GET /api/today?local_date=YYYY-MM-DD`: backward-compatible `openTasks` / activity projection plus `todayTasks`, `deadlineTasks`, evidence/importance-enriched `recommendations`, and `priorityModel`.
 
 Today is **read-only** with respect to owned domain data, and Planning owns task/preference writes. The UI uses the existing non-retried POST adapter.
 
@@ -57,7 +58,7 @@ Today is **read-only** with respect to owned domain data, and Planning owns task
 - Plan still requires only a task title. Date, DDL, and estimate live in collapsed optional inputs and can be modified from each existing task's “设置” action.
 - Today ranks and explains recommendations; preference +/- immediately persists and rerenders.
 - The previous Today activity-history section is omitted by design; learning history remains in Learn.
-- A genuine importance×urgency scatter plot is deferred until task-contribution semantics exist. Explicit evidence links are necessary but not sufficient; do not map an assessment's weight directly onto a task or manufacture point locations for visual completeness.
+- Task Importance V1 now renders a categorical importance×urgency plot for tasks with user-confirmed ordinal importance. Unconfirmed tasks remain absent. The visual positions represent discrete categories, not continuous hidden scores, and assessment weight is never copied directly onto a task.
 
 ## Operational boundaries
 

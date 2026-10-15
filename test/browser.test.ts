@@ -221,6 +221,13 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await objectiveLink.click();
   await evidencePanel.locator('.evidence-link-toggle.active').filter({hasText:'掌握状态空间模型分析'}).waitFor();
   assert.match(await evidencePanel.innerText(),/1 已关联/);
+  const importanceForm=evidencePanel.locator('[data-importance-form]');
+  await importanceForm.waitFor();
+  await importanceForm.locator('.contribution-switch label').filter({hasText:'高'}).click();
+  await importanceForm.locator('button[type=submit]').click();
+  await evidencePanel.locator('[data-importance-clear]').waitFor();
+  assert.equal(await evidencePanel.locator('input[name=contribution][value=high]').isChecked(),true,'high contribution persists after save');
+  assert.equal(await evidencePanel.locator('[data-importance-clear]').count(),1,'confirmed importance can be cleared explicitly');
 
   await page.locator('a[data-nav=learn]').click();
   await page.locator('#focusForm').waitFor();
@@ -239,13 +246,17 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const deadlineCard=page.locator('.today-task-card').filter({hasText:'极点配置'});
   const evidenceCard=page.locator('.today-task-card').filter({hasText:'状态空间复习'});
   assert.match(await deadlineCard.innerText(),/距截止/,'deadline distance is visible in the approved compact layout');
+  assert.match(await evidenceCard.innerText(),/重要度 高/,'Today shows the user-confirmed ordinal importance');
   assert.match(await evidenceCard.innerText(),/证据 掌握状态空间模型分析/,'Today explains linked course evidence');
   assert.equal(await deadlineCard.locator('.today-priority-button').innerText(),'今天先做');
   await deadlineCard.locator('.today-priority-button').click();
   await deadlineCard.locator('.today-priority-button').getByText('已优先').waitFor();
   await page.locator('.today-view-switch button[data-task-view=matrix]').click();
   await page.locator('.today-matrix').waitFor();
-  assert.match(await page.locator('.today-matrix-note').innerText(),/贡献多大/,'linked evidence still does not fabricate task importance');
+  assert.equal(await page.locator('.matrix-point').count(),1,'only tasks with confirmed importance receive a coordinate point');
+  assert.match(await page.locator('.matrix-legend').innerText(),/状态空间复习/);
+  assert.match(await page.locator('.matrix-legend').innerText(),/高重要/);
+  assert.match(await page.locator('.today-matrix-note').innerText(),/未确认任务不会被伪造位置/);
   await page.locator('.today-view-switch button[data-task-view=list]').click();
   await page.getByText('极点配置',{exact:true}).first().waitFor();
   await page.screenshot({path:join(dir,'mobile-today.png'),fullPage:true});
