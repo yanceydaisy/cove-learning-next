@@ -1,6 +1,6 @@
 import {fileURLToPath} from 'node:url';
 import {dirname,join,resolve,isAbsolute} from 'node:path';
-import {existsSync,lstatSync,unlinkSync} from 'node:fs';
+import {existsSync,lstatSync,readFileSync,unlinkSync} from 'node:fs';
 import {LearningApplication} from './core/application.js';
 import {createHttp} from './adapters/http.js';
 
@@ -12,14 +12,19 @@ const socket=process.env.LEARNING_SOCKET?.trim()??'';
 const publicPreview=process.env.LEARNING_PREVIEW_PUBLIC==='1';
 if(publicPreview&&!socket)throw Error('Unauthenticated preview must use the private Unix socket');
 const key=publicPreview?'':process.env.LEARNING_ACCESS_KEY??'';
+const dataDir=process.env.LEARNING_DATA_DIR??join(root,'data');
+const capabilityFile=join(dataDir,'mcp-capability');
+const mcpCapability=(process.env.LEARNING_MCP_CAPABILITY?.trim()||
+ (existsSync(capabilityFile)?readFileSync(capabilityFile,'utf8').trim():''));
+if(mcpCapability&&!/^[A-Za-z0-9_-]{32,128}$/.test(mcpCapability))throw Error('Invalid Learning MCP capability');
 
 if(!socket&&host!=='127.0.0.1'&&host!=='::1'&&!key)throw Error('Non-loopback binding requires LEARNING_ACCESS_KEY');
 if(!socket&&(!Number.isInteger(port)||port<1||port>65535))throw Error('Invalid port');
 if(socket&&!isAbsolute(socket))throw Error('LEARNING_SOCKET must be an absolute path');
 
 process.umask(0o077);
-const app=new LearningApplication(process.env.LEARNING_DATA_DIR??join(root,'data'));
-const server=createHttp(app,join(root,'public'),key);
+const app=new LearningApplication(dataDir);
+const server=createHttp(app,join(root,'public'),key,mcpCapability);
 if(socket){
   if(existsSync(socket)){
     if(!lstatSync(socket).isSocket())throw Error('Refusing to replace a non-socket at LEARNING_SOCKET');

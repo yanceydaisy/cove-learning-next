@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {timingSafeEqual,createHash} from 'node:crypto';
 import type {LearningApplication} from '../core/application.js';
 import {AppError,errorPayload,errorStatus} from '../core/errors.js';
+import {LearningMcpEndpoint} from './mcp.js';
 
 function equals(a:string,b:string){
  return timingSafeEqual(createHash('sha256').update(a).digest(),createHash('sha256').update(b).digest());
@@ -22,8 +23,9 @@ function json(res:ServerResponse,status:number,data:unknown){
  res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
  res.end(JSON.stringify(data));
 }
-export function createHttp(app:LearningApplication,publicDir:string,accessKey:string=''){
- return createServer(async(req,res)=>{
+export function createHttp(app:LearningApplication,publicDir:string,accessKey:string='',mcpCapability:string=''){
+ const mcp=mcpCapability?new LearningMcpEndpoint(app,mcpCapability):null;
+ const server=createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Referrer-Policy','no-referrer');
   res.setHeader('X-Frame-Options','DENY');
@@ -31,6 +33,10 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
   try{
    const url=new URL(req.url??'/','http://localhost');
    const path=url.pathname.replace(/^\/learning-next(?=\/|$)/,'')||'/';
+   if(path==='/mcp'||path.startsWith('/mcp/')){
+    if(!mcp||!mcp.matches(path))return json(res,404,{error:{code:'NOT_FOUND',message:'接口不存在。'}});
+    await mcp.handle(req,res);return;
+   }
    if(path.startsWith('/api/')){
     if(accessKey && !equals(String(req.headers['x-learning-key']??''),accessKey))throw new AppError('UNAUTHORIZED','访问密钥不正确。');
     const method=req.method??'GET',parts=path.split('/').filter(Boolean);
@@ -102,4 +108,6 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
    json(res,errorStatus(error),errorPayload(error));
   }
  });
+ server.on('close',()=>{void mcp?.close();});
+ return server;
 }

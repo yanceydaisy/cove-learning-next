@@ -4,7 +4,7 @@
 
 After the user approved the glass design, **Liquid Glass V5 became the default UI** at `https://learning-next.43.133.238.9.sslip.io/`. Today / Plan / Learn / Library use the original APIs and data, now with the same full-surface refraction as Home V5. The UI now supports **日间 / 夜间 / 跟随系统** through the shared `cove.home.themeMode` preference; both the wallpaper canvas and WebGL glass material respond to the resolved theme. The **换背景** button remains in the header: images are local-only, never uploaded, and are persisted in browser IndexedDB across app restarts. One WebGL focal surface per page preserves mobile performance. The former `?ui=glass` URL remains compatible; `?ui=classic` is reserved as an emergency appearance fallback, not a separate user-facing preview. The PWA shell cache was bumped for the rollout. See `docs/LEARNING_LIQUID_UI_V5.md`.
 
-Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service.
+Fresh independent Learning application. The public test preview deliberately **does not require login or an access key**. It uses a separate database and has no effect on Cove Home or the old Learning service. A separate **Learning MCP V0** capability endpoint can be enabled from a private `data/mcp-capability` file; it uses the same domain services but exposes only bounded Learning tools and no delete/upload/filesystem access. Contract: [`docs/LEARNING_MCP_V0.md`](docs/LEARNING_MCP_V0.md).
 
 ## Priority Engine V0 · deployed (2026-10-12)
 
