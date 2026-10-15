@@ -1,0 +1,290 @@
+import {randomUUID} from 'node:crypto';
+import type {IncomingMessage,ServerResponse} from 'node:http';
+import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {isInitializeRequest} from '@modelcontextprotocol/sdk/types.js';
+import * as z from 'zod/v4';
+import type {LearningApplication} from '../core/application.js';
+import {AppError} from '../core/errors.js';
+
+type Session={
+ transport:StreamableHTTPServerTransport;
+ server:McpServer;
+ lastActive:number;
+};
+
+function clean<T extends Record<string,unknown>>(value:T){
+ return Object.fromEntries(Object.entries(value).filter(([,v])=>v!==undefined)) as Partial<T>;
+}
+function result(value:unknown){
+ return {content:[{type:'text' as const,text:JSON.stringify(value,null,2)}]};
+}
+function failure(error:unknown){
+ const payload=error instanceof AppError
+  ?{error:{code:error.code,message:error.message,details:error.details}}
+  :{error:{code:'INTERNAL_ERROR',message:error instanceof Error?error.message:'Learning MCP 操作失败。'}};
+ return {isError:true,content:[{type:'text' as const,text:JSON.stringify(payload,null,2)}]};
+}
+async function safe(fn:()=>unknown|Promise<unknown>){
+ try{return result(await fn());}catch(error){return failure(error);}
+}
+function requireValue<T>(value:T|undefined,message:string):T{
+ if(value===undefined||value===null||value==='')throw new AppError('VALIDATION_ERROR',message);
+ return value;
+}
+
+export function createLearningMcpServer(app:LearningApplication){
+ const server=new McpServer(
+  {name:'cove-learning',version:'0.1.0'},
+  {capabilities:{logging:{}}}
+ );
+
+ server.registerTool('learning_today',{
+  title:'Learning Today',
+  description:'Read the current Learning Today model: open tasks, recommendations, urgency, confirmed ordinal importance, evidence links, focus state, and recent learning activity.',
+  inputSchema:{local_date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Optional device-local YYYY-MM-DD date.')},
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({local_date})=>safe(()=>app.today.snapshot(local_date)));
+
+ server.registerTool('learning_list_tasks',{
+  title:'List Learning Tasks',
+  description:'List all Learning tasks. Open tasks are returned before completed tasks.',
+  inputSchema:{},
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async()=>safe(()=>app.planning.list()));
+
+ server.registerTool('learning_create_task',{
+  title:'Create Learning Task',
+  description:'Create a Learning task. object_id may point to a course/project/track. due_at must be canonical UTC ISO; planned_for is YYYY-MM-DD.',
+  inputSchema:{
+   title:z.string().min(1).max(160),
+   object_id:z.string().uuid().optional(),
+   due_at:z.string().optional(),
+   estimated_minutes:z.number().int().min(1).max(20160).optional(),
+   planned_for:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+ },async args=>safe(()=>app.planning.create(clean(args as Record<string,unknown>))));
+
+ server.registerTool('learning_update_task',{
+  title:'Update Learning Task',
+  description:'Update an open task’s planned date, UTC deadline, or estimated minutes. Pass null to clear a field.',
+  inputSchema:{
+   task_id:z.string().uuid(),
+   due_at:z.string().nullable().optional(),
+   estimated_minutes:z.number().int().min(1).max(20160).nullable().optional(),
+   planned_for:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({task_id,...fields})=>safe(()=>app.planning.updateDetails(task_id,clean(fields as Record<string,unknown>))));
+
+ server.registerTool('learning_complete_task',{
+  title:'Complete Learning Task',
+  description:'Mark one task complete. This is idempotent but changes task state.',
+  inputSchema:{task_id:z.string().uuid()},
+  annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
+ },async({task_id})=>safe(()=>app.planning.complete(task_id)));
+
+ server.registerTool('learning_task_evidence',{
+  title:'Task Course Evidence',
+  description:'Read, link, or unlink confirmed course evidence for a course task. A task can only link evidence from its own course.',
+  inputSchema:{
+   action:z.enum(['list','link','unlink']),
+   task_id:z.string().uuid(),
+   context_item_id:z.string().uuid().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({action,task_id,context_item_id})=>safe(()=>{
+  if(action==='list')return app.taskEvidence.list(task_id);
+  const id=requireValue(context_item_id,'link / unlink 需要 context_item_id。');
+  return app.taskEvidence.set(task_id,{context_item_id:id,linked:action==='link'});
+ }));
+
+ server.registerTool('learning_set_importance',{
+  title:'Set Task Importance',
+  description:'Set or clear truthful ordinal task importance. To set: choose one already-linked confirmed evidence item as primary basis and contribution low/medium/high. Does not change the hidden recommendation score.',
+  inputSchema:{
+   task_id:z.string().uuid(),
+   context_item_id:z.string().uuid().optional(),
+   contribution:z.enum(['low','medium','high']).optional(),
+   clear:z.boolean().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({task_id,context_item_id,contribution,clear})=>safe(()=>{
+  if(clear)return app.taskEvidence.setImportance(task_id,{clear:true});
+  return app.taskEvidence.setImportance(task_id,{
+   context_item_id:requireValue(context_item_id,'设置重要度需要 context_item_id。'),
+   contribution:requireValue(contribution,'设置重要度需要 contribution。')
+  });
+ }));
+
+ server.registerTool('learning_focus',{
+  title:'Learning Focus Session',
+  description:'Read or control the Learning focus timer. pause/resume/finish may omit session_id to target the current active session.',
+  inputSchema:{
+   action:z.enum(['active','recent','start','pause','resume','finish']),
+   session_id:z.string().uuid().optional(),
+   object_id:z.string().uuid().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+ },async({action,session_id,object_id})=>safe(()=>{
+  if(action==='active')return app.activity.active();
+  if(action==='recent')return app.activity.recent();
+  if(action==='start')return app.activity.start(clean({object_id}));
+  const active=app.activity.active() as {id?:string}|null;
+  const id=session_id??active?.id;
+  requireValue(id,'当前没有可操作的学习会话。');
+  if(action==='pause')return app.activity.pause(id!);
+  if(action==='resume')return app.activity.resume(id!);
+  return app.activity.finish(id!);
+ }));
+
+ server.registerTool('learning_course_context',{
+  title:'Learning Course Context',
+  description:'List, create, or update course objectives and assessment evidence. No delete action is exposed through MCP.',
+  inputSchema:{
+   action:z.enum(['list','create','update']),
+   course_id:z.string().uuid().optional(),
+   item_id:z.string().uuid().optional(),
+   kind:z.enum(['objective','assessment']).optional(),
+   title:z.string().min(1).max(160).optional(),
+   weight_percent:z.number().min(0).max(100).nullable().optional(),
+   status:z.enum(['suggested','confirmed']).optional(),
+   source_resource_id:z.string().uuid().nullable().optional(),
+   source_locator:z.string().max(300).nullable().optional(),
+   source_excerpt:z.string().max(1200).nullable().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+ },async args=>safe(()=>{
+  if(args.action==='list')return app.courseContext.list(requireValue(args.course_id,'list 需要 course_id。'));
+  const payload=clean({
+   kind:args.kind,title:args.title,weight_percent:args.weight_percent,status:args.status,
+   source_resource_id:args.source_resource_id,source_locator:args.source_locator,source_excerpt:args.source_excerpt
+  });
+  if(args.action==='create')return app.courseContext.create(requireValue(args.course_id,'create 需要 course_id。'),payload);
+  return app.courseContext.update(requireValue(args.item_id,'update 需要 item_id。'),payload);
+ }));
+
+ server.registerTool('learning_list_objects',{
+  title:'List Learning Objects',
+  description:'List courses, projects, and tracks in Learning.',
+  inputSchema:{},
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async()=>safe(()=>app.catalog.list()));
+
+ server.registerTool('learning_create_object',{
+  title:'Create Learning Object',
+  description:'Create a course, project, or track in Learning. No delete action is exposed through MCP.',
+  inputSchema:{
+   kind:z.enum(['course','project','track']),
+   title:z.string().min(1).max(160),
+   description:z.string().max(1200).nullable().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+ },async args=>safe(()=>app.catalog.create(clean(args as Record<string,unknown>))));
+
+ server.registerTool('learning_list_resources',{
+  title:'List Learning Resources',
+  description:'List immutable resource metadata already stored in Learning. Raw file upload/download is intentionally not exposed through MCP V0.',
+  inputSchema:{},
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async()=>safe(()=>app.library.list()));
+
+ return server;
+}
+
+async function parseBody(req:IncomingMessage){
+ const chunks:Buffer[]=[];let size=0;
+ for await(const chunk of req){
+  size+=Buffer.byteLength(chunk);
+  if(size>1024*1024)throw new Error('MCP request body too large');
+  chunks.push(Buffer.from(chunk));
+ }
+ return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}') as unknown;
+}
+function protocolError(res:ServerResponse,status:number,message:string){
+ res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+ res.end(JSON.stringify({jsonrpc:'2.0',error:{code:-32000,message},id:null}));
+}
+
+export class LearningMcpEndpoint{
+ private sessions=new Map<string,Session>();
+ private cleanup:NodeJS.Timeout;
+ readonly path:string;
+
+ constructor(private app:LearningApplication,capability:string){
+  if(!/^[A-Za-z0-9_-]{32,128}$/.test(capability))throw new Error('Invalid Learning MCP capability');
+  this.path='/mcp/'+capability;
+  this.cleanup=setInterval(()=>{
+   const cutoff=Date.now()-30*60_000;
+   for(const [id,session] of this.sessions){
+    if(session.lastActive<cutoff){
+     this.sessions.delete(id);
+     void session.transport.close();
+     void session.server.close();
+    }
+   }
+  },60_000);
+  this.cleanup.unref();
+ }
+
+ matches(path:string){return path===this.path;}
+
+ async handle(req:IncomingMessage,res:ServerResponse){
+  if(req.method==='GET'){
+   const sid=String(req.headers['mcp-session-id']??'');
+   const session=sid?this.sessions.get(sid):undefined;
+   if(!session)return protocolError(res,405,'SSE requires an active MCP session.');
+   session.lastActive=Date.now();
+   await session.transport.handleRequest(req,res);
+   return;
+  }
+  if(req.method==='DELETE'){
+   const sid=String(req.headers['mcp-session-id']??'');
+   const session=sid?this.sessions.get(sid):undefined;
+   if(!session)return protocolError(res,404,'MCP session not found.');
+   session.lastActive=Date.now();
+   await session.transport.handleRequest(req,res);
+   return;
+  }
+  if(req.method!=='POST')return protocolError(res,405,'Method not allowed.');
+  if(!String(req.headers['content-type']??'').toLowerCase().startsWith('application/json'))
+   return protocolError(res,415,'MCP POST requires application/json.');
+
+  let body:unknown;
+  try{body=await parseBody(req);}catch{return protocolError(res,400,'Invalid JSON-RPC request.');}
+  const sid=String(req.headers['mcp-session-id']??'');
+  let session=sid?this.sessions.get(sid):undefined;
+  if(session){
+   session.lastActive=Date.now();
+   await session.transport.handleRequest(req,res,body);
+   return;
+  }
+  if(sid)return protocolError(res,404,'MCP session not found.');
+  if(!isInitializeRequest(body))return protocolError(res,400,'Initialize the MCP session first.');
+  if(this.sessions.size>=32)return protocolError(res,503,'Too many MCP sessions.');
+
+  let transport!:StreamableHTTPServerTransport;
+  const server=createLearningMcpServer(this.app);
+  transport=new StreamableHTTPServerTransport({
+   sessionIdGenerator:()=>randomUUID(),
+   enableJsonResponse:true,
+   onsessioninitialized:id=>{
+    this.sessions.set(id,{transport,server,lastActive:Date.now()});
+   }
+  });
+  transport.onclose=()=>{
+   const id=transport.sessionId;
+   if(id)this.sessions.delete(id);
+  };
+  await server.connect(transport);
+  await transport.handleRequest(req,res,body);
+ }
+
+ async close(){
+  clearInterval(this.cleanup);
+  const sessions=[...this.sessions.values()];
+  this.sessions.clear();
+  await Promise.allSettled(sessions.flatMap(s=>[s.transport.close(),s.server.close()]));
+ }
+}
