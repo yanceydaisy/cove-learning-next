@@ -12,7 +12,11 @@ Additive task metadata (optional planned date, UTC DDL, estimated minutes), expl
 
 ## Course Context V0 · deployed (2026-10-14)
 
-Course Context V0 adds the evidence layer needed before task importance can be real: confirmed or suggested course objectives, assessment items, optional assessment weights, immutable Library source references, source locators, and edit / confirm / delete controls in Library. Suggested evidence must retain a source and is never treated as confirmed automatically. **Task importance is still `null`** until a later task-to-evidence relation exists. Contract: [`docs/COURSE_CONTEXT_V0.md`](docs/COURSE_CONTEXT_V0.md).
+Course Context V0 adds the course-level evidence layer: confirmed or suggested objectives, assessment items, optional assessment weights, immutable Library source references, source locators, and edit / confirm / delete controls in Library. Suggested evidence must retain a source and is never treated as confirmed automatically. Task → Course Evidence V0 now lets an open course task explicitly link to confirmed evidence from its own course; Today can explain those links, but **task importance is still `null`** until task-contribution semantics are defined. Contracts: [`docs/COURSE_CONTEXT_V0.md`](docs/COURSE_CONTEXT_V0.md) and [`docs/TASK_EVIDENCE_V0.md`](docs/TASK_EVIDENCE_V0.md).
+
+## Task → Course Evidence V0 · deployed (2026-10-15)
+
+Open tasks attached to a course can now explicitly link to confirmed objectives / assessment evidence from that same course. Plan owns the relation editor; Today surfaces linked evidence in recommendation explanations. Links are factual and traceable, but do **not** change the ranking score or turn an assessment weight into task importance. Migration v4 adds only the relation table. Contract: [`docs/TASK_EVIDENCE_V0.md`](docs/TASK_EVIDENCE_V0.md).
 
 ## App
 - **Default page is Today** (heading `Learning`): the wallpaper has the same Home-style full-screen day/night overlay (day brightens, night darkens) instead of a local title card; the `开始学习` action uses a milk-white refractive glass pill, followed by side-by-side 今日任务 / 回顾总结 and a 待办任务 workspace with 列表 / 坐标图 views. The coordinate frame stays empty until importance evidence is real. No separate Home tab.

@@ -16,15 +16,35 @@ export class TodayService {
    "WHERE t.status='open'"
   ).all(instant.toISOString()) as unknown as DecisionInput[];
   const ranked=rankTasks(decisionInputs,instant);
+  const evidenceRows=this.db.raw.prepare(
+   `SELECT l.task_id,c.id,c.kind,c.title,c.weight_percent,c.source_locator
+    FROM task_context_links l
+    JOIN course_context_items c ON c.id=l.context_item_id
+    JOIN tasks t ON t.id=l.task_id
+    WHERE t.status='open' AND c.status='confirmed'
+    ORDER BY l.task_id,CASE c.kind WHEN 'objective' THEN 0 ELSE 1 END,c.created_at,c.id`
+  ).all() as unknown as {task_id:string;id:string;kind:'objective'|'assessment';title:string;weight_percent:number|null;source_locator:string|null}[];
+  const evidenceByTask=new Map<string,typeof evidenceRows>();
+  for(const row of evidenceRows){
+   const rows=evidenceByTask.get(row.task_id)??[];
+   rows.push(row);evidenceByTask.set(row.task_id,rows);
+  }
+  const recommendations=ranked.map(task=>{
+   const evidence=evidenceByTask.get(task.id)??[];
+   const evidenceReasons=evidence.map(item=>item.kind==='objective'
+    ?'关联课程目标：'+item.title
+    :'关联考核：'+item.title+(item.weight_percent!=null?'（'+item.weight_percent+'%）':''));
+   return {...task,evidence,reasons:[...task.reasons,...evidenceReasons]};
+  });
   const activeFocus=this.db.raw.prepare("SELECT * FROM focus_sessions WHERE state IN ('running','paused') LIMIT 1").get()??null;
   const recentSessions=this.db.raw.prepare("SELECT id,state,started_at,ended_at,accumulated_ms,object_id FROM focus_sessions ORDER BY started_at DESC,id DESC LIMIT 5").all();
   const recentResources=this.db.raw.prepare('SELECT id,title,mime_type,created_at FROM resources ORDER BY created_at DESC,id DESC LIMIT 5').all();
   const horizon=instant.getTime()+7*86_400_000;
-  const deadlineTasks=ranked.filter(t=>t.due_at && Date.parse(t.due_at)<=horizon).slice(0,8);
-  const todayTasks=ranked.filter(t=>t.planned_for===today);
+  const deadlineTasks=recommendations.filter(t=>t.due_at && Date.parse(t.due_at)<=horizon).slice(0,8);
+  const todayTasks=recommendations.filter(t=>t.planned_for===today);
   return {openTasks,activeFocus,recentSessions,recentResources,
-   todayTasks,deadlineTasks,recommendations:ranked,
-   priorityModel:{version:'rules-v0',importanceAvailable:false,description:'规则建议，不替代你的选择；重要度尚无足够数据。'},
+   todayTasks,deadlineTasks,recommendations,
+   priorityModel:{version:'rules-v0',importanceAvailable:false,evidenceLinksAvailable:evidenceRows.length>0,description:'课程证据已可显式关联到任务；重要度仍等待任务贡献语义，不把考核权重直接冒充任务重要度。'},
    generated_at:instant.toISOString()};
  }
 }

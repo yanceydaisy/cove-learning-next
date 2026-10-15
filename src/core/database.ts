@@ -67,6 +67,15 @@ CREATE TABLE course_context_items (
 CREATE INDEX idx_course_context_object ON course_context_items(object_id,kind,status,created_at);
 CREATE INDEX idx_course_context_source ON course_context_items(source_resource_id);
 `}
+ ,{version:4,name:'task_course_evidence_links',sql:`
+CREATE TABLE task_context_links (
+ task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+ context_item_id TEXT NOT NULL REFERENCES course_context_items(id) ON DELETE CASCADE,
+ created_at TEXT NOT NULL,
+ PRIMARY KEY(task_id,context_item_id)
+);
+CREATE INDEX idx_task_context_item ON task_context_links(context_item_id,task_id);
+`}
 ] as const;
 
 export class Database {

@@ -233,7 +233,8 @@ function todayAgendaRow(t){
   '<span class="today-agenda-time">'+esc(detail)+'</span></div>';
 }
 function decisionRow(t,index=0){
- const note=t.reasons?.[0]||'由任务状态生成的建议';
+ const evidenceNote=t.evidence?.length?' · 证据 '+t.evidence.slice(0,2).map(item=>item.title).join(' / '):'';
+ const note=(t.reasons?.[0]||'由任务状态生成的建议')+evidenceNote;
  const preferred=Number(t.boost||0)>0;
  const control='<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+esc(t.id)+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销 '+esc(t.title)+' 的今日优先':'今天先做 '+esc(t.title))+'">'+
   (preferred?'已优先':'今天先做')+'</button>';
@@ -241,12 +242,12 @@ function decisionRow(t,index=0){
   '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(deadlineDistance(t.due_at))+' · '+esc(note)+'</span></div>'+control+'</article>';
 }
 function todayMatrix(model){
- const ready=Boolean(model?.importanceAvailable);
+ const ready=Boolean(model?.importanceAvailable),linked=Boolean(model?.evidenceLinksAvailable);
  return '<div class="today-matrix-wrap"><div class="today-matrix" aria-label="重要度与紧急度坐标图">'+
   '<span class="matrix-y-label">重要</span><span class="matrix-x-label">紧急</span>'+
   '<span class="matrix-axis matrix-axis-y" aria-hidden="true"></span><span class="matrix-axis matrix-axis-x" aria-hidden="true"></span>'+
   '<span class="matrix-origin" aria-hidden="true"></span></div>'+
-  '<p class="today-matrix-note">'+(ready?'坐标数据已就绪，任务点将在下一阶段接入。':'课程证据与任务还没有建立足够关联，所以现在只保留坐标框架，不伪造任务位置。')+'</p></div>';
+  '<p class="today-matrix-note">'+(ready?'坐标数据已就绪，任务点将在下一阶段接入。':linked?'任务已经关联课程证据，但还没有定义“这项任务对证据贡献多大”，所以暂不把考核权重冒充任务重要度。':'课程证据与任务还没有建立足够关联，所以现在只保留坐标框架，不伪造任务位置。')+'</p></div>';
 }
 async function today(){
  const d=await api('/today?local_date='+encodeURIComponent(localDay()));
@@ -305,8 +306,8 @@ function localDatetimeValue(iso){
  const d=new Date(iso);
  return new Date(d.getTime()-d.getTimezoneOffset()*60_000).toISOString().slice(0,16);
 }
-function planTaskRow(t){
- const done=t.status==='done',id=esc(t.id);
+function planTaskRow(t,courseIds){
+ const done=t.status==='done',id=esc(t.id),courseTask=Boolean(t.object_id&&courseIds.has(t.object_id));
  const details=[
   t.planned_for?'计划 '+t.planned_for:'',
   t.due_at?'DDL '+date(t.due_at)+' '+time(t.due_at):'',
@@ -316,16 +317,48 @@ function planTaskRow(t){
   '<div class="plan-task-copy"><span class="task-description '+(done?'complete':'')+'">'+esc(t.title)+'</span>'+
   (details?'<small>'+esc(details)+'</small>':'')+'</div>'+
   (done?'<span class="row-trailing">已完成</span>':
+   (courseTask?'<button type="button" class="button sm quiet-button" data-evidence="'+id+'">证据</button>':'')+
    '<button type="button" class="button sm quiet-button" data-edit="'+id+'">设置</button>'+
    '<button type="button" class="button sm quiet-button" data-done="'+id+'">完成</button>')+'</div>'+
   (done?'':'<form class="task-inline-edit" data-edit-form="'+id+'" hidden>'+
    '<label>计划日期<input type="date" name="planned_for" value="'+esc(t.planned_for||'')+'"></label>'+
    '<label>截止时间<input type="datetime-local" name="due_local" value="'+esc(localDatetimeValue(t.due_at))+'"></label>'+
    '<label>预计分钟<input type="number" name="estimated_minutes" min="1" max="20160" value="'+esc(t.estimated_minutes||'')+'"></label>'+
-   '<button class="button sm primary" type="submit">保存</button></form>')+'</div>';
+   '<button class="button sm primary" type="submit">保存</button></form>'+
+   (courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+id+'" hidden></div>':''))+'</div>';
+}
+function taskEvidenceMarkup(data){
+ const linked=new Set((data.links||[]).map(item=>item.id));
+ const rows=(data.available||[]).map(item=>{
+  const on=linked.has(item.id);
+  const meta=[item.kind==='objective'?'学习目标':'考核项',item.weight_percent!=null?item.weight_percent+'%':'',item.source_locator||''].filter(Boolean).join(' · ');
+  return '<button type="button" class="evidence-link-toggle '+(on?'active':'')+'" data-evidence-toggle="'+esc(data.task.id)+'" data-context-id="'+esc(item.id)+'" aria-pressed="'+on+'">'+
+   '<span class="evidence-link-copy"><strong>'+esc(item.title)+'</strong><small>'+esc(meta)+'</small></span>'+
+   '<span class="evidence-link-state">'+(on?'已关联':'关联')+'</span></button>';
+ }).join('');
+ const stale=(data.links||[]).filter(item=>item.status!=='confirmed').map(item=>
+  '<div class="evidence-stale"><span>'+esc(item.title)+'</span><small>这条证据已不再确认；不会进入推荐解释。</small></div>'
+ ).join('');
+ return '<div class="task-evidence-head"><div><strong>课程证据</strong><small>'+esc(data.course?.title||'')+'</small></div><span>'+(linked.size)+' 已关联</span></div>'+
+  '<p class="task-evidence-note">这里只建立事实关联，不会把考核权重直接冒充任务重要度。</p>'+
+  (rows?'<div class="evidence-link-list">'+rows+'</div>':'<p class="task-evidence-empty">这门课还没有已确认的课程证据。先去 Library 完善课程档案。</p>')+stale;
+}
+async function loadTaskEvidence(taskId){
+ const panel=root.querySelector('[data-evidence-panel="'+taskId+'"]');
+ if(!panel)return;
+ panel.hidden=false;panel.innerHTML='<p class="task-evidence-empty">正在读取课程证据…</p>';
+ const data=await api('/tasks/'+taskId+'/evidence');
+ panel.innerHTML=taskEvidenceMarkup(data);
+ panel.querySelectorAll('[data-evidence-toggle]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  const linked=button.getAttribute('aria-pressed')==='true';
+  await api('/tasks/'+taskId+'/evidence','POST',{context_item_id:button.dataset.contextId,linked:!linked});
+  await loadTaskEvidence(taskId);
+  notify(linked?'已取消课程证据关联':'已关联课程证据');
+ })));
 }
 async function plan(){
  const [tasks,objects]=await Promise.all([api('/tasks'),api('/objects')]);
+ const courseIds=new Set(objects.filter(o=>o.kind==='course').map(o=>o.id));
  const open=tasks.filter(t=>t.status==='open').length;
  view(head('Plan','计划')+
  '<div class="workarea spacious-flow">'+
@@ -338,7 +371,7 @@ async function plan(){
  '<label>截止时间<input name="due_local" type="datetime-local" aria-label="截止时间"></label>'+
  '<label>预计分钟<input name="estimated_minutes" type="number" min="1" max="20160" placeholder="不确定可留空" aria-label="预计耗时分钟"></label></div></details></form></section>'+
  '<section class="open-section">'+sectionTitle('02 / TASKS','我的任务','<span class="count-caption">'+open+' 待办 / '+tasks.length+' 全部</span>')+
- '<div class="simple-list">'+list(tasks,planTaskRow)+'</div></section></div>');
+ '<div class="simple-list">'+list(tasks,t=>planTaskRow(t,courseIds))+'</div></section></div>');
  root.querySelector('#taskForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
   const due=f.get('due_local');
   await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null,
@@ -347,6 +380,12 @@ async function plan(){
    estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null});
   await plan();notify('已添加任务');
  });});
+ root.querySelectorAll('[data-evidence]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
+  const panel=root.querySelector('[data-evidence-panel="'+b.dataset.evidence+'"]');
+  if(!panel)return;
+  if(!panel.hidden){panel.hidden=true;return;}
+  await loadTaskEvidence(b.dataset.evidence);
+ })));
  root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{
   const form=root.querySelector('[data-edit-form="'+b.dataset.edit+'"]');
   if(form)form.hidden=!form.hidden;
