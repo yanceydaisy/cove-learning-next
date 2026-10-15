@@ -22,9 +22,13 @@ Open tasks attached to a course can now explicitly link to confirmed objectives 
 
 Open course tasks with linked evidence can now choose one primary evidence item and a user-confirmed low / medium / high contribution tier. Today exposes that ordinal importance and plots only confirmed tasks on the Importance × Urgency coordinate view. Tasks without confirmed importance remain unplotted. The existing recommendation score is deliberately unchanged. Contract: [`docs/TASK_IMPORTANCE_V1.md`](docs/TASK_IMPORTANCE_V1.md).
 
+## Plan Timeline V1 · deployed (2026-10-16)
+
+Plan is now calendar-first: a compact seven-day date strip selects a day, the middle of the page renders recurring classes and explicitly scheduled tasks on a chronological timeline, the current local time separates past from upcoming work, and DDL-bearing tasks without a concrete time block remain in a bottom unscheduled list. The former large task-composer card moved into an **添加计划** modal. Migration v6 adds recurring weekly schedule slots plus optional task start/end timestamps. Contract: [`docs/PLAN_TIMELINE_V1.md`](docs/PLAN_TIMELINE_V1.md).
+
 ## App
 - **Default page is Today** (heading `Learning`): the wallpaper has the same Home-style full-screen day/night overlay (day brightens, night darkens) instead of a local title card; the `开始学习` action uses a milk-white refractive glass pill, followed by side-by-side 今日任务 / 回顾总结 and a 待办任务 workspace with 列表 / 坐标图 views. The coordinate view plots only tasks with user-confirmed ordinal importance. No separate Home tab.
-- Plan: a single task-composer focus with an open actionable list. Create, complete and optionally link tasks to learning objects.
+- Plan: calendar-first weekly/date workspace with a daily class/task timeline, current-time awareness, a compact Add Plan modal, and a bottom list for DDL tasks that have not been placed into a concrete time block. Course tasks keep Evidence / Importance controls.
 - Learn: one focus stage for start, pause, resume and finish, followed by a light activity archive.
 - Library: full-width learning-object stats and creation, followed by an independently spaced materials/upload section. No cramped twin cards. Original source upload stays capped at 8 MB (SHA-256).
 - UI direction B2 (breathing rhythm): Today follows the approved compact sketch rather than a large hero; Learn keeps its centered focus stage, Library keeps spacious statistics/upload surfaces, and Plan remains structured. No OS-rendered color emoji in the product UI.
@@ -33,7 +37,7 @@ Open course tasks with linked evidence can now choose one primary evidence item 
 - For physical-device diagnosis, rapidly tap the COVE / LEARNING header three times to toggle a read-only local overlay. It shows `innerHeight`, CSS `100vh`, safe-bottom, and dock position; no telemetry is sent. If the native black band remains despite full CSS viewport sizing, investigate default Apple status-bar style / reinstallation rather than further reducing dock padding.
 - Library file picker uses a custom, keyboard-focusable browser input overlay and an explicit file-name label rather than the overcrowded native file control.
 
-Reading anchors, ChatGPT / Bridge actions, Calendar, interpretation/RAG and the broader Learning roadmap are not yet implemented.
+Reading anchors, ChatGPT / Bridge actions, external Calendar synchronization, interpretation/RAG and the broader Learning roadmap are not yet implemented. Plan's own weekly timeline is local Learning data, not external Calendar sync.
 
 ## Public test warning
 

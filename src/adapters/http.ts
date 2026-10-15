@@ -65,6 +65,9 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
      result=app.courseContext.update(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='course-context'&&parts[3]==='remove'&&method==='POST')
      result=app.courseContext.remove(parts[2]!);
+    else if(path==='/api/schedule'&&method==='GET')result=url.searchParams.has('local_date')?app.schedule.forDate(url.searchParams.get('local_date')!):app.schedule.list();
+    else if(path==='/api/schedule'&&method==='POST'){result=app.schedule.create(await parseBody(req));status=201;}
+    else if(parts.length===3&&parts[1]==='schedule'&&method==='POST')result=app.schedule.update(parts[2]!,await parseBody(req));
     else if(path==='/api/tasks'&&method==='GET')result=app.planning.list();
     else if(path==='/api/tasks'&&method==='POST'){result=app.planning.create(await parseBody(req));status=201;}
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='evidence'&&method==='GET')

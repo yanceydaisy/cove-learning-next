@@ -6,13 +6,13 @@
 - **Default:** `https://learning-next.43.133.238.9.sslip.io/` opens the Liquid Glass V5 UI.
 - **Legacy links:** `/?ui=glass` still opens the same UI, but is no longer needed.
 - **Emergency appearance rollback:** `/?ui=classic` displays the previous look, using the same app and data.
-- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.20-20261015-importance-v1`. Theme color follows the resolved day/night appearance instead of being forced to navy.
+- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.21-20261016-plan-timeline`. Theme color follows the resolved day/night appearance instead of being forced to navy.
 
 ## Design and functionality
 The exact Home V5 optical shader is extracted from `/home/ubuntu/projects/cove-home-liquid/home-liquid-v5.js` by `ops/build_learning_glass.py`. It includes rounded full-card refraction, subtle center-to-edge lens distortion, two fine white corner glints, and a mild Gaussian backdrop sample on the hero card. One WebGL focal surface is used per Learning page. All four original pages and their real API actions remain intact:
 
 - **Today:** compact Learning header with no local title-card mask; readability comes from the Home-style full-screen wallpaper overlay. The start action is a milk-white WebGL liquid-glass pill, followed by side-by-side daily tasks / review and backlog list / coordinate views.
-- **Plan:** refractive task composer, task creation and management.
+- **Plan:** calendar-first seven-day selector, current-time daily timeline for recurring classes and scheduled tasks, DDL backlog, plus a modal task composer.
 - **Learn:** refractive focus stage, focus timer and session events.
 - **Library:** refractive object overview, course/project creation and resources.
 
@@ -21,7 +21,7 @@ The wallpaper is drawn to one canvas and used by both CSS and the WebGL shader s
 Performance: reduced-motion support, 1.5 DPR texture cap, 20fps maximum, offscreen visibility tracking, and old-context disposal on page navigation. If WebGL is unavailable, the card falls back to translucent CSS.
 
 ## Deployment and tests
-The original Learning URL now serves the V5 design without a preview query. No changes to Learning domain models, server endpoints, existing study data, Home, Together, Reading or Chat. PWA cache version increment ensures installed copies can receive updated assets.
+The original Learning URL serves the V5 design without a preview query. The original V5 rollout itself did not change Learning domain models; later additive releases now include Evidence / Importance and Plan Timeline V1 while preserving the same Home / Together / Reading / Chat isolation. PWA cache version increments ensure installed copies can receive updated assets.
 
 Validation: `npm test`, `npm run build`, and the Playwright browser tests `test/browser.test.ts` and `test/glass-ui.test.ts`. Browser tests cover the 393×852 iPhone view, 393×700 PWA view, real task/focus/library workflows, local-only photo selection, legacy link compatibility, emergency classic mode, no horizontal overflow, WebGL availability, and PWA cache metadata.
 

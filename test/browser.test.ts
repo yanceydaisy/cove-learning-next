@@ -15,7 +15,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
  const addr=server.address();if(!addr||typeof addr==='string')throw Error('No port');
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  try{
-  const context=await browser.newContext({viewport:{width:393,height:852},screen:{width:393,height:852},deviceScaleFactor:3,isMobile:true,hasTouch:true});
+  const context=await browser.newContext({viewport:{width:393,height:852},screen:{width:393,height:852},deviceScaleFactor:3,isMobile:true,hasTouch:true,timezoneId:'Asia/Taipei'});
   const page=await context.newPage();
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+addr.port+'/',{waitUntil:'networkidle'});
@@ -115,11 +115,18 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.waitForFunction(()=>Boolean((window as any).__coveLearningGlass?.isUsingPhoto()),null,{timeout:5000});
   assert.equal(await page.locator('.head h1').innerText(),'Learning','saved wallpaper survives a full reload');
   await page.screenshot({path:join(dir,'mobile-learning.png'),fullPage:true});
+  const planDate=await page.evaluate(()=>{const d=new Date();return {day:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),weekday:d.getDay()===0?7:d.getDay()};});
+  app.schedule.create({title:'固定课表回归',weekday:planDate.weekday,start_time:'08:00',end_time:'09:35',effective_from:planDate.day});
   await page.locator('a[data-nav=plan]').click();
+  await page.locator('.plan-calendar').waitFor();
   assert.equal(await page.locator('#connectDialog').count(),0);
   assert.equal(await page.getByRole('button',{name:'连接',exact:true}).count(),0);
+  assert.equal(await page.locator('.composer-pane').count(),0,'large task composer no longer occupies the Plan page');
+  assert.equal(await page.locator('.plan-day-button').count(),7,'Plan exposes a compact seven-day calendar strip');
+  await page.getByText('固定课表回归',{exact:true}).waitFor();
+  await page.locator('#addPlan').click();
+  await page.locator('#planDialog[open]').waitFor();
   await page.locator('#taskForm').waitFor();
-  assert.equal(await page.locator('.composer-pane h2').evaluate(el=>getComputedStyle(el).textAlign),'center');
   assert.equal(await page.locator('#taskForm button .micro-arrow').count(),1);
   const keyboardLayout=await page.evaluate(()=>{
    const viewport=(window as any).__coveLearningViewport;
@@ -133,14 +140,15 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(keyboardLayout.marked,true,'keyboard state is detected');
   assert.equal(Math.round(keyboardLayout.frozen),Math.round(keyboardLayout.shell),'keyboard does not squash the app shell');
 
-  await page.locator('#taskForm input[name=title]').fill('极点配置');
-  await page.locator('#taskForm button').click();
-  await page.getByText('极点配置',{exact:true}).first().waitFor();
-  await page.locator('[data-edit]').first().click();
   const dueDay=await page.evaluate(()=>{
    const d=new Date(Date.now()+5*86_400_000);
    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   });
+  await page.locator('#taskForm input[name=title]').fill('极点配置');
+  await page.locator('#taskForm input[name=due_local]').fill(dueDay+'T20:00');
+  await page.locator('#taskForm button[type=submit]').click();
+  await page.getByText('极点配置',{exact:true}).first().waitFor();
+  await page.locator('[data-edit]').first().click();
   await page.locator('.task-inline-edit input[name=planned_for]').fill(dueDay);
   await page.locator('.task-inline-edit input[name=due_local]').fill(dueDay+'T20:00');
   await page.locator('.task-inline-edit input[name=estimated_minutes]').fill('75');
@@ -205,9 +213,11 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.screenshot({path:join(dir,'mobile-library.png'),fullPage:true});
 
   await page.locator('a[data-nav=plan]').click();
+  await page.locator('#addPlan').click();
   await page.locator('#taskForm').waitFor();
   await page.locator('#taskForm input[name=title]').fill('状态空间复习');
   await page.locator('#taskForm select[name=object_id]').selectOption({label:'现代控制'});
+  await page.locator('#taskForm input[name=due_local]').fill(dueDay+'T21:00');
   await page.locator('#taskForm button[type=submit]').click();
   const evidenceTaskRow=page.locator('.plan-task').filter({hasText:'状态空间复习'});
   await evidenceTaskRow.waitFor();

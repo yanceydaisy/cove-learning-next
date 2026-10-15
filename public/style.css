@@ -754,3 +754,109 @@ html[data-learning-ui="glass"] .contribution-switch input:checked+span{backgroun
 html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-strong);background:var(--glass-panel-strong);color:var(--glass-text-strong);box-shadow:0 5px 14px var(--glass-shadow)}
 @media(max-width:610px){.task-importance-form{grid-template-columns:1fr minmax(120px,.64fr)}.task-importance-form .button{width:max-content}}
 @media(max-width:420px){.task-importance-form{grid-template-columns:1fr}.task-importance-form .button{width:100%}}
+
+/* Plan Timeline V1 */
+.plan-flow{display:flex;flex-direction:column;gap:28px;padding-bottom:34px}
+.plan-calendar,.plan-day-section,.plan-loose-section{min-width:0}
+.plan-add-row{display:flex;justify-content:flex-end;margin:-2px 0 14px}
+.plan-add-button{background:var(--surface);color:var(--ink);border-color:var(--rule);box-shadow:0 8px 22px var(--shadow)}
+.plan-calendar-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px}
+.plan-calendar-head h2{font:400 clamp(22px,5vw,29px)/1.15 var(--serif);margin:3px 0 0;color:var(--ink)}
+.plan-calendar-controls{display:flex;align-items:center;gap:5px}
+.plan-calendar-controls button{height:31px;min-width:31px;border:1px solid var(--line);border-radius:100px;background:transparent;color:var(--muted);font-size:11px;padding:0 10px}
+.plan-calendar-controls button:first-child,.plan-calendar-controls button:last-child{font:400 20px/1 var(--display);padding:0;width:31px}
+.plan-week-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:5px 0 2px}
+.plan-day-button{position:relative;min-width:0;min-height:63px;border:1px solid transparent;border-radius:18px;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 2px}
+.plan-day-button span{font-size:8px;letter-spacing:.04em;white-space:nowrap}
+.plan-day-button strong{font:500 17px/1 var(--display);color:inherit;font-variant-numeric:tabular-nums}
+.plan-day-button.today::after{content:"";position:absolute;bottom:7px;width:3px;height:3px;border-radius:50%;background:currentColor}
+.plan-day-button.selected{background:var(--surface-strong);border-color:var(--rule);color:var(--ink);box-shadow:0 8px 20px var(--shadow)}
+.plan-day-section{padding-top:22px;border-top:1px solid var(--line)}
+.plan-timeline{margin-top:13px}
+.plan-timeline-row{display:grid;grid-template-columns:54px 17px minmax(0,1fr);gap:8px;min-height:74px}
+.plan-time-cell{display:flex;flex-direction:column;align-items:flex-end;padding-top:11px;font-variant-numeric:tabular-nums}
+.plan-time-cell strong{font:500 11px/1.2 var(--display);color:var(--ink)}
+.plan-time-cell span{font:400 8px/1.2 var(--display);color:var(--muted);margin-top:5px}
+.plan-time-rail{position:relative;display:flex;justify-content:center}
+.plan-time-rail::before{content:"";position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.plan-time-rail i{position:relative;z-index:1;margin-top:14px;width:7px;height:7px;border-radius:50%;background:var(--surface-strong);border:1px solid var(--muted)}
+.plan-event-card{min-width:0;padding:9px 2px 12px 10px;border-bottom:1px solid var(--line)}
+.plan-event-meta{display:flex;align-items:center;gap:7px;min-height:14px}
+.plan-event-meta span{font-size:8px;letter-spacing:.13em;color:var(--muted);text-transform:uppercase}
+.plan-event-meta b{font:600 7px/1 var(--display);letter-spacing:.12em;border:1px solid var(--rule);border-radius:100px;padding:3px 5px;color:var(--ink)}
+.plan-event-main{display:flex;align-items:baseline;gap:9px;min-width:0;margin-top:4px}
+.plan-event-main strong{font:500 13px/1.4 var(--display);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-event-main small{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-event-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.plan-timeline-row.past{opacity:.36}
+.plan-timeline-row.current .plan-time-rail i{width:9px;height:9px;margin-top:13px;border-color:var(--ink);background:var(--ink)}
+.plan-timeline-row.current .plan-event-card{background:var(--surface);border:1px solid var(--rule);border-radius:15px;margin:3px 0 8px;padding:9px 11px}
+.plan-now-marker{display:grid;grid-template-columns:54px 17px minmax(0,1fr);gap:8px;align-items:center;min-height:28px}
+.plan-now-marker span{font:500 8px/1 var(--display);color:var(--ink);text-align:right}
+.plan-now-marker i{height:1px;background:var(--ink);position:relative}
+.plan-now-marker i::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:var(--ink)}
+.plan-now-marker b{font:500 8px/1 var(--display);color:var(--muted);letter-spacing:.12em}
+.plan-empty-day{min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:13px;color:var(--muted)}
+.plan-empty-day span{font:400 30px/1 var(--serif)}
+.plan-empty-day p,.plan-empty-loose{margin:0;color:var(--muted);font-size:10px}
+.plan-loose-section{padding-top:22px;border-top:1px solid var(--line)}
+.plan-loose-list{border-top:1px solid var(--line);margin-top:14px}
+.plan-loose-list .plan-task>.task-item{padding-inline:2px}
+.plan-dialog{width:min(92vw,640px);max-height:min(86vh,760px);padding:0;border:0;border-radius:26px;background:transparent;color:var(--ink);overflow:visible}
+.plan-dialog::backdrop{background:rgba(5,8,15,.42);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.plan-dialog-card{max-height:min(86vh,760px);overflow:auto;border:1px solid var(--rule);border-radius:26px;background:var(--surface-strong);box-shadow:0 28px 80px var(--shadow);padding:22px}
+.plan-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.plan-dialog-head h2{font:400 27px/1.2 var(--serif);margin:4px 0 0;color:var(--ink)}
+.plan-dialog-close{width:35px;height:35px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--muted);font-size:22px;line-height:1}
+.plan-create-form{display:flex;flex-direction:column;gap:12px}
+.plan-create-form label{display:flex;flex-direction:column;gap:5px;font-size:9px;color:var(--muted)}
+.plan-create-form input,.plan-create-form select{width:100%;min-width:0;min-height:42px;padding:8px 11px;border:1px solid var(--line);border-radius:12px;background:var(--input);color:var(--ink);font-size:12px}
+.plan-create-title input{font-size:14px}
+.plan-create-grid{display:grid;grid-template-columns:1.25fr .75fr .75fr;gap:8px}
+.plan-create-grid.two{grid-template-columns:1.35fr .65fr}
+.plan-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.task-inline-edit{grid-template-columns:minmax(120px,1.2fr) minmax(82px,.65fr) minmax(82px,.65fr) minmax(150px,1.2fr) minmax(90px,.7fr) auto}
+html[data-learning-ui="glass"] .plan-add-button,
+html[data-learning-ui="glass"] .plan-day-button.selected,
+html[data-learning-ui="glass"] .plan-timeline-row.current .plan-event-card,
+html[data-learning-ui="glass"] .plan-dialog-card{background:var(--glass-panel-strong);border-color:var(--glass-border);color:var(--glass-text)}
+html[data-learning-ui="glass"] .plan-calendar-head h2,
+html[data-learning-ui="glass"] .plan-day-button.selected,
+html[data-learning-ui="glass"] .plan-time-cell strong,
+html[data-learning-ui="glass"] .plan-event-main strong,
+html[data-learning-ui="glass"] .plan-event-meta b,
+html[data-learning-ui="glass"] .plan-now-marker span,
+html[data-learning-ui="glass"] .plan-dialog-head h2{color:var(--glass-text-strong)}
+html[data-learning-ui="glass"] .plan-calendar-controls button,
+html[data-learning-ui="glass"] .plan-time-cell span,
+html[data-learning-ui="glass"] .plan-event-meta span,
+html[data-learning-ui="glass"] .plan-event-main small,
+html[data-learning-ui="glass"] .plan-now-marker b,
+html[data-learning-ui="glass"] .plan-empty-day,
+html[data-learning-ui="glass"] .plan-empty-day p,
+html[data-learning-ui="glass"] .plan-empty-loose,
+html[data-learning-ui="glass"] .plan-create-form label,
+html[data-learning-ui="glass"] .plan-dialog-close{color:var(--glass-muted)}
+html[data-learning-ui="glass"] .plan-create-form input,
+html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-input);border-color:var(--glass-input-border);color:var(--glass-text)}
+@media(max-width:610px){
+ .plan-flow{gap:23px}.plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
+ .plan-week-strip{gap:3px}.plan-day-button{min-height:58px;border-radius:15px}
+ .plan-timeline-row,.plan-now-marker{grid-template-columns:46px 14px minmax(0,1fr);gap:6px}
+ .plan-time-cell strong{font-size:10px}.plan-event-card{padding-left:8px}
+ .task-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:430px){
+ .plan-dialog{width:calc(100vw - 22px)}.plan-dialog-card{padding:18px;border-radius:23px}
+ .plan-create-grid,.plan-create-grid.two{grid-template-columns:1fr 1fr}
+ .plan-create-grid label:first-child{grid-column:1/-1}
+ .plan-dialog-actions .button{flex:1}
+ .plan-event-main{display:block}.plan-event-main small{display:block;margin-top:2px}
+ .plan-event-actions .button{min-height:29px;padding-inline:9px}
+}
+.plan-other-loose{margin-top:12px;border-top:1px dashed var(--line);padding-top:9px}
+.plan-other-loose summary{cursor:pointer;list-style:none;font-size:9px;color:var(--muted);letter-spacing:.04em;padding:5px 0}
+.plan-other-loose summary::-webkit-details-marker{display:none}
+.plan-other-loose[open] summary{color:var(--ink)}
+html[data-learning-ui="glass"] .plan-other-loose summary{color:var(--glass-muted)}
+html[data-learning-ui="glass"] .plan-other-loose[open] summary{color:var(--glass-text-strong)}
