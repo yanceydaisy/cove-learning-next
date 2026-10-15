@@ -6,7 +6,7 @@ Status: deployed to `main` on 2026-10-14.
 
 Course Context is the evidence layer that will eventually make task importance explainable.
 
-It does **not** assign an importance score by itself. A course can have goals and assessment evidence while task `importance` remains `null` until a task-level evidence link exists.
+It does **not** assign an importance score by itself. Task → Course Evidence V0 now supplies explicit task-level links, but task `importance` still remains `null` until the product defines how strongly a task contributes to its linked evidence.
 
 The model follows four rules:
 

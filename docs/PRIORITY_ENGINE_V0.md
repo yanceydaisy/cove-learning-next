@@ -13,7 +13,7 @@ The Today view keeps 4 primary navigation tabs but now follows the approved comp
 - Required per task: title (and auto-generated creation time).
 - Optional at task creation or edit: course/project link, `planned_for` (client-local calendar date, YYYY-MM-DD), UTC `due_at`, `estimated_minutes`.
 - Automatic: actual current time, waiting age, today's explicit user preference.
-- Not yet consumed by this engine: course goals, assessment evidence, mastery gap, topic dependencies. Course Context V0 can now store confirmed goals / assessment evidence, but there is still no task-to-evidence relation. The importance coordinate therefore remains **null**, not a meaningless guess.
+- Course goals / assessment evidence can now be explicitly linked to tasks by Task → Course Evidence V0 and are surfaced as recommendation explanations. They still do **not** alter the numeric ranking score because a relation does not define task contribution strength. Mastery gap and topic dependencies are also not yet consumed. The importance coordinate therefore remains **null**, not a meaningless guess.
 
 ## Transparent heuristic, subject to future revision
 
@@ -46,7 +46,9 @@ Migration v2 adds nullable task columns `due_at`, `estimated_minutes`, `planned_
 - `POST /api/tasks`: optional new task fields.
 - `POST /api/tasks/:id/details`: update/clear the three optional fields.
 - `POST /api/tasks/:id/preference`: adjust or clear temporary boost.
-- `GET /api/today?local_date=YYYY-MM-DD`: backward-compatible `openTasks` / activity projection plus `todayTasks`, `deadlineTasks`, `recommendations`, `priorityModel`.
+- `GET /api/tasks/:id/evidence`: read confirmed evidence available to a course task plus its current links.
+- `POST /api/tasks/:id/evidence`: explicitly link or unlink one course-context item; this does not alter the ranking score.
+- `GET /api/today?local_date=YYYY-MM-DD`: backward-compatible `openTasks` / activity projection plus `todayTasks`, `deadlineTasks`, evidence-enriched `recommendations`, and `priorityModel`.
 
 Today is **read-only** with respect to owned domain data, and Planning owns task/preference writes. The UI uses the existing non-retried POST adapter.
 
@@ -55,7 +57,7 @@ Today is **read-only** with respect to owned domain data, and Planning owns task
 - Plan still requires only a task title. Date, DDL, and estimate live in collapsed optional inputs and can be modified from each existing task's “设置” action.
 - Today ranks and explains recommendations; preference +/- immediately persists and rerenders.
 - The previous Today activity-history section is omitted by design; learning history remains in Learn.
-- A genuine importance×urgency scatter plot is deferred until importance inputs are available. Do not manufacture point locations for visual completeness.
+- A genuine importance×urgency scatter plot is deferred until task-contribution semantics exist. Explicit evidence links are necessary but not sufficient; do not map an assessment's weight directly onto a task or manufacture point locations for visual completeness.
 
 ## Operational boundaries
 

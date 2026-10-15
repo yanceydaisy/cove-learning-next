@@ -83,7 +83,7 @@ test('transaction rolls back and migration metadata stays stable',()=>{
  const f=fixture();
  try{
   const before=f.app.database.raw.prepare('SELECT * FROM schema_migrations').all();
-  assert.equal(before.length,3);
+  assert.equal(before.length,4);
   assert.throws(()=>f.app.database.transaction(()=>{
    f.app.catalog.create({kind:'track',title:'中途回滚'});
    throw new Error('abort');

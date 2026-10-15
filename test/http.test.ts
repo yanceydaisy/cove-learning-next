@@ -34,6 +34,17 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   assert.equal(contextRead.items.length,2);assert.equal(contextRead.evidence.confirmedObjectives,1);assert.equal(contextRead.evidence.weightedAssessments,1);
   assert.equal((await request('/api/course-context/'+objective.id,{method:'POST',body:JSON.stringify({title:'掌握状态空间分析'})})).status,200);
   assert.equal((await request('/api/objects')).status,200);
+  const courseTaskRes=await request('/api/tasks',{method:'POST',body:JSON.stringify({title:'整理状态空间题型',object_id:course.id})});
+  assert.equal(courseTaskRes.status,201);const courseTask=await courseTaskRes.json() as {id:string};
+  const evidenceRead=await (await request('/api/tasks/'+courseTask.id+'/evidence')).json() as {available:{id:string}[];links:unknown[]};
+  assert.equal(evidenceRead.available.length,2);assert.equal(evidenceRead.links.length,0);
+  const evidenceSet=await request('/api/tasks/'+courseTask.id+'/evidence',{method:'POST',body:JSON.stringify({context_item_id:objective.id,linked:true})});
+  assert.equal(evidenceSet.status,200);
+  const evidenceToday=await (await request('/api/today?local_date=2026-10-12')).json() as {recommendations:{id:string;importance:null;evidence:{id:string}[];reasons:string[]}[]};
+  const evidenceTask=evidenceToday.recommendations.find(t=>t.id===courseTask.id)!;
+  assert.equal(evidenceTask.importance,null);assert.equal(evidenceTask.evidence.length,1);
+  assert.ok(evidenceTask.reasons.some(reason=>reason.includes('关联课程目标')));
+  assert.equal((await request('/api/tasks/'+courseTask.id+'/complete',{method:'POST',body:'{}'})).status,200);
   const task=await request('/api/tasks',{method:'POST',body:JSON.stringify({title:'写需求',object_id:item.id})});
   assert.equal(task.status,201);
   const taskData=await task.json() as {id:string};
