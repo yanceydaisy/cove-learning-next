@@ -9,6 +9,12 @@ type ContextRow={
  weight_percent:number|null;source_resource_id:string|null;source_locator:string|null;
  source_excerpt:string|null;status:'suggested'|'confirmed';created_at:string;updated_at:string;
 };
+export type TaskContribution='low'|'medium'|'high';
+
+function contribution(value:unknown):TaskContribution{
+ if(value!=='low'&&value!=='medium'&&value!=='high')throw new AppError('VALIDATION_ERROR','任务贡献等级只能是低、中、高。');
+ return value;
+}
 
 export class TaskEvidenceService {
  constructor(private db:Database,private now=()=>new Date().toISOString()){}
@@ -40,7 +46,14 @@ export class TaskEvidenceService {
     WHERE object_id=? AND status='confirmed'
     ORDER BY CASE kind WHEN 'objective' THEN 0 ELSE 1 END,created_at,id`
   ).all(course.id) as unknown as ContextRow[]:[];
-  return {task,course,links,available};
+  const importance_input=this.db.raw.prepare(
+   `SELECT i.task_id,i.context_item_id,i.contribution,i.created_at,i.updated_at,
+           c.kind,c.title,c.weight_percent,c.status
+    FROM task_importance_inputs i
+    JOIN course_context_items c ON c.id=i.context_item_id
+    WHERE i.task_id=?`
+  ).get(task.id)??null;
+  return {task,course,links,available,importance_input};
  }
 
  set(taskId:string,input:unknown){
@@ -63,6 +76,33 @@ export class TaskEvidenceService {
    this.db.raw.prepare(
     'INSERT INTO task_context_links(task_id,context_item_id,created_at) VALUES(?,?,?) ON CONFLICT(task_id,context_item_id) DO NOTHING'
    ).run(task.id,context.id,this.now());
+   return this.list(task.id);
+  });
+ }
+
+ setImportance(taskId:string,input:unknown){
+  const data=record(input);
+  return this.db.transaction(()=>{
+   const task=this.task(taskId);
+   if(task.status!=='open')throw new AppError('CONFLICT','已完成任务不可修改重要度依据。');
+   if(data.clear===true){
+    this.db.raw.prepare('DELETE FROM task_importance_inputs WHERE task_id=?').run(task.id);
+    return this.list(task.id);
+   }
+   const contextId=requiredId(data.context_item_id),level=contribution(data.contribution);
+   const linked=this.db.raw.prepare(
+    `SELECT c.id,c.status FROM task_context_links l
+     JOIN course_context_items c ON c.id=l.context_item_id
+     WHERE l.task_id=? AND l.context_item_id=?`
+   ).get(task.id,contextId) as {id:string;status:string}|undefined;
+   if(!linked)throw new AppError('CONFLICT','主依据必须先关联到这个任务。');
+   if(linked.status!=='confirmed')throw new AppError('CONFLICT','待确认课程证据不能作为重要度主依据。');
+   const at=this.now();
+   this.db.raw.prepare(
+    `INSERT INTO task_importance_inputs(task_id,context_item_id,contribution,created_at,updated_at)
+     VALUES(?,?,?,?,?)
+     ON CONFLICT(task_id) DO UPDATE SET context_item_id=excluded.context_item_id,contribution=excluded.contribution,updated_at=excluded.updated_at`
+   ).run(task.id,contextId,level,at,at);
    return this.list(task.id);
   });
  }

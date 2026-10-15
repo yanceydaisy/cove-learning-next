@@ -76,6 +76,17 @@ CREATE TABLE task_context_links (
 );
 CREATE INDEX idx_task_context_item ON task_context_links(context_item_id,task_id);
 `}
+ ,{version:5,name:'task_importance_input',sql:`
+CREATE TABLE task_importance_inputs (
+ task_id TEXT PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+ context_item_id TEXT NOT NULL,
+ contribution TEXT NOT NULL CHECK(contribution IN ('low','medium','high')),
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL,
+ FOREIGN KEY(task_id,context_item_id) REFERENCES task_context_links(task_id,context_item_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_task_importance_context ON task_importance_inputs(context_item_id,task_id);
+`}
 ] as const;
 
 export class Database {

@@ -50,24 +50,41 @@ test('tasks explicitly link only to confirmed evidence from their own course',()
   assert.throws(()=>f.app.taskEvidence.set(task.id,{context_item_id:foreign.id,linked:true}),e=>e instanceof AppError&&e.code==='CONFLICT');
   assert.throws(()=>f.app.taskEvidence.set(projectTask.id,{context_item_id:objective.id,linked:true}),e=>e instanceof AppError&&e.code==='CONFLICT');
 
-  const today=f.app.today.snapshot('2026-10-15');
-  const recommended=today.recommendations.find(t=>t.id===task.id)!;
-  assert.equal(recommended.importance,null);
-  assert.equal(recommended.evidence.length,2);
-  assert.ok(recommended.reasons.some(x=>x==='关联课程目标：掌握状态空间模型分析'));
-  assert.ok(recommended.reasons.some(x=>x==='关联考核：期末考试（60%）'));
-  assert.equal(today.priorityModel.importanceAvailable,false);
-  assert.equal(today.priorityModel.evidenceLinksAvailable,true);
+  const beforeImportance=f.app.today.snapshot('2026-10-15');
+  const unscored=beforeImportance.recommendations.find(t=>t.id===task.id)!;
+  assert.equal(unscored.importance,null);
+  assert.equal(unscored.evidence.length,2);
+  assert.ok(unscored.reasons.some(x=>x==='关联课程目标：掌握状态空间模型分析'));
+  assert.ok(unscored.reasons.some(x=>x==='关联考核：期末考试（60%）'));
+  assert.equal(beforeImportance.priorityModel.importanceAvailable,false);
+  assert.equal(beforeImportance.priorityModel.evidenceLinksAvailable,true);
+  assert.throws(()=>f.app.taskEvidence.setImportance(task.id,{context_item_id:foreign.id,contribution:'high'}),e=>e instanceof AppError&&e.code==='CONFLICT');
+  assert.throws(()=>f.app.taskEvidence.setImportance(task.id,{context_item_id:objective.id,contribution:'extreme'}),e=>e instanceof AppError&&e.code==='VALIDATION_ERROR');
+
+  f.app.taskEvidence.setImportance(task.id,{context_item_id:objective.id,contribution:'medium'});
+  const scored=f.app.today.snapshot('2026-10-15');
+  const recommended=scored.recommendations.find(t=>t.id===task.id)!;
+  assert.equal(recommended.importance,'medium');
+  assert.equal(recommended.score,unscored.score,'ordinal importance does not silently alter the ranking score');
+  assert.ok(recommended.reasons.some(x=>x==='重要度：中 · 主依据：掌握状态空间模型分析'));
+  assert.equal(scored.priorityModel.importanceAvailable,true);
+  assert.equal(scored.priorityModel.importanceScale,'ordinal-low-medium-high');
+  assert.equal(f.app.taskEvidence.list(task.id).importance_input?.contribution,'medium');
 
   f.app.taskEvidence.set(task.id,{context_item_id:objective.id,linked:false});
-  assert.deepEqual(f.app.taskEvidence.list(task.id).links.map(x=>x.id),[assessment.id]);
+  const afterUnlink=f.app.taskEvidence.list(task.id);
+  assert.deepEqual(afterUnlink.links.map(x=>x.id),[assessment.id]);
+  assert.equal(afterUnlink.importance_input,null,'unlinking the primary evidence clears its importance input by FK cascade');
+  f.app.taskEvidence.setImportance(task.id,{context_item_id:assessment.id,contribution:'high'});
   f.app.planning.complete(task.id);
   assert.throws(()=>f.app.taskEvidence.set(task.id,{context_item_id:objective.id,linked:true}),e=>e instanceof AppError&&e.code==='CONFLICT');
+  assert.throws(()=>f.app.taskEvidence.setImportance(task.id,{clear:true}),e=>e instanceof AppError&&e.code==='CONFLICT');
 
   const again=new LearningApplication(f.dir);
   try{
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,4);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,5);
    assert.equal(again.taskEvidence.list(task.id).links.length,1);
+   assert.equal(again.taskEvidence.list(task.id).importance_input?.contribution,'high');
   }finally{again.close();}
  }finally{f.end();}
 });

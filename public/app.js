@@ -233,21 +233,36 @@ function todayAgendaRow(t){
   '<span class="today-agenda-time">'+esc(detail)+'</span></div>';
 }
 function decisionRow(t,index=0){
+ const importanceNote=t.importance?' · 重要度 '+({low:'低',medium:'中',high:'高'}[t.importance]||t.importance):'';
  const evidenceNote=t.evidence?.length?' · 证据 '+t.evidence.slice(0,2).map(item=>item.title).join(' / '):'';
- const note=(t.reasons?.[0]||'由任务状态生成的建议')+evidenceNote;
+ const note=(t.reasons?.[0]||'由任务状态生成的建议')+importanceNote+evidenceNote;
  const preferred=Number(t.boost||0)>0;
  const control='<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+esc(t.id)+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销 '+esc(t.title)+' 的今日优先':'今天先做 '+esc(t.title))+'">'+
   (preferred?'已优先':'今天先做')+'</button>';
  return '<article class="today-task-card"><span class="today-task-index">'+String(index+1).padStart(2,'0')+'</span>'+
   '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(deadlineDistance(t.due_at))+' · '+esc(note)+'</span></div>'+control+'</article>';
 }
-function todayMatrix(model){
+function todayMatrix(model,tasks){
  const ready=Boolean(model?.importanceAvailable),linked=Boolean(model?.evidenceLinksAvailable);
+ const importanceY={low:39,medium:58,high:78};
+ const urgencyX={unknown:36,later:46,'within-week':59,'within-three-days':70,'within-day':80,'at-risk':87,overdue:91};
+ const urgencyName={unknown:'未知',later:'较低','within-week':'一周内','within-three-days':'三天内','within-day':'24h 内','at-risk':'时间不足',overdue:'已逾期'};
+ const importanceName={low:'低',medium:'中',high:'高'};
+ const plotted=(tasks||[]).filter(task=>task.importance&&importanceY[task.importance]);
+ const points=plotted.map((task,index)=>{
+  const label=String(index+1).padStart(2,'0');
+  const x=urgencyX[task.urgency]??36,y=importanceY[task.importance];
+  return '<span class="matrix-point" style="--point-x:'+x+'%;--point-y:'+y+'%" title="'+esc(task.title+' · '+importanceName[task.importance]+'重要 · '+(urgencyName[task.urgency]||task.urgency))+'">'+label+'</span>';
+ }).join('');
+ const legend=plotted.length?'<div class="matrix-legend">'+plotted.map((task,index)=>
+  '<div><span>'+String(index+1).padStart(2,'0')+'</span><strong>'+esc(task.title)+'</strong><small>'+importanceName[task.importance]+'重要 · '+esc(urgencyName[task.urgency]||task.urgency)+'</small></div>'
+ ).join('')+'</div>':'';
  return '<div class="today-matrix-wrap"><div class="today-matrix" aria-label="重要度与紧急度坐标图">'+
   '<span class="matrix-y-label">重要</span><span class="matrix-x-label">紧急</span>'+
+  '<span class="matrix-band-label matrix-band-high">高</span><span class="matrix-band-label matrix-band-medium">中</span><span class="matrix-band-label matrix-band-low">低</span>'+
   '<span class="matrix-axis matrix-axis-y" aria-hidden="true"></span><span class="matrix-axis matrix-axis-x" aria-hidden="true"></span>'+
-  '<span class="matrix-origin" aria-hidden="true"></span></div>'+
-  '<p class="today-matrix-note">'+(ready?'坐标数据已就绪，任务点将在下一阶段接入。':linked?'任务已经关联课程证据，但还没有定义“这项任务对证据贡献多大”，所以暂不把考核权重冒充任务重要度。':'课程证据与任务还没有建立足够关联，所以现在只保留坐标框架，不伪造任务位置。')+'</p></div>';
+  '<span class="matrix-origin" aria-hidden="true"></span>'+points+'</div>'+
+  '<div><p class="today-matrix-note">'+(ready?'只显示你已确认低 / 中 / 高重要度的任务；未确认任务不会被伪造位置。':linked?'任务已经关联课程证据，但还没有确认主依据与贡献等级，所以暂不放点。':'课程证据与任务还没有建立足够关联，所以现在只保留坐标框架，不伪造任务位置。')+'</p>'+legend+'</div></div>';
 }
 async function today(){
  const d=await api('/today?local_date='+encodeURIComponent(localDay()));
@@ -267,7 +282,7 @@ async function today(){
  const taskBody=todayTaskView==='list'?
   (d.recommendations.length?'<div class="today-task-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
    '<p class="today-empty">还没有待办任务。</p>'):
-  todayMatrix(d.priorityModel);
+  todayMatrix(d.priorityModel,d.recommendations);
  view(
   '<header class="head today-head"><div><p class="kicker">TODAY / OVERVIEW</p><h1>Learning</h1></div>'+
    '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span>'+ornament('plus')+'</a></header>'+
@@ -339,9 +354,28 @@ function taskEvidenceMarkup(data){
  const stale=(data.links||[]).filter(item=>item.status!=='confirmed').map(item=>
   '<div class="evidence-stale"><span>'+esc(item.title)+'</span><small>这条证据已不再确认；不会进入推荐解释。</small></div>'
  ).join('');
+ const linkedConfirmed=(data.links||[]).filter(item=>item.status==='confirmed');
+ const staleImportance=data.importance_input&&data.importance_input.status!=='confirmed'?data.importance_input:null;
+ const current=data.importance_input?.status==='confirmed'?data.importance_input:null;
+ const importance=linkedConfirmed.length
+  ?'<div class="task-importance-box"><div class="task-importance-head"><strong>重要度依据</strong><small>只选 1 条主依据，再确认任务贡献等级。</small></div>'+
+   '<form class="task-importance-form" data-importance-form="'+esc(data.task.id)+'">'+
+    '<select name="context_item_id" aria-label="重要度主依据">'+linkedConfirmed.map(item=>
+     '<option value="'+esc(item.id)+'" '+(current?.context_item_id===item.id?'selected':'')+'>'+esc(item.title)+'</option>'
+    ).join('')+'</select>'+
+    '<div class="contribution-switch" role="radiogroup" aria-label="任务贡献等级">'+
+     [['low','低'],['medium','中'],['high','高']].map(([value,label])=>
+      '<label><input type="radio" name="contribution" value="'+value+'" '+(current?.contribution===value?'checked':'')+' required><span>'+label+'</span></label>'
+     ).join('')+'</div>'+
+    '<button class="button sm primary" type="submit">确认重要度</button>'+
+    (current?'<button class="button sm quiet-button" type="button" data-importance-clear="'+esc(data.task.id)+'">清除</button>':'')+
+   '</form>'+
+   '<p class="task-evidence-note">这是离散的低 / 中 / 高，不生成 0–100 假精度，也不会把课程考核权重直接复制给任务。</p></div>'
+  :'<p class="task-evidence-empty">先关联至少一条已确认课程证据，才能设置重要度依据。</p>';
  return '<div class="task-evidence-head"><div><strong>课程证据</strong><small>'+esc(data.course?.title||'')+'</small></div><span>'+(linked.size)+' 已关联</span></div>'+
   '<p class="task-evidence-note">这里只建立事实关联，不会把考核权重直接冒充任务重要度。</p>'+
-  (rows?'<div class="evidence-link-list">'+rows+'</div>':'<p class="task-evidence-empty">这门课还没有已确认的课程证据。先去 Library 完善课程档案。</p>')+stale;
+  (rows?'<div class="evidence-link-list">'+rows+'</div>':'<p class="task-evidence-empty">这门课还没有已确认的课程证据。先去 Library 完善课程档案。</p>')+stale+
+  (staleImportance?'<div class="evidence-stale"><span>原重要度依据已失效：'+esc(staleImportance.title)+'</span><small>这条证据不再是 confirmed，Today 已停止使用旧重要度，请重新确认。</small></div>':'')+importance;
 }
 async function loadTaskEvidence(taskId){
  const panel=root.querySelector('[data-evidence-panel="'+taskId+'"]');
@@ -355,6 +389,19 @@ async function loadTaskEvidence(taskId){
   await loadTaskEvidence(taskId);
   notify(linked?'已取消课程证据关联':'已关联课程证据');
  })));
+ panel.querySelector('[data-importance-form]')?.addEventListener('submit',event=>{
+  event.preventDefault();const form=new FormData(event.currentTarget);
+  perform(async()=>{
+   await api('/tasks/'+taskId+'/importance','POST',{
+    context_item_id:form.get('context_item_id'),contribution:form.get('contribution')
+   });
+   await loadTaskEvidence(taskId);notify('已确认任务重要度');
+  });
+ });
+ panel.querySelector('[data-importance-clear]')?.addEventListener('click',()=>perform(async()=>{
+  await api('/tasks/'+taskId+'/importance','POST',{clear:true});
+  await loadTaskEvidence(taskId);notify('已清除任务重要度');
+ }));
 }
 async function plan(){
  const [tasks,objects]=await Promise.all([api('/tasks'),api('/objects')]);

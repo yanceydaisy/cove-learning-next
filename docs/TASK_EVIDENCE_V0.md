@@ -63,15 +63,11 @@ Today now enriches open recommendations with confirmed linked evidence and adds 
 - `关联课程目标：掌握状态空间模型分析`
 - `关联考核：期末考试（60%）`
 
-The relation **does not change the ranking score in V0** and task `importance` remains `null`.
+The relation **does not change the ranking score in V0**. Task Importance V1 now adds a separate, user-confirmed importance input on top of these links: one primary evidence item plus a low / medium / high contribution tier.
 
-This is intentional. “This task supports an assessment weighted 60%” is evidence about the assessment, not proof that the task itself should receive an importance coordinate of 60.
+This separation is intentional. “This task supports an assessment weighted 60%” is evidence about the assessment, not proof that the task itself should receive an importance coordinate of 60.
 
-The coordinate plot therefore remains empty. When links exist, the UI explicitly says that contribution semantics are still missing rather than claiming that no relation exists.
-
-## Next semantic step
-
-The next importance layer needs an explicit, explainable definition of task contribution, for example a primary evidence relation or a small user-confirmable contribution tier. Only after that contract exists should Priority Engine derive an importance coordinate and place real task points on the importance × urgency plot.
+See [`TASK_IMPORTANCE_V1.md`](TASK_IMPORTANCE_V1.md) for the ordinal importance contract and the first real Importance × Urgency task points.
 
 ## Validation
 

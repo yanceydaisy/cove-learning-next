@@ -8,18 +8,22 @@ Fresh independent Learning application. The public test preview deliberately **d
 
 ## Priority Engine V0 · deployed (2026-10-12)
 
-Additive task metadata (optional planned date, UTC DDL, estimated minutes), explainable recommendation ranking, bounded aging, and a temporary “今天先做” user preference until the next local midnight are now part of `main`. Today keeps the same ranking logic but uses the approved compact layout: 今日任务 / 回顾总结 above a 待办任务 section with 列表 / 坐标图 views. Plan exposes optional task metadata and edit controls. Importance remains deliberately `null`: there are no fabricated PPT goals or scatter coordinates. Implementation contract: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md).
+Additive task metadata (optional planned date, UTC DDL, estimated minutes), explainable recommendation ranking, bounded aging, and a temporary “今天先做” user preference until the next local midnight are now part of `main`. Today keeps the same urgency/aging/preference ranking logic but uses the approved compact layout. Task Importance V1 can now enrich a task with user-confirmed ordinal importance (`low / medium / high`) without folding it into the ranking score. Contracts: [`docs/PRIORITY_ENGINE_V0.md`](docs/PRIORITY_ENGINE_V0.md) and [`docs/TASK_IMPORTANCE_V1.md`](docs/TASK_IMPORTANCE_V1.md).
 
 ## Course Context V0 · deployed (2026-10-14)
 
-Course Context V0 adds the course-level evidence layer: confirmed or suggested objectives, assessment items, optional assessment weights, immutable Library source references, source locators, and edit / confirm / delete controls in Library. Suggested evidence must retain a source and is never treated as confirmed automatically. Task → Course Evidence V0 now lets an open course task explicitly link to confirmed evidence from its own course; Today can explain those links, but **task importance is still `null`** until task-contribution semantics are defined. Contracts: [`docs/COURSE_CONTEXT_V0.md`](docs/COURSE_CONTEXT_V0.md) and [`docs/TASK_EVIDENCE_V0.md`](docs/TASK_EVIDENCE_V0.md).
+Course Context V0 adds the course-level evidence layer: confirmed or suggested objectives, assessment items, optional assessment weights, immutable Library source references, source locators, and edit / confirm / delete controls in Library. Suggested evidence must retain a source and is never treated as confirmed automatically. Task → Course Evidence V0 links tasks to confirmed evidence; Task Importance V1 lets the user choose one linked item as the primary basis and confirm a low / medium / high contribution tier. Contracts: [`docs/COURSE_CONTEXT_V0.md`](docs/COURSE_CONTEXT_V0.md), [`docs/TASK_EVIDENCE_V0.md`](docs/TASK_EVIDENCE_V0.md), and [`docs/TASK_IMPORTANCE_V1.md`](docs/TASK_IMPORTANCE_V1.md).
 
 ## Task → Course Evidence V0 · deployed (2026-10-15)
 
 Open tasks attached to a course can now explicitly link to confirmed objectives / assessment evidence from that same course. Plan owns the relation editor; Today surfaces linked evidence in recommendation explanations. Links are factual and traceable, but do **not** change the ranking score or turn an assessment weight into task importance. Migration v4 adds only the relation table. Contract: [`docs/TASK_EVIDENCE_V0.md`](docs/TASK_EVIDENCE_V0.md).
 
+## Task Importance V1 · deployed (2026-10-15)
+
+Open course tasks with linked evidence can now choose one primary evidence item and a user-confirmed low / medium / high contribution tier. Today exposes that ordinal importance and plots only confirmed tasks on the Importance × Urgency coordinate view. Tasks without confirmed importance remain unplotted. The existing recommendation score is deliberately unchanged. Contract: [`docs/TASK_IMPORTANCE_V1.md`](docs/TASK_IMPORTANCE_V1.md).
+
 ## App
-- **Default page is Today** (heading `Learning`): the wallpaper has the same Home-style full-screen day/night overlay (day brightens, night darkens) instead of a local title card; the `开始学习` action uses a milk-white refractive glass pill, followed by side-by-side 今日任务 / 回顾总结 and a 待办任务 workspace with 列表 / 坐标图 views. The coordinate frame stays empty until importance evidence is real. No separate Home tab.
+- **Default page is Today** (heading `Learning`): the wallpaper has the same Home-style full-screen day/night overlay (day brightens, night darkens) instead of a local title card; the `开始学习` action uses a milk-white refractive glass pill, followed by side-by-side 今日任务 / 回顾总结 and a 待办任务 workspace with 列表 / 坐标图 views. The coordinate view plots only tasks with user-confirmed ordinal importance. No separate Home tab.
 - Plan: a single task-composer focus with an open actionable list. Create, complete and optionally link tasks to learning objects.
 - Learn: one focus stage for start, pause, resume and finish, followed by a light activity archive.
 - Library: full-width learning-object stats and creation, followed by an independently spaced materials/upload section. No cramped twin cards. Original source upload stays capped at 8 MB (SHA-256).
