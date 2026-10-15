@@ -26,6 +26,10 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   assert.equal(object.status,201);const item=await object.json() as {id:string};
   const courseRes=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'course',title:'现代控制'})});
   assert.equal(courseRes.status,201);const course=await courseRes.json() as {id:string};
+  const scheduleRes=await request('/api/schedule',{method:'POST',body:JSON.stringify({object_id:course.id,title:'现代控制',weekday:2,start_time:'13:30',end_time:'15:05',effective_from:'2026-09-07'})});
+  assert.equal(scheduleRes.status,201);
+  const scheduleDay=await (await request('/api/schedule?local_date=2026-10-13')).json() as {title:string;start_time:string}[];
+  assert.equal(scheduleDay.length,1);assert.equal(scheduleDay[0]?.title,'现代控制');assert.equal(scheduleDay[0]?.start_time,'13:30');
   const objectiveRes=await request('/api/courses/'+course.id+'/context',{method:'POST',body:JSON.stringify({kind:'objective',title:'掌握状态空间模型分析'})});
   assert.equal(objectiveRes.status,201);const objective=await objectiveRes.json() as {id:string};
   const assessmentRes=await request('/api/courses/'+course.id+'/context',{method:'POST',body:JSON.stringify({kind:'assessment',title:'期末考试',weight_percent:60})});

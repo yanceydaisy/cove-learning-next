@@ -47,20 +47,29 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    assert.ok(names.includes('learning_set_importance'));
    assert.ok(names.includes('learning_focus'));
    assert.ok(names.includes('learning_course_context'));
+   assert.ok(names.includes('learning_schedule'));
    assert.ok(!names.some(name=>/delete|remove|upload/i.test(name)),'V0 exposes no delete/remove/upload tool');
 
    const course=toolJson(await client.callTool({
     name:'learning_create_object',
     arguments:{kind:'course',title:'现代控制'}
    }));
+   const slot=toolJson(await client.callTool({
+    name:'learning_schedule',
+    arguments:{action:'create',object_id:course.id,title:'现代控制',weekday:4,start_time:'09:55',end_time:'11:30',effective_from:'2026-09-07'}
+   }));
+   assert.equal(slot.start_time,'09:55');
+   const dateSlots=toolJson(await client.callTool({name:'learning_schedule',arguments:{action:'date',local_date:'2026-10-15'}}));
+   assert.equal(dateSlots.length,1);
    const objective=toolJson(await client.callTool({
     name:'learning_course_context',
     arguments:{action:'create',course_id:course.id,kind:'objective',title:'掌握状态空间模型分析'}
    }));
    const task=toolJson(await client.callTool({
     name:'learning_create_task',
-    arguments:{title:'状态空间复习',object_id:course.id,planned_for:'2026-10-15'}
+    arguments:{title:'状态空间复习',object_id:course.id,planned_for:'2026-10-15',scheduled_start:'2026-10-15T06:00:00.000Z',scheduled_end:'2026-10-15T06:45:00.000Z'}
    }));
+   assert.equal(task.scheduled_start,'2026-10-15T06:00:00.000Z');
    const evidence=toolJson(await client.callTool({
     name:'learning_task_evidence',
     arguments:{action:'link',task_id:task.id,context_item_id:objective.id}

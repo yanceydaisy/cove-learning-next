@@ -209,6 +209,7 @@ function historyList(sessions,max=5){
 }
 let todayTaskView='list';
 let courseContextId=null;
+let planSelectedDate=null;
 function localDay(){
  const n=new Date(),pad=v=>String(v).padStart(2,'0');
  return n.getFullYear()+'-'+pad(n.getMonth()+1)+'-'+pad(n.getDate());
@@ -321,6 +322,65 @@ function localDatetimeValue(iso){
  const d=new Date(iso);
  return new Date(d.getTime()-d.getTimezoneOffset()*60_000).toISOString().slice(0,16);
 }
+function localDateFromIso(iso){
+ if(!iso)return '';
+ const d=new Date(iso),pad=v=>String(v).padStart(2,'0');
+ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function localTimeFromIso(iso){
+ if(!iso)return '';
+ const d=new Date(iso),pad=v=>String(v).padStart(2,'0');
+ return pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function dayDate(value){
+ const [y,m,d]=String(value).split('-').map(Number);
+ return new Date(y,m-1,d,12,0,0,0);
+}
+function dayString(d){
+ const pad=v=>String(v).padStart(2,'0');
+ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function shiftDay(value,delta){
+ const d=dayDate(value);d.setDate(d.getDate()+delta);return dayString(d);
+}
+function localDateTimeIso(day,clock){
+ if(!day||!clock)return null;
+ const [y,m,d]=day.split('-').map(Number),[h,min]=clock.split(':').map(Number);
+ return new Date(y,m-1,d,h,min,0,0).toISOString();
+}
+function clockMinutes(value){
+ if(!value)return 0;
+ const [h,m]=String(value).split(':').map(Number);return h*60+m;
+}
+function planWeekMarkup(selected){
+ const center=dayDate(selected),dow=center.getDay(),start=new Date(center);
+ start.setDate(center.getDate()-((dow+6)%7));
+ const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return dayString(d);});
+ const month=center.toLocaleDateString('zh-CN',{year:'numeric',month:'long'});
+ const weekNames=['一','二','三','四','五','六','日'],today=localDay();
+ return '<div class="plan-calendar-head"><div><span class="section-eyebrow">CALENDAR / WEEK</span><h2>'+esc(month)+'</h2></div>'+
+  '<div class="plan-calendar-controls"><button type="button" data-plan-week="-7" aria-label="上一周">‹</button><button type="button" data-plan-today>今天</button><button type="button" data-plan-week="7" aria-label="下一周">›</button></div></div>'+
+  '<div class="plan-week-strip">'+days.map((value,index)=>
+   '<button type="button" class="plan-day-button'+(value===selected?' selected':'')+(value===today?' today':'')+'" data-plan-date="'+value+'" aria-pressed="'+(value===selected)+'">'+
+    '<span>周'+weekNames[index]+'</span><strong>'+Number(value.slice(-2))+'</strong></button>'
+  ).join('')+'</div>';
+}
+function taskEditForm(t){
+ const scheduleDay=t.scheduled_start?localDateFromIso(t.scheduled_start):(t.planned_for||'');
+ return '<form class="task-inline-edit" data-edit-form="'+esc(t.id)+'" hidden>'+
+  '<label>安排日期<input type="date" name="planned_for" value="'+esc(scheduleDay)+'"></label>'+
+  '<label>开始<input type="time" name="schedule_start" value="'+esc(localTimeFromIso(t.scheduled_start))+'"></label>'+
+  '<label>结束<input type="time" name="schedule_end" value="'+esc(localTimeFromIso(t.scheduled_end))+'"></label>'+
+  '<label>截止时间<input type="datetime-local" name="due_local" value="'+esc(localDatetimeValue(t.due_at))+'"></label>'+
+  '<label>预计分钟<input type="number" name="estimated_minutes" min="1" max="20160" value="'+esc(t.estimated_minutes||'')+'"></label>'+
+  '<button class="button sm primary" type="submit">保存</button></form>';
+}
+function taskActionButtons(t,courseTask){
+ const id=esc(t.id);
+ return (courseTask?'<button type="button" class="button sm quiet-button" data-evidence="'+id+'">证据</button>':'')+
+  '<button type="button" class="button sm quiet-button" data-edit="'+id+'">设置</button>'+
+  '<button type="button" class="button sm quiet-button" data-done="'+id+'">完成</button>';
+}
 function planTaskRow(t,courseIds){
  const done=t.status==='done',id=esc(t.id),courseTask=Boolean(t.object_id&&courseIds.has(t.object_id));
  const details=[
@@ -331,16 +391,8 @@ function planTaskRow(t,courseIds){
  return '<div class="plan-task"><div class="task-item"><span class="task-check '+(done?'complete':'')+'" aria-hidden="true">'+(done?ornament('check'):'')+'</span>'+
   '<div class="plan-task-copy"><span class="task-description '+(done?'complete':'')+'">'+esc(t.title)+'</span>'+
   (details?'<small>'+esc(details)+'</small>':'')+'</div>'+
-  (done?'<span class="row-trailing">已完成</span>':
-   (courseTask?'<button type="button" class="button sm quiet-button" data-evidence="'+id+'">证据</button>':'')+
-   '<button type="button" class="button sm quiet-button" data-edit="'+id+'">设置</button>'+
-   '<button type="button" class="button sm quiet-button" data-done="'+id+'">完成</button>')+'</div>'+
-  (done?'':'<form class="task-inline-edit" data-edit-form="'+id+'" hidden>'+
-   '<label>计划日期<input type="date" name="planned_for" value="'+esc(t.planned_for||'')+'"></label>'+
-   '<label>截止时间<input type="datetime-local" name="due_local" value="'+esc(localDatetimeValue(t.due_at))+'"></label>'+
-   '<label>预计分钟<input type="number" name="estimated_minutes" min="1" max="20160" value="'+esc(t.estimated_minutes||'')+'"></label>'+
-   '<button class="button sm primary" type="submit">保存</button></form>'+
-   (courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+id+'" hidden></div>':''))+'</div>';
+  (done?'<span class="row-trailing">已完成</span>':taskActionButtons(t,courseTask))+'</div>'+
+  (done?'':taskEditForm(t)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+id+'" hidden></div>':''))+'</div>';
 }
 function taskEvidenceMarkup(data){
  const linked=new Set((data.links||[]).map(item=>item.id));
@@ -403,45 +455,118 @@ async function loadTaskEvidence(taskId){
   await loadTaskEvidence(taskId);notify('已清除任务重要度');
  }));
 }
+function planEventStatus(day,startMin,endMin){
+ const today=localDay();
+ if(day<today)return 'past';
+ if(day>today)return 'future';
+ const now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
+ if(endMin<=nowMin)return 'past';
+ if(startMin<=nowMin&&endMin>nowMin)return 'current';
+ return 'future';
+}
+function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
+ const day=planSelectedDate||localDay();
+ const classEvents=(schedule||[]).map(item=>({
+  kind:'course',id:item.id,title:item.title,object_id:item.object_id,
+  start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)
+ }));
+ const taskEvents=tasks.filter(t=>t.status==='open'&&t.scheduled_start&&localDateFromIso(t.scheduled_start)===day).map(t=>{
+  const start=localTimeFromIso(t.scheduled_start),end=t.scheduled_end?localTimeFromIso(t.scheduled_end):'';
+  const startMin=clockMinutes(start),endMin=end?clockMinutes(end):Math.min(1439,startMin+Number(t.estimated_minutes||45));
+  return {kind:'task',id:t.id,title:t.title,object_id:t.object_id,start,end,startMin,endMin,task:t};
+ });
+ const events=[...classEvents,...taskEvents].sort((a,b)=>a.startMin-b.startMin||a.endMin-b.endMin||a.title.localeCompare(b.title,'zh-CN'));
+ if(!events.length)return '<div class="plan-empty-day"><span>—</span><p>这一天还没有课程或已排期任务。</p></div>';
+ const today=localDay(),now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
+ let markerUsed=false,html='';
+ const marker=()=>'<div class="plan-now-marker"><span>'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+'</span><i></i><b>现在</b></div>';
+ for(const item of events){
+  const status=planEventStatus(day,item.startMin,item.endMin);
+  if(day===today&&!markerUsed&&(nowMin<=item.startMin||status==='current')){html+=marker();markerUsed=true;}
+  const object=objectsById.get(item.object_id);
+  const meta=item.kind==='course'?'课程':(object?.title||'任务');
+  const endLabel=item.end|| (item.kind==='task'&&item.task?.estimated_minutes?'约 '+item.task.estimated_minutes+'m':'');
+  const task=item.kind==='task'?item.task:null,courseTask=Boolean(task?.object_id&&courseIds.has(task.object_id));
+  html+='<article class="plan-timeline-row '+status+'"><div class="plan-time-cell"><strong>'+esc(item.start)+'</strong><span>'+esc(endLabel)+'</span></div>'+
+   '<div class="plan-time-rail"><i></i></div><div class="plan-event-card"><div class="plan-event-meta"><span>'+esc(meta)+'</span>'+(status==='current'?'<b>NOW</b>':'')+'</div>'+
+   '<div class="plan-event-main"><strong>'+esc(item.title)+'</strong>'+
+   (object&&item.kind==='task'?'<small>'+esc(object.title)+'</small>':'')+'</div>'+
+   (task?'<div class="plan-event-actions">'+taskActionButtons(task,courseTask)+'</div>'+taskEditForm(task)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+esc(task.id)+'" hidden></div>':''):'')+
+   '</div></article>';
+ }
+ if(day===today&&!markerUsed)html+=marker();
+ return '<div class="plan-timeline">'+html+'</div>';
+}
+function planDialogMarkup(objects){
+ const selected=planSelectedDate||localDay();
+ return '<dialog id="planDialog" class="plan-dialog"><div class="plan-dialog-card"><div class="plan-dialog-head"><div><span class="section-eyebrow">ADD / PLAN</span><h2>添加计划</h2></div>'+
+  '<button type="button" class="plan-dialog-close" data-plan-close aria-label="关闭">×</button></div>'+
+  '<form id="taskForm" class="plan-create-form"><label class="plan-create-title">任务<input name="title" placeholder="接下来要完成什么？" required maxlength="160"></label>'+
+  '<label>关联<select name="object_id"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select></label>'+
+  '<div class="plan-create-grid"><label>日期<input name="planned_for" type="date" value="'+esc(selected)+'"></label>'+
+  '<label>开始<input name="schedule_start" type="time"></label><label>结束<input name="schedule_end" type="time"></label></div>'+
+  '<div class="plan-create-grid two"><label>DDL<input name="due_local" type="datetime-local"></label><label>预计分钟<input name="estimated_minutes" type="number" min="1" max="20160" placeholder="可留空"></label></div>'+
+  '<div class="plan-dialog-actions"><button type="button" class="button secondary" data-plan-close>取消</button><button class="button primary" type="submit">添加计划 '+ornament('arrow')+'</button></div></form></div></dialog>';
+}
 async function plan(){
- const [tasks,objects]=await Promise.all([api('/tasks'),api('/objects')]);
+ planSelectedDate=planSelectedDate||localDay();
+ const [tasks,objects,schedule]=await Promise.all([
+  api('/tasks'),api('/objects'),api('/schedule?local_date='+encodeURIComponent(planSelectedDate))
+ ]);
  const courseIds=new Set(objects.filter(o=>o.kind==='course').map(o=>o.id));
- const open=tasks.filter(t=>t.status==='open').length;
+ const objectsById=new Map(objects.map(o=>[o.id,o]));
+ const openTasks=tasks.filter(t=>t.status==='open');
+ const looseDdl=openTasks.filter(t=>!t.scheduled_start&&t.due_at).sort((a,b)=>Date.parse(a.due_at)-Date.parse(b.due_at));
+ const looseOther=openTasks.filter(t=>!t.scheduled_start&&!t.due_at).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+ const selected=dayDate(planSelectedDate);
+ const fullDate=selected.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
  view(head('Plan','计划')+
- '<div class="workarea spacious-flow">'+
- '<section class="composer-pane" aria-label="创建任务"><p class="section-eyebrow">CAPTURE / 01</p><h2>下一步，写下来。</h2>'+
- '<p class="muted-line">一件具体的小事，就足够成为今天的开始。</p>'+
- '<form id="taskForm" class="form task-composer"><input name="title" placeholder="接下来要完成什么？" required maxlength="160" aria-label="任务名称">'+
- '<button class="button primary" type="submit">添加 '+ornament('arrow')+'</button>'+
- '<select class="wide" name="object_id" aria-label="关联课程或项目"><option value="">不关联学习对象</option>'+objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+'</select><details class="task-extra"><summary>计划日期 / 截止时间 / 预计耗时（可选）</summary>'+
- '<div class="task-extra-fields"><label>安排日期<input name="planned_for" type="date" aria-label="安排日期"></label>'+
- '<label>截止时间<input name="due_local" type="datetime-local" aria-label="截止时间"></label>'+
- '<label>预计分钟<input name="estimated_minutes" type="number" min="1" max="20160" placeholder="不确定可留空" aria-label="预计耗时分钟"></label></div></details></form></section>'+
- '<section class="open-section">'+sectionTitle('02 / TASKS','我的任务','<span class="count-caption">'+open+' 待办 / '+tasks.length+' 全部</span>')+
- '<div class="simple-list">'+list(tasks,t=>planTaskRow(t,courseIds))+'</div></section></div>');
- root.querySelector('#taskForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
-  const due=f.get('due_local');
-  await api('/tasks','POST',{title:f.get('title'),object_id:f.get('object_id')||null,
-   planned_for:f.get('planned_for')||null,
+  '<div class="workarea plan-flow"><section class="plan-calendar">'+
+   '<div class="plan-add-row"><button type="button" class="button sm plan-add-button" id="addPlan">'+ornament('plus')+' 添加计划</button></div>'+
+   planWeekMarkup(planSelectedDate)+'</section>'+
+  '<section class="plan-day-section">'+sectionTitle('TIMELINE / DAY',esc(fullDate),'<span class="count-caption">'+(schedule.length+openTasks.filter(t=>t.scheduled_start&&localDateFromIso(t.scheduled_start)===planSelectedDate).length)+' 项</span>')+
+   planTimelineMarkup(schedule,openTasks,objectsById,courseIds)+'</section>'+
+  '<section class="plan-loose-section">'+sectionTitle('UNSCHEDULED / DDL','零散任务','<span class="count-caption">'+looseDdl.length+' 有 DDL 未排期</span>')+
+   (looseDdl.length?'<div class="plan-loose-list">'+looseDdl.map(t=>planTaskRow(t,courseIds)).join('')+'</div>':'<p class="plan-empty-loose">没有带 DDL 但尚未排进具体日程的任务。</p>')+
+   (looseOther.length?'<details class="plan-other-loose"><summary>其他未排期 '+looseOther.length+'</summary><div class="plan-loose-list">'+looseOther.map(t=>planTaskRow(t,courseIds)).join('')+'</div></details>':'')+
+  '</section></div>'+planDialogMarkup(objects));
+
+ root.querySelector('#addPlan')?.addEventListener('click',()=>root.querySelector('#planDialog')?.showModal());
+ root.querySelectorAll('[data-plan-close]').forEach(button=>button.addEventListener('click',()=>root.querySelector('#planDialog')?.close()));
+ root.querySelectorAll('[data-plan-date]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  planSelectedDate=button.dataset.planDate;await plan();
+ })));
+ root.querySelectorAll('[data-plan-week]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  planSelectedDate=shiftDay(planSelectedDate,Number(button.dataset.planWeek));await plan();
+ })));
+ root.querySelector('[data-plan-today]')?.addEventListener('click',()=>perform(async()=>{planSelectedDate=localDay();await plan();}));
+
+ root.querySelector('#taskForm')?.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
+  const day=String(f.get('planned_for')||''),start=String(f.get('schedule_start')||''),end=String(f.get('schedule_end')||''),due=f.get('due_local');
+  await api('/tasks','POST',{
+   title:f.get('title'),object_id:f.get('object_id')||null,planned_for:day||null,
+   scheduled_start:day&&start?localDateTimeIso(day,start):null,
+   scheduled_end:day&&start&&end?localDateTimeIso(day,end):null,
    due_at:due?new Date(String(due)).toISOString():null,
-   estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null});
-  await plan();notify('已添加任务');
+   estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null
+  });
+  if(day)planSelectedDate=day;
+  await plan();notify('已添加计划');
  });});
+
  root.querySelectorAll('[data-evidence]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
   const panel=root.querySelector('[data-evidence-panel="'+b.dataset.evidence+'"]');
-  if(!panel)return;
-  if(!panel.hidden){panel.hidden=true;return;}
-  await loadTaskEvidence(b.dataset.evidence);
+  if(!panel)return;if(!panel.hidden){panel.hidden=true;return;}await loadTaskEvidence(b.dataset.evidence);
  })));
  root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{
-  const form=root.querySelector('[data-edit-form="'+b.dataset.edit+'"]');
-  if(form)form.hidden=!form.hidden;
+  const form=root.querySelector('[data-edit-form="'+b.dataset.edit+'"]');if(form)form.hidden=!form.hidden;
  }));
  root.querySelectorAll('[data-edit-form]').forEach(form=>form.addEventListener('submit',e=>{
-  e.preventDefault();const f=new FormData(form),due=f.get('due_local');
+  e.preventDefault();const f=new FormData(form),day=String(f.get('planned_for')||''),start=String(f.get('schedule_start')||''),end=String(f.get('schedule_end')||''),due=f.get('due_local');
   perform(async()=>{
    await api('/tasks/'+form.dataset.editForm+'/details','POST',{
-    planned_for:f.get('planned_for')||null,
+    planned_for:day||null,scheduled_start:day&&start?localDateTimeIso(day,start):null,
+    scheduled_end:day&&start&&end?localDateTimeIso(day,end):null,
     due_at:due?new Date(String(due)).toISOString():null,
     estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null
    });

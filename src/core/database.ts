@@ -87,6 +87,25 @@ CREATE TABLE task_importance_inputs (
 );
 CREATE INDEX idx_task_importance_context ON task_importance_inputs(context_item_id,task_id);
 `}
+ ,{version:6,name:'plan_timeline_and_weekly_schedule',sql:`
+ALTER TABLE tasks ADD COLUMN scheduled_start TEXT;
+ALTER TABLE tasks ADD COLUMN scheduled_end TEXT;
+CREATE TABLE weekly_schedule_entries (
+ id TEXT PRIMARY KEY,
+ object_id TEXT REFERENCES learning_objects(id) ON DELETE SET NULL,
+ title TEXT NOT NULL,
+ weekday INTEGER NOT NULL CHECK(weekday BETWEEN 1 AND 7),
+ start_time TEXT NOT NULL,
+ end_time TEXT NOT NULL,
+ effective_from TEXT NOT NULL,
+ effective_until TEXT,
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL,
+ CHECK(start_time < end_time),
+ CHECK(effective_until IS NULL OR effective_from <= effective_until)
+);
+CREATE INDEX idx_weekly_schedule_day ON weekly_schedule_entries(weekday,effective_from,effective_until,start_time);
+`}
 ] as const;
 
 export class Database {

@@ -82,7 +82,7 @@ test('tasks explicitly link only to confirmed evidence from their own course',()
 
   const again=new LearningApplication(f.dir);
   try{
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,5);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,6);
    assert.equal(again.taskEvidence.list(task.id).links.length,1);
    assert.equal(again.taskEvidence.list(task.id).importance_input?.contribution,'high');
   }finally{again.close();}

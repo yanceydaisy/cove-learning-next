@@ -40,6 +40,7 @@ Create / update:
 - `learning_set_importance` — primary evidence + low / medium / high, or clear
 - `learning_focus` — active / recent / start / pause / resume / finish
 - `learning_course_context` — list / create / update
+- `learning_schedule` — list / resolve one date / create / update recurring class slots
 - `learning_create_object` — course / project / track
 
 ## Deliberate V0 omissions
@@ -63,6 +64,10 @@ This keeps the MCP capability bounded to Learning.
 The MCP does not bypass Learning's evidence rules. A task can only link confirmed evidence from its own course. Importance can only use an already-linked confirmed item as its primary basis and remains ordinal `low / medium / high`.
 
 Assessment `weight_percent` is not copied into task importance, and Importance V1 does not silently change the urgency / aging recommendation score.
+
+### Plan schedule
+
+`learning_schedule` uses local calendar weekdays/times for recurring class slots. `learning_create_task` / `learning_update_task` may additionally set explicit UTC `scheduled_start` / `scheduled_end` timestamps for one-off task time blocks. A recurring slot can only link to a `course` object.
 
 ### Focus
 
@@ -90,7 +95,8 @@ If neither exists, MCP is disabled while the normal Learning web/API service con
 - wrong capability path returns 404;
 - tool discovery succeeds;
 - V0 exposes no delete / remove / upload tool;
-- course → objective → task → evidence → importance works end to end;
+- recurring schedule creation and local-date resolution work through MCP;
+- course → objective → scheduled task → evidence → importance works end to end;
 - Today returns the confirmed importance;
 - Focus start / active / finish works through MCP.
 

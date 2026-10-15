@@ -3,6 +3,7 @@ import {Database} from './database.js';
 import {CatalogService} from '../modules/catalog/service.js';
 import {CourseContextService} from '../modules/catalog/course-context.js';
 import {PlanningService} from '../modules/planning/service.js';
+import {ScheduleService} from '../modules/planning/schedule.js';
 import {TaskEvidenceService} from '../modules/planning/task-evidence.js';
 import {LibraryService} from '../modules/library/service.js';
 import {ActivityService} from '../modules/activity/service.js';
@@ -12,6 +13,7 @@ export class LearningApplication {
  readonly catalog:CatalogService;
  readonly courseContext:CourseContextService;
  readonly planning:PlanningService;
+ readonly schedule:ScheduleService;
  readonly taskEvidence:TaskEvidenceService;
  readonly library:LibraryService;
  readonly activity:ActivityService;
@@ -22,6 +24,7 @@ export class LearningApplication {
   this.catalog=new CatalogService(this.database,now);
   this.courseContext=new CourseContextService(this.database,this.catalog,now);
   this.planning=new PlanningService(this.database,this.catalog,now);
+  this.schedule=new ScheduleService(this.database,this.catalog,now);
   this.taskEvidence=new TaskEvidenceService(this.database,now);
   this.library=new LibraryService(this.database,join(dataDir,'originals'),now);
   this.activity=new ActivityService(this.database,this.catalog,clock);
