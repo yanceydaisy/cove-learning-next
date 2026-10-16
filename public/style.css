@@ -416,6 +416,11 @@ html[data-learning-ui="glass"] .learning-liquid.liquid-fallback{
  -webkit-backdrop-filter:blur(12px)!important;backdrop-filter:blur(12px)!important;
 }
 html[data-learning-ui="glass"] .learning-liquid:active{transform:scale(.994)}
+html[data-learning-ui="glass"] .dock.learning-liquid:active{transform:none}
+html[data-learning-ui="glass"] .plan-add-button.learning-liquid{box-shadow:0 8px 24px var(--glass-shadow)!important}
+html[data-learning-ui="glass"] .plan-day-button.selected.learning-liquid{box-shadow:0 8px 20px var(--glass-shadow)!important}
+html[data-learning-ui="glass"] .plan-timeline-row.current .plan-event-card.learning-liquid{box-shadow:0 12px 30px var(--glass-shadow)!important}
+html[data-learning-ui="glass"] .dock.learning-liquid{box-shadow:0 10px 34px var(--glass-shadow)!important}
 html[data-learning-ui="glass"] .feature-today{
  min-height:clamp(240px,34vh,320px);
  padding:25px clamp(23px,5vw,38px) 30px;

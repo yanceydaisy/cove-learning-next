@@ -1221,8 +1221,8 @@ void main(){
       };
     }
     function syncCards(){
-      const selected=new Set(screen.querySelectorAll(
-        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-start-action'
+      const selected=new Set(document.querySelectorAll(
+        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-start-action,.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
       ));
       for(const [card,optic] of optics){
         if(!selected.has(card)){optic.dispose();optics.delete(card);}
