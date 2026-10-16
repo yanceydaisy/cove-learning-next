@@ -800,19 +800,20 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-timeline-row.collapsed-past .plan-time-rail{padding:0;align-items:center}
 .plan-timeline-row.collapsed-past .plan-duration-bar{top:50%;bottom:auto;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);background:var(--muted)}
 .plan-timeline-row.collapsed-past .plan-duration-bar::before,.plan-timeline-row.collapsed-past .plan-duration-bar::after{display:none}
-.plan-timeline-row.collapsed-past .plan-event-card{align-self:center;margin:0!important;padding:0 2px 0 10px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
-.plan-timeline-row.collapsed-past .plan-event-meta{display:none}
-.plan-timeline-row.collapsed-past .plan-event-main{display:block;margin:0}
-.plan-timeline-row.collapsed-past .plan-event-main strong{font-size:10.5px;line-height:1.25;font-weight:400;color:var(--body)}
+.plan-timeline-row.collapsed-past .plan-event-card{align-self:stretch;display:flex;flex-direction:column;justify-content:center;margin:0!important;padding:2px 2px 5px 10px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.plan-timeline-row.collapsed-past .plan-event-meta{display:flex;min-height:10px}
+.plan-timeline-row.collapsed-past .plan-event-meta span{font-size:7px;letter-spacing:.12em}
+.plan-timeline-row.collapsed-past .plan-event-main{display:block;margin:2px 0 0}
+.plan-timeline-row.collapsed-past .plan-event-main strong{font-size:10.5px;line-height:1.2;font-weight:400;color:var(--body)}
 .plan-timeline-row.current .plan-duration-bar{width:5px;background:var(--ink)}
 .plan-timeline-row.current .plan-duration-bar::before,.plan-timeline-row.current .plan-duration-bar::after{border-color:var(--ink);background:var(--surface-strong)}
 .plan-timeline-row.current .plan-event-card{background:var(--surface);border:1px solid var(--rule);border-radius:15px;margin:3px 0 8px;padding:9px 11px}
 .plan-now-marker{position:relative;z-index:6;display:grid;grid-template-columns:54px 17px minmax(0,1fr);gap:8px;align-items:center;min-height:0;pointer-events:none}
 .plan-timeline.geometry-ready .plan-now-marker{position:absolute;left:0;right:0;transform:translateY(-50%)}
-.plan-now-marker span{font:500 8px/1 var(--display);color:var(--ink);text-align:right;justify-self:end;padding:3px 5px;border-radius:100px;background:var(--surface-strong);box-shadow:0 2px 8px var(--shadow)}
-.plan-now-marker i{grid-column:2/4;grid-row:1;height:1px;background:var(--ink);position:relative}
-.plan-now-marker i::before{content:"";position:absolute;left:8px;top:50%;transform:translate(-50%,-50%);width:6px;height:6px;border-radius:50%;background:var(--ink)}
-.plan-now-marker b{grid-column:3;grid-row:1;justify-self:start;z-index:1;width:max-content;margin-left:8px;padding:3px 5px;border-radius:100px;background:var(--surface-strong);box-shadow:0 2px 8px var(--shadow);font:500 8px/1 var(--display);color:var(--muted);letter-spacing:.12em}
+.plan-now-marker span{font:500 8px/1 var(--display);color:var(--ink);text-align:right;justify-self:end;padding:0;background:transparent;box-shadow:none}
+.plan-now-marker i{grid-column:2;grid-row:1;width:17px;height:12px;background:transparent;position:relative}
+.plan-now-marker i::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:7px;height:7px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--surface-strong)}
+.plan-now-marker b{grid-column:3;grid-row:1;justify-self:start;z-index:1;width:max-content;margin-left:0;padding:0;background:transparent;box-shadow:none;font:500 8px/1 var(--display);color:var(--muted);letter-spacing:.1em}
 .plan-empty-day{min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:13px;color:var(--muted)}
 .plan-empty-day span{font:400 30px/1 var(--serif)}
 .plan-empty-day p,.plan-empty-loose{margin:0;color:var(--muted);font-size:10px}
@@ -836,8 +837,6 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 html[data-learning-ui="glass"] .plan-add-button,
 html[data-learning-ui="glass"] .plan-day-button.selected,
 html[data-learning-ui="glass"] .plan-timeline-row.current .plan-event-card,
-html[data-learning-ui="glass"] .plan-now-marker span,
-html[data-learning-ui="glass"] .plan-now-marker b,
 html[data-learning-ui="glass"] .plan-dialog-card{background:var(--glass-panel-strong);border-color:var(--glass-border);color:var(--glass-text)}
 html[data-learning-ui="glass"] .plan-calendar-head h2,
 html[data-learning-ui="glass"] .plan-day-button.selected,
