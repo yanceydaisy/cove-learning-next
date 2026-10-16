@@ -756,10 +756,12 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 @media(max-width:420px){.task-importance-form{grid-template-columns:1fr}.task-importance-form .button{width:100%}}
 
 /* Plan Timeline V1 */
+.plan-view{gap:clamp(7px,1.2vh,11px)}
+.plan-top-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-shrink:0;padding:0 3px 2px}
+.plan-top-row h1{margin:0;color:var(--ink);font:400 clamp(40px,9vw,54px)/.9 var(--display);letter-spacing:-.055em}
 .plan-flow{display:flex;flex-direction:column;gap:28px;padding-bottom:34px}
 .plan-calendar,.plan-day-section,.plan-loose-section{min-width:0}
-.plan-add-row{display:flex;justify-content:flex-end;margin:-2px 0 14px}
-.plan-add-button{background:var(--surface);color:var(--ink);border-color:var(--rule);box-shadow:0 8px 22px var(--shadow)}
+.plan-add-button{background:var(--surface);color:var(--ink);border-color:var(--rule);box-shadow:0 8px 22px var(--shadow);white-space:nowrap;flex:none}
 .plan-calendar-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px}
 .plan-calendar-head h2{font:400 clamp(22px,5vw,29px)/1.15 var(--serif);margin:3px 0 0;color:var(--ink)}
 .plan-calendar-controls{display:flex;align-items:center;gap:5px}

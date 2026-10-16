@@ -198,7 +198,7 @@ function head(english,cn,kicker='COVE / LEARNING'){
 function row(label,sub,right=''){
  return '<div class="row"><div class="row-body"><div class="row-title">'+esc(label)+'</div>'+(sub?'<div class="row-sub">'+esc(sub)+'</div>':'')+'</div>'+right+'</div>';
 }
-function view(body){root.innerHTML='<div class="view">'+body+'</div>';}
+function view(body,extra=''){root.innerHTML='<div class="view'+(extra?' '+extra:'')+'">'+body+'</div>';}
 function sectionTitle(eyebrow,title,aside=''){
  return '<div class="section-heading"><div><span class="section-eyebrow">'+eyebrow+'</span><h2>'+title+'</h2></div>'+aside+'</div>';
 }
@@ -520,16 +520,15 @@ async function plan(){
  const looseOther=openTasks.filter(t=>!t.scheduled_start&&!t.due_at).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
  const selected=dayDate(planSelectedDate);
  const fullDate=selected.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
- view(head('Plan','计划')+
+ view('<header class="plan-top-row"><h1>Plan</h1><button type="button" class="button sm plan-add-button" id="addPlan">'+ornament('plus')+' 添加计划</button></header>'+
   '<div class="workarea plan-flow"><section class="plan-calendar">'+
-   '<div class="plan-add-row"><button type="button" class="button sm plan-add-button" id="addPlan">'+ornament('plus')+' 添加计划</button></div>'+
    planWeekMarkup(planSelectedDate)+'</section>'+
   '<section class="plan-day-section">'+sectionTitle('TIMELINE / DAY',esc(fullDate),'<span class="count-caption">'+(schedule.length+openTasks.filter(t=>t.scheduled_start&&localDateFromIso(t.scheduled_start)===planSelectedDate).length)+' 项</span>')+
    planTimelineMarkup(schedule,openTasks,objectsById,courseIds)+'</section>'+
   '<section class="plan-loose-section">'+sectionTitle('UNSCHEDULED / DDL','零散任务','<span class="count-caption">'+looseDdl.length+' 有 DDL 未排期</span>')+
    (looseDdl.length?'<div class="plan-loose-list">'+looseDdl.map(t=>planTaskRow(t,courseIds)).join('')+'</div>':'<p class="plan-empty-loose">没有带 DDL 但尚未排进具体日程的任务。</p>')+
    (looseOther.length?'<details class="plan-other-loose"><summary>其他未排期 '+looseOther.length+'</summary><div class="plan-loose-list">'+looseOther.map(t=>planTaskRow(t,courseIds)).join('')+'</div></details>':'')+
-  '</section></div>'+planDialogMarkup(objects));
+  '</section></div>'+planDialogMarkup(objects),'plan-view');
 
  root.querySelector('#addPlan')?.addEventListener('click',()=>root.querySelector('#planDialog')?.showModal());
  root.querySelectorAll('[data-plan-close]').forEach(button=>button.addEventListener('click',()=>root.querySelector('#planDialog')?.close()));
