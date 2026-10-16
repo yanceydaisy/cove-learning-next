@@ -6,12 +6,12 @@
 - **Default:** `https://learning-next.43.133.238.9.sslip.io/` opens the Liquid Glass V5 UI.
 - **Legacy links:** `/?ui=glass` still opens the same UI, but is no longer needed.
 - **Emergency appearance rollback:** `/?ui=classic` displays the previous look, using the same app and data.
-- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.33-20261016-plan-history-spacing`. Theme color follows the resolved day/night appearance instead of being forced to navy.
+- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.34-20261016-today-live-schedule`. Theme color follows the resolved day/night appearance instead of being forced to navy.
 
 ## Design and functionality
 The exact Home V5 optical shader is extracted from `/home/ubuntu/projects/cove-home-liquid/home-liquid-v5.js` by `ops/build_learning_glass.py`. It includes rounded full-card refraction, subtle center-to-edge lens distortion, two fine white corner glints, and a mild Gaussian backdrop sample on the hero card. One WebGL focal surface is used per Learning page. All four original pages and their real API actions remain intact:
 
-- **Today:** compact Learning header with no local title-card mask; readability comes from the Home-style full-screen wallpaper overlay. The start action is a milk-white WebGL liquid-glass pill, followed by side-by-side daily tasks / review and backlog list / coordinate views.
+- **Today:** compact Learning header with no local title-card mask; readability comes from the Home-style full-screen wallpaper overlay. The start action is a milk-white WebGL liquid-glass pill. The left daily brief is clock-aware: it compares the current local time with recurring courses and explicitly scheduled open tasks, showing `正在上课 / 正在进行`, `下一课 / 下一项`, or end-of-day state plus a live minute countdown, then keeps the planned-task rows below. Review and backlog list / coordinate views remain alongside it.
 - **Plan:** calendar-first seven-day selector, current-time daily timeline for recurring classes and scheduled tasks, DDL backlog, plus a modal task composer.
 - **Learn:** refractive focus stage, focus timer and session events.
 - **Library:** refractive object overview, course/project creation and resources.
