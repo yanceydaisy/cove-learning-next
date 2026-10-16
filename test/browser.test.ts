@@ -122,6 +122,13 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('#connectDialog').count(),0);
   assert.equal(await page.getByRole('button',{name:'连接',exact:true}).count(),0);
   assert.equal(await page.locator('.composer-pane').count(),0,'large task composer no longer occupies the Plan page');
+  assert.equal(await page.locator('.head').count(),0,'Plan does not repeat the generic COVE / LEARNING hero header');
+  assert.equal(await page.locator('.plan-top-row').count(),1,'Plan uses one compact title/action row');
+  assert.equal(await page.locator('.plan-top-row h1').innerText(),'Plan');
+  assert.equal(await page.locator('.plan-top-row #addPlan').innerText().then(text=>text.includes('添加计划')),true);
+  const planHeaderGeometry=await page.locator('.plan-top-row').evaluate(el=>{const box=el.getBoundingClientRect();const title=el.querySelector('h1')!.getBoundingClientRect();const action=el.querySelector('#addPlan')!.getBoundingClientRect();return {height:box.height,titleTop:title.top,actionTop:action.top,titleBottom:title.bottom,actionBottom:action.bottom};});
+  assert.ok(planHeaderGeometry.height<60,'Plan title/action row stays compact on iPhone');
+  assert.ok(Math.abs((planHeaderGeometry.titleTop+planHeaderGeometry.titleBottom)/2-(planHeaderGeometry.actionTop+planHeaderGeometry.actionBottom)/2)<4,'Plan and add action share one visual row');
   assert.equal(await page.locator('.plan-day-button').count(),7,'Plan exposes a compact seven-day calendar strip');
   await page.getByText('固定课表回归',{exact:true}).waitFor();
   await page.locator('#addPlan').click();
