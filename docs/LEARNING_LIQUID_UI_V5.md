@@ -6,7 +6,7 @@
 - **Default:** `https://learning-next.43.133.238.9.sslip.io/` opens the Liquid Glass V5 UI.
 - **Legacy links:** `/?ui=glass` still opens the same UI, but is no longer needed.
 - **Emergency appearance rollback:** `/?ui=classic` displays the previous look, using the same app and data.
-- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.29-20261016-plan-priority-compression`. Theme color follows the resolved day/night appearance instead of being forced to navy.
+- **PWA:** `./?source=pwa` opens V5; service worker shell cache is `cove-learning-v0.30-20261016-plan-readable-history`. Theme color follows the resolved day/night appearance instead of being forced to navy.
 
 ## Design and functionality
 The exact Home V5 optical shader is extracted from `/home/ubuntu/projects/cove-home-liquid/home-liquid-v5.js` by `ops/build_learning_glass.py`. It includes rounded full-card refraction, subtle center-to-edge lens distortion, two fine white corner glints, and a mild Gaussian backdrop sample on the hero card. One WebGL focal surface is used per Learning page. All four original pages and their real API actions remain intact:
