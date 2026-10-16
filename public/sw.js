@@ -1,4 +1,4 @@
-const NAME='cove-learning-v0.28-20261016-plan-compact-event-card';
+const NAME='cove-learning-v0.29-20261016-plan-priority-compression';
 const SHELL=['./','./style.css','./app.js','./icon.svg','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(NAME).then(cache=>cache.addAll(SHELL)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cove-learning-')&&k!==NAME).map(k=>caches.delete(k)))));self.clients.claim();});

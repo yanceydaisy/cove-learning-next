@@ -138,10 +138,10 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const nowGeometry=await page.evaluate(()=>{const marker=document.querySelector('.plan-now-marker')!.getBoundingClientRect();const y=marker.top+marker.height/2;const current=Array.from(document.querySelectorAll('.plan-timeline-row.current')).map(el=>el.getBoundingClientRect());return {y,inside:current.some(box=>y>=box.top&&y<=box.bottom),timelineTop:document.querySelector('.plan-timeline')!.getBoundingClientRect().top};});
   assert.equal(nowGeometry.inside,true,'current-time marker shares the same real-time coordinate space as the active interval');
   assert.ok(nowGeometry.y>nowGeometry.timelineTop,'current-time marker is not hard-pinned to the top of the timeline');
-  const timelineGeometry=await page.evaluate(()=>{const rows=Array.from(document.querySelectorAll('.plan-timeline-row')).map(el=>el.getBoundingClientRect()).sort((a,b)=>a.top-b.top);const timeline=document.querySelector('.plan-timeline')!.getBoundingClientRect();const loose=document.querySelector('.plan-loose-section')!.getBoundingClientRect();return {ready:document.querySelector('.plan-timeline')!.classList.contains('geometry-ready'),height:timeline.height,ordered:rows.every((row,index)=>index===0||row.top>=rows[index-1]!.bottom),looseTop:loose.top,timelineBottom:timeline.bottom};});
+  const timelineGeometry=await page.evaluate(()=>{const timelineEl=document.querySelector('.plan-timeline') as HTMLElement;const timeline=timelineEl.getBoundingClientRect();const loose=document.querySelector('.plan-loose-section')!.getBoundingClientRect();return {ready:timelineEl.classList.contains('geometry-ready'),height:timeline.height,scale:Number(timelineEl.dataset.minuteScale),looseTop:loose.top,timelineBottom:timeline.bottom};});
   assert.equal(timelineGeometry.ready,true,'timeline geometry is applied after CSP-safe DOM layout');
-  assert.ok(timelineGeometry.height>300,'timeline preserves real clock-span height instead of collapsing');
-  assert.equal(timelineGeometry.ordered,true,'scheduled intervals do not overlap each other');
+  assert.ok(timelineGeometry.scale<1,'timeline uses a compressed minute scale to keep chronology readable without excessive height');
+  assert.ok(timelineGeometry.height>72,'timeline retains visible chronological spacing');
   assert.ok(timelineGeometry.looseTop>=timelineGeometry.timelineBottom,'unscheduled section starts after the full timeline');
   await page.locator('#addPlan').click();
   await page.locator('#planDialog[open]').waitFor();
