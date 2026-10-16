@@ -580,9 +580,19 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon{p
  border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-height:176px}
 .today-agenda{padding:15px 17px 14px 1px;min-width:0}
 .today-review{padding:15px 1px 14px 17px;border-left:1px solid var(--line);min-width:0}
+.today-reality{padding:0 0 10px;border-bottom:1px solid var(--line);min-width:0}
+.today-reality-eyebrow{display:block;color:var(--muted);font:400 9px/1.4 var(--display);letter-spacing:.16em;margin-bottom:4px}
+.today-reality-main{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;min-width:0}
+.today-reality-main>span{font:500 9px/1.4 var(--display);color:var(--muted);white-space:nowrap}
+.today-reality-main strong{font:500 16px/1.35 var(--serif);color:var(--ink);min-width:0}
+.today-reality-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+.today-reality-distance{font:600 10px/1.35 var(--display);color:var(--ink)}
+.today-reality-window{font:400 9px/1.35 var(--display);color:var(--muted);font-variant-numeric:tabular-nums}
+.today-reality.done .today-reality-main strong,.today-reality.empty .today-reality-main strong{color:var(--body)}
 .today-mini-head>span{display:block;color:var(--muted);font:400 9px/1.4 var(--display);letter-spacing:.16em;margin-bottom:4px}
 .today-mini-head h2,.today-backlog-head h2{margin:0;color:var(--ink);font:400 19px/1.35 var(--serif);letter-spacing:.02em}
 .today-agenda-list{margin-top:8px}
+.today-reality + .today-agenda-list .today-agenda-item:first-child{border-top:0}
 .today-agenda-item{display:flex;align-items:center;gap:9px;min-width:0;padding:9px 0;border-top:1px solid var(--line)}
 .today-agenda-dot{width:6px;height:6px;border:1px solid var(--muted);border-radius:50%;flex:none}
 .today-agenda-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
@@ -632,6 +642,8 @@ html[data-learning-ui="glass"] .today-task-card,
 html[data-learning-ui="glass"] .today-matrix-wrap{background:var(--glass-panel);border-color:var(--glass-border)}
 html[data-learning-ui="glass"] .today-mini-head h2,
 html[data-learning-ui="glass"] .today-backlog-head h2,
+html[data-learning-ui="glass"] .today-reality-main strong,
+html[data-learning-ui="glass"] .today-reality-distance,
 html[data-learning-ui="glass"] .today-agenda-copy strong,
 html[data-learning-ui="glass"] .today-task-copy strong,
 html[data-learning-ui="glass"] .today-review-stat strong{color:var(--glass-text-strong)}
@@ -640,6 +652,9 @@ html[data-learning-ui="glass"] .today-view-switch button[aria-pressed="true"]{ba
 html[data-learning-ui="glass"] .today-priority-button{color:var(--glass-text);border-color:var(--glass-border)}
 html[data-learning-ui="glass"] .today-priority-button.active{background:var(--glass-panel-strong);color:var(--glass-text-strong)}
 html[data-learning-ui="glass"] .today-disclaimer,
+html[data-learning-ui="glass"] .today-reality-eyebrow,
+html[data-learning-ui="glass"] .today-reality-main>span,
+html[data-learning-ui="glass"] .today-reality-window,
 html[data-learning-ui="glass"] .today-agenda-copy small,
 html[data-learning-ui="glass"] .today-agenda-time,
 html[data-learning-ui="glass"] .today-review p,
