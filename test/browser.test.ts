@@ -133,6 +133,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.plan-day-button').count(),7,'Plan exposes a compact seven-day calendar strip');
   await page.getByText('固定课表回归',{exact:true}).waitFor();
   await page.getByText('当前时间轴回归',{exact:true}).waitFor();
+  assert.equal(await page.locator('.plan-duration-bar').count(),2,'scheduled intervals render as duration bars rather than start-point dots');
   assert.equal(await page.locator('.plan-now-marker.in-event').count(),1,'current-time marker is positioned inside the real active interval');
   assert.equal(await page.locator('.plan-now-marker.in-event').evaluate(el=>el.parentElement?.classList.contains('current')),true);
   await page.locator('#addPlan').click();
