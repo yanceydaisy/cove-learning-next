@@ -23,12 +23,13 @@ The selected date combines two explicit sources:
 - recurring course slots from `weekly_schedule_entries`;
 - open tasks with an explicit `scheduled_start` on that local day.
 
-Course slots and tasks are sorted by local clock time. The day uses one shared minute-based vertical coordinate system: event top, event height, idle gaps, and the current-time marker are all derived from the same local-minute scale. Each scheduled interval is rendered as a vertical duration bar with explicit start/end anchors rather than a single start-point dot.
+Course slots and tasks are sorted by local clock time. The timeline uses a compressed minute scale so chronological gaps remain proportional without stretching the page. Current and upcoming intervals keep visible duration bars; elapsed course slots collapse into short history markers so visual attention stays on now and next. The current-time marker is derived from the same compressed geometry rather than being pinned to the top.
 
 For the current local day:
 
-- the page renders the current clock time as a **现在** marker at its true chronological position: inside an active interval by elapsed-time ratio, between adjacent events when idle, or before/after the day's events when appropriate; the marker refreshes in place while Plan stays open;
-- items whose effective end has passed are visually muted;
+- the page renders the current clock time as a **现在** marker at its true chronological position inside the compressed layout: inside an active interval by elapsed-time ratio, between adjacent events when idle, or before/after the day's events when appropriate; the marker refreshes in place while Plan stays open;
+- elapsed course slots collapse to a small point-like marker and muted title instead of consuming their full historical duration;
+- open tasks are never collapsed merely because their scheduled interval has passed;
 - an item whose interval contains the current time is highlighted;
 - future items remain full-contrast.
 

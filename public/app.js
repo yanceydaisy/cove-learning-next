@@ -468,22 +468,46 @@ function planEventStatus(day,startMin,endMin,nowMin=null){
  if(startMin<=current&&endMin>current)return 'current';
  return 'future';
 }
-const PLAN_MINUTE_SCALE=1.25;
-function planNowMarkerMarkup(now,offsetMinutes){
+const PLAN_MINUTE_SCALE=.58;
+const PLAN_PAST_COURSE_HEIGHT=16;
+function planNowMarkerMarkup(now,minute){
  const clock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
- return '<div class="plan-now-marker" data-now-offset="'+Math.max(0,offsetMinutes)+'"><span>'+clock+'</span><i></i><b>现在</b></div>';
+ return '<div class="plan-now-marker" data-now-minute="'+minute+'"><span>'+clock+'</span><i></i><b>现在</b></div>';
 }
 function applyPlanTimelineGeometry(timeline){
  if(!timeline)return;
  const axisStart=Number(timeline.dataset.axisStart),axisEnd=Number(timeline.dataset.axisEnd),scale=Number(timeline.dataset.minuteScale)||PLAN_MINUTE_SCALE;
- timeline.style.height=Math.max(72,(axisEnd-axisStart)*scale).toFixed(1)+'px';
- timeline.querySelectorAll('.plan-timeline-row').forEach(row=>{
+ const rows=[...timeline.querySelectorAll('.plan-timeline-row')].sort((a,b)=>Number(a.dataset.startMin)-Number(b.dataset.startMin));
+ let cursor=0,previousEnd=axisStart;
+ for(const row of rows){
   const startMin=Number(row.dataset.startMin),endMin=Number(row.dataset.endMin);
-  row.style.top=Math.max(0,(startMin-axisStart)*scale).toFixed(1)+'px';
-  row.style.height=Math.max(1,(endMin-startMin)*scale).toFixed(1)+'px';
- });
+  cursor+=Math.max(0,startMin-previousEnd)*scale;
+  const collapsed=row.dataset.kind==='course'&&row.classList.contains('past');
+  const height=collapsed?PLAN_PAST_COURSE_HEIGHT:Math.max(46,(endMin-startMin)*scale);
+  row.classList.toggle('collapsed-past',collapsed);
+  row.style.top=cursor.toFixed(1)+'px';
+  row.style.height=height.toFixed(1)+'px';
+  cursor+=height;
+  previousEnd=Math.max(previousEnd,endMin);
+ }
+ cursor+=Math.max(0,axisEnd-previousEnd)*scale;
+ timeline.style.height=Math.max(72,cursor).toFixed(1)+'px';
  timeline.querySelectorAll('.plan-now-marker').forEach(marker=>{
-  marker.style.top=Math.max(0,Number(marker.dataset.nowOffset)*scale).toFixed(1)+'px';
+  const minute=Number(marker.dataset.nowMinute);
+  const current=rows.find(row=>row.classList.contains('current')&&minute>=Number(row.dataset.startMin)&&minute<Number(row.dataset.endMin));
+  let top=0;
+  if(current){
+   const startMin=Number(current.dataset.startMin),endMin=Number(current.dataset.endMin),progress=(minute-startMin)/Math.max(1,endMin-startMin);
+   top=parseFloat(current.style.top||'0')+progress*parseFloat(current.style.height||'0');
+  }else{
+   const next=rows.find(row=>Number(row.dataset.startMin)>minute);
+   if(next)top=parseFloat(next.style.top||'0')-Math.max(0,Number(next.dataset.startMin)-minute)*scale;
+   else if(rows.length){
+    const last=rows[rows.length-1],lastEnd=Number(last.dataset.endMin);
+    top=parseFloat(last.style.top||'0')+parseFloat(last.style.height||'0')+Math.max(0,minute-lastEnd)*scale;
+   }else top=Math.max(0,minute-axisStart)*scale;
+  }
+  marker.style.top=Math.max(0,top).toFixed(1)+'px';
  });
  timeline.classList.add('geometry-ready');
 }
@@ -504,7 +528,7 @@ function refreshPlanNowMarker(){
   row.querySelectorAll('.plan-event-meta b').forEach(tag=>tag.remove());
   if(status==='current')row.querySelector('.plan-event-meta')?.insertAdjacentHTML('beforeend','<b>NOW</b>');
  }
- timeline.insertAdjacentHTML('beforeend',planNowMarkerMarkup(now,nowMin-axisStart));
+ timeline.insertAdjacentHTML('beforeend',planNowMarkerMarkup(now,nowMin));
  applyPlanTimelineGeometry(timeline);
 }
 function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
@@ -530,14 +554,14 @@ function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
   const meta=item.kind==='course'?'课程':(object?.title||'任务');
   const endLabel=item.end||minutesClock(item.endMin);
   const task=item.kind==='task'?item.task:null,courseTask=Boolean(task?.object_id&&courseIds.has(task.object_id));
-  html+='<article class="plan-timeline-row '+status+'" data-start-min="'+item.startMin+'" data-end-min="'+item.endMin+'"><div class="plan-time-cell"><strong>'+esc(item.start)+'</strong><span>'+esc(endLabel)+'</span></div>'+
+  html+='<article class="plan-timeline-row '+status+'" data-kind="'+item.kind+'" data-start-min="'+item.startMin+'" data-end-min="'+item.endMin+'"><div class="plan-time-cell"><strong>'+esc(item.start)+'</strong><span>'+esc(endLabel)+'</span></div>'+
    '<div class="plan-time-rail"><span class="plan-duration-bar" aria-hidden="true"></span></div><div class="plan-event-card"><div class="plan-event-meta"><span>'+esc(meta)+'</span>'+(status==='current'?'<b>NOW</b>':'')+'</div>'+
    '<div class="plan-event-main"><strong>'+esc(item.title)+'</strong>'+
    (object&&item.kind==='task'?'<small>'+esc(object.title)+'</small>':'')+'</div>'+
    (task?'<div class="plan-event-actions">'+taskActionButtons(task,courseTask)+'</div>'+taskEditForm(task)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+esc(task.id)+'" hidden></div>':''):'')+
    '</div></article>';
  }
- if(day===today)html+=planNowMarkerMarkup(now,nowMin-axisStart);
+ if(day===today)html+=planNowMarkerMarkup(now,nowMin);
  return '<div class="plan-timeline" data-axis-start="'+axisStart+'" data-axis-end="'+axisEnd+'" data-minute-scale="'+PLAN_MINUTE_SCALE+'">'+html+'</div>';
 }
 function planDialogMarkup(objects){
