@@ -33,6 +33,51 @@ function requireValue<T>(value:T|undefined,message:string):T{
  return value;
 }
 
+const localDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const localTimeSchema=z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+function utcOffset(value:number|undefined){
+ const offset=value??480;
+ if(!Number.isInteger(offset)||offset < -840||offset > 840)throw new AppError('VALIDATION_ERROR','UTC offset 应为 -840～840 的整数分钟。');
+ return offset;
+}
+function localParts(iso:string,offset:number){
+ const shifted=new Date(Date.parse(iso)+offset*60_000).toISOString();
+ return {date:shifted.slice(0,10),time:shifted.slice(11,16)};
+}
+function localToUtc(date:string,time:string,offset:number){
+ const ms=Date.parse(date+'T'+time+':00.000Z')-offset*60_000;
+ if(!Number.isFinite(ms))throw new AppError('VALIDATION_ERROR','本地日程时间无效。');
+ return new Date(ms).toISOString();
+}
+function addDays(date:string,days:number){
+ const d=new Date(date+'T12:00:00.000Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);
+}
+function mondayOf(date:string){
+ const d=new Date(date+'T12:00:00.000Z'),day=d.getUTCDay()||7;
+ d.setUTCDate(d.getUTCDate()-(day-1));return d.toISOString().slice(0,10);
+}
+function planDay(app:LearningApplication,date:string,offset:number,includeLoose=true){
+ const tasks=app.planning.list() as Array<Record<string,any>>;
+ const open=tasks.filter(task=>task.status==='open');
+ const courses=(app.schedule.forDate(date) as Array<Record<string,any>>).map(item=>({
+  kind:'course',id:item.id,title:item.title,object_id:item.object_id,start_time:item.start_time,end_time:item.end_time,
+  source:'weekly_schedule'
+ }));
+ const scheduled=open.filter(task=>task.scheduled_start&&localParts(task.scheduled_start,offset).date===date).map(task=>{
+  const start=localParts(task.scheduled_start,offset),end=task.scheduled_end?localParts(task.scheduled_end,offset):null;
+  return {kind:'task',id:task.id,title:task.title,object_id:task.object_id,start_time:start.time,end_time:end?.time??null,
+   scheduled_start:task.scheduled_start,scheduled_end:task.scheduled_end,planned_for:task.planned_for,due_at:task.due_at,
+   estimated_minutes:task.estimated_minutes,source:'task_schedule'};
+ });
+ const timeline=[...courses,...scheduled].sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time))||String(a.end_time??'').localeCompare(String(b.end_time??''))||String(a.title).localeCompare(String(b.title),'zh-CN'));
+ const payload:any={local_date:date,utc_offset_minutes:offset,timeline,count:timeline.length};
+ if(includeLoose){
+  payload.unscheduled_with_ddl=open.filter(task=>!task.scheduled_start&&task.due_at).sort((a,b)=>Date.parse(a.due_at)-Date.parse(b.due_at));
+  payload.other_unscheduled=open.filter(task=>!task.scheduled_start&&!task.due_at).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+ }
+ return payload;
+}
+
 export function createLearningMcpServer(app:LearningApplication){
  const server=new McpServer(
   {name:'cove-learning',version:'0.1.0'},
@@ -186,6 +231,68 @@ export function createLearningMcpServer(app:LearningApplication){
   },
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
  },async args=>safe(()=>app.catalog.create(clean(args as Record<string,unknown>))));
+
+ server.registerTool('learning_plan_day',{
+  title:'Learning Plan Day',
+  description:'Read one local Plan day exactly as a planning surface: recurring classes plus explicitly scheduled open tasks, followed by DDL-unscheduled and other unscheduled tasks. utc_offset_minutes defaults to +480 (Taipei) and may be overridden.',
+  inputSchema:{
+   local_date:localDateSchema,
+   utc_offset_minutes:z.number().int().min(-840).max(840).optional()
+  },
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({local_date,utc_offset_minutes})=>safe(()=>planDay(app,local_date,utcOffset(utc_offset_minutes),true)));
+
+ server.registerTool('learning_plan_week',{
+  title:'Learning Plan Week',
+  description:'Read the Monday-Sunday Plan week containing anchor_date. Each day contains recurring classes and explicitly scheduled open tasks. Unscheduled tasks are returned once at the week level. utc_offset_minutes defaults to +480 (Taipei) and may be overridden.',
+  inputSchema:{
+   anchor_date:localDateSchema,
+   utc_offset_minutes:z.number().int().min(-840).max(840).optional()
+  },
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({anchor_date,utc_offset_minutes})=>safe(()=>{
+  const offset=utcOffset(utc_offset_minutes),week_start=mondayOf(anchor_date);
+  const days=Array.from({length:7},(_,i)=>planDay(app,addDays(week_start,i),offset,false));
+  const tasks=app.planning.list() as Array<Record<string,any>>,open=tasks.filter(task=>task.status==='open');
+  return {
+   week_start,week_end:addDays(week_start,6),utc_offset_minutes:offset,days,
+   unscheduled_with_ddl:open.filter(task=>!task.scheduled_start&&task.due_at).sort((a,b)=>Date.parse(a.due_at)-Date.parse(b.due_at)),
+   other_unscheduled:open.filter(task=>!task.scheduled_start&&!task.due_at).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at))
+  };
+ }));
+
+ server.registerTool('learning_schedule_task',{
+  title:'Schedule Learning Task',
+  description:'Put an existing open task onto the Plan timeline using a local date and HH:MM clock time. The task planned_for date is updated to match. end_time is optional; utc_offset_minutes defaults to +480 (Taipei).',
+  inputSchema:{
+   task_id:z.string().uuid(),
+   local_date:localDateSchema,
+   start_time:localTimeSchema,
+   end_time:localTimeSchema.optional(),
+   utc_offset_minutes:z.number().int().min(-840).max(840).optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({task_id,local_date,start_time,end_time,utc_offset_minutes})=>safe(()=>{
+  if(end_time&&end_time<=start_time)throw new AppError('VALIDATION_ERROR','同一天的结束时间必须晚于开始时间。');
+  const offset=utcOffset(utc_offset_minutes);
+  return app.planning.updateDetails(task_id,{
+   planned_for:local_date,
+   scheduled_start:localToUtc(local_date,start_time,offset),
+   scheduled_end:end_time?localToUtc(local_date,end_time,offset):null
+  });
+ }));
+
+ server.registerTool('learning_unschedule_task',{
+  title:'Unschedule Learning Task',
+  description:'Remove an open task from its explicit Plan time block without deleting or completing it. By default planned_for is preserved; set clear_planned_for=true to clear that date too.',
+  inputSchema:{
+   task_id:z.string().uuid(),
+   clear_planned_for:z.boolean().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({task_id,clear_planned_for})=>safe(()=>app.planning.updateDetails(task_id,clean({
+  scheduled_start:null,scheduled_end:null,planned_for:clear_planned_for?null:undefined
+ }))));
 
  server.registerTool('learning_schedule',{
   title:'Learning Weekly Schedule',
