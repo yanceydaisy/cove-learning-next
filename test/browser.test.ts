@@ -33,6 +33,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.feature-today').count(),0,'Today V3 removes the oversized hero');
   assert.equal(await page.locator('.today-brief').count(),1,'Today follows the approved daily brief layout');
   assert.equal(await page.locator('.today-agenda').count(),1);
+  assert.equal(await page.locator('.today-reality').count(),1,'Today exposes one live schedule status instead of a static 今日任务 heading');
+  assert.equal(await page.getByText('今日任务',{exact:true}).count(),0,'Today no longer labels the live area 今日任务');
   assert.equal(await page.locator('.today-review').count(),1);
   assert.equal(await page.locator('.today-view-switch button').count(),2,'backlog switches only between list and matrix');
   assert.equal(await page.locator('.today-start-action').innerText().then(v=>v.includes('开始学习')),true);
@@ -277,6 +279,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.locator('button[data-action=finish]').click();
   await page.getByText('学习记录',{exact:true}).waitFor();
   await page.locator('a[data-nav=today]').click();
+  await page.locator('.today-reality').waitFor();
+  assert.match(await page.locator('.today-reality').innerText(),/正在上课|下一课|下一项|有时段安排已结束/,'Today compares the real clock with scheduled course/task blocks');
   await page.getByText('极点配置',{exact:true}).first().waitFor();
   await page.getByText('状态空间复习',{exact:true}).first().waitFor();
   assert.equal(await page.locator('.today-task-card').count(),2,'both open tasks appear in the ranked backlog');
