@@ -135,6 +135,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.getByText('当前时间轴回归',{exact:true}).waitFor();
   assert.equal(await page.locator('.plan-duration-bar').count(),2,'scheduled intervals render as duration bars rather than start-point dots');
   assert.equal(await page.locator('.plan-now-marker').count(),1,'today renders one current-time marker on the shared minute axis');
+  const nowRailWidth=await page.locator('.plan-now-marker i').evaluate(el=>el.getBoundingClientRect().width);
+  assert.ok(nowRailWidth<=20,'current-time marker stays on the timeline rail instead of drawing a horizontal rule across cards');
   const nowGeometry=await page.evaluate(()=>{const marker=document.querySelector('.plan-now-marker')!.getBoundingClientRect();const y=marker.top+marker.height/2;const current=Array.from(document.querySelectorAll('.plan-timeline-row.current')).map(el=>el.getBoundingClientRect());return {y,inside:current.some(box=>y>=box.top&&y<=box.bottom),timelineTop:document.querySelector('.plan-timeline')!.getBoundingClientRect().top};});
   assert.equal(nowGeometry.inside,true,'current-time marker shares the same real-time coordinate space as the active interval');
   assert.ok(nowGeometry.y>nowGeometry.timelineTop,'current-time marker is not hard-pinned to the top of the timeline');

@@ -27,8 +27,8 @@ Course slots and tasks are sorted by local clock time. The timeline uses a compr
 
 For the current local day:
 
-- the page renders the current clock time as a **现在** marker at its true chronological position inside the compressed layout: inside an active interval by elapsed-time ratio, between adjacent events when idle, or before/after the day's events when appropriate; the marker refreshes in place while Plan stays open;
-- elapsed course slots collapse to a readable mini-row with start time, point marker, and muted title instead of consuming their full historical duration;
+- the page renders the current clock time as a compact **现在** point on the timeline rail at its true chronological position; it no longer draws a horizontal rule across the event cards, and it refreshes in place while Plan stays open;
+- elapsed course slots collapse to a readable mini-row that preserves the normal timeline language — start time, axis point, `课程` label, course title, and a faint row divider — instead of consuming their full historical duration;
 - open tasks are never collapsed merely because their scheduled interval has passed;
 - an item whose interval contains the current time is highlighted;
 - future items remain full-contrast.
