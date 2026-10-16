@@ -768,6 +768,7 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-calendar-controls button{height:31px;min-width:31px;border:1px solid var(--line);border-radius:100px;background:transparent;color:var(--muted);font-size:11px;padding:0 10px}
 .plan-calendar-controls button:first-child,.plan-calendar-controls button:last-child{font:400 20px/1 var(--display);padding:0;width:31px}
 .plan-week-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:5px 0 2px}
+.plan-calendar + .plan-day-section{margin-top:-14px}
 .plan-day-button{position:relative;min-width:0;min-height:63px;border:1px solid transparent;border-radius:18px;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 2px}
 .plan-day-button span{font-size:8px;letter-spacing:.04em;white-space:nowrap}
 .plan-day-button strong{font:500 17px/1 var(--display);color:inherit;font-variant-numeric:tabular-nums}
@@ -862,6 +863,11 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
  .plan-event-actions .button{min-height:29px;padding-inline:9px}
 }
 .plan-other-loose{margin-top:12px;border-top:1px dashed var(--line);padding-top:9px}
+:root[data-theme="light"] .plan-day-section,
+:root[data-theme="light"] .plan-loose-section,
+:root[data-theme="light"] .plan-loose-list{border-top-width:.5px}
+:root[data-theme="light"] .plan-event-card{border-bottom-width:.5px}
+:root[data-theme="light"] .plan-other-loose{border-top-width:.5px}
 .plan-other-loose summary{cursor:pointer;list-style:none;font-size:9px;color:var(--muted);letter-spacing:.04em;padding:5px 0}
 .plan-other-loose summary::-webkit-details-marker{display:none}
 .plan-other-loose[open] summary{color:var(--ink)}
