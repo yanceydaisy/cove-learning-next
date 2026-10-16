@@ -469,7 +469,7 @@ function planEventStatus(day,startMin,endMin,nowMin=null){
  return 'future';
 }
 const PLAN_MINUTE_SCALE=.58;
-const PLAN_PAST_COURSE_HEIGHT=16;
+const PLAN_PAST_COURSE_HEIGHT=30;
 function planNowMarkerMarkup(now,minute){
  const clock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
  return '<div class="plan-now-marker" data-now-minute="'+minute+'"><span>'+clock+'</span><i></i><b>现在</b></div>';
