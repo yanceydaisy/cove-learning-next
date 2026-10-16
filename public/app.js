@@ -516,7 +516,7 @@ function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
   const inEvent=day===today&&!markerUsed&&status==='current';
   const progress=inEvent?(nowMin-item.startMin)/Math.max(1,item.endMin-item.startMin):0;
   html+='<article class="plan-timeline-row '+status+'" data-start-min="'+item.startMin+'" data-end-min="'+item.endMin+'"><div class="plan-time-cell"><strong>'+esc(item.start)+'</strong><span>'+esc(endLabel)+'</span></div>'+
-   '<div class="plan-time-rail"><i></i></div><div class="plan-event-card"><div class="plan-event-meta"><span>'+esc(meta)+'</span>'+(status==='current'?'<b>NOW</b>':'')+'</div>'+
+   '<div class="plan-time-rail"><span class="plan-duration-bar" aria-hidden="true"></span></div><div class="plan-event-card"><div class="plan-event-meta"><span>'+esc(meta)+'</span>'+(status==='current'?'<b>NOW</b>':'')+'</div>'+
    '<div class="plan-event-main"><strong>'+esc(item.title)+'</strong>'+
    (object&&item.kind==='task'?'<small>'+esc(object.title)+'</small>':'')+'</div>'+
    (task?'<div class="plan-event-actions">'+taskActionButtons(task,courseTask)+'</div>'+taskEditForm(task)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+esc(task.id)+'" hidden></div>':''):'')+
