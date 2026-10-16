@@ -131,8 +131,14 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.ok(planHeaderGeometry.height<60,'Plan title/action row stays compact on iPhone');
   assert.ok(Math.abs((planHeaderGeometry.titleTop+planHeaderGeometry.titleBottom)/2-(planHeaderGeometry.actionTop+planHeaderGeometry.actionBottom)/2)<4,'Plan and add action share one visual row');
   assert.equal(await page.locator('.plan-day-button').count(),7,'Plan exposes a compact seven-day calendar strip');
+  await page.waitForFunction(()=>document.querySelector('.plan-add-button')?.classList.contains('learning-liquid')&&document.querySelector('.plan-day-button.selected')?.classList.contains('learning-liquid')&&document.querySelector('.dock')?.classList.contains('learning-liquid'));
+  assert.equal(await page.locator('.plan-add-button canvas.learning-liquid-optics').count(),1,'Plan add action uses the Home V5 WebGL liquid-glass shader');
+  assert.equal(await page.locator('.plan-day-button.selected canvas.learning-liquid-optics').count(),1,'selected Plan day uses the Home V5 WebGL liquid-glass shader');
+  assert.equal(await page.locator('.dock canvas.learning-liquid-optics').count(),1,'bottom dock uses the Home V5 WebGL liquid-glass shader');
   await page.getByText('固定课表回归',{exact:true}).waitFor();
   await page.getByText('当前时间轴回归',{exact:true}).waitFor();
+  await page.waitForFunction(()=>document.querySelector('.plan-timeline-row.current .plan-event-card')?.classList.contains('learning-liquid'));
+  assert.equal(await page.locator('.plan-timeline-row.current .plan-event-card canvas.learning-liquid-optics').count(),1,'current Plan event uses the Home V5 WebGL liquid-glass shader');
   assert.equal(await page.locator('.plan-duration-bar').count(),2,'scheduled intervals render as duration bars rather than start-point dots');
   assert.equal(await page.locator('.plan-now-marker').count(),1,'today renders one current-time marker on the shared minute axis');
   const nowRailWidth=await page.locator('.plan-now-marker i').evaluate(el=>el.getBoundingClientRect().width);
