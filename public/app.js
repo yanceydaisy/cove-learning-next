@@ -469,7 +469,8 @@ function planEventStatus(day,startMin,endMin,nowMin=null){
  return 'future';
 }
 const PLAN_MINUTE_SCALE=.58;
-const PLAN_PAST_COURSE_HEIGHT=40;
+const PLAN_PAST_COURSE_HEIGHT=46;
+const PLAN_PAST_MIN_GAP=18;
 function planNowMarkerMarkup(now,minute){
  const clock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
  return '<div class="plan-now-marker" data-now-minute="'+minute+'"><span>'+clock+'</span><i></i><b>现在</b></div>';
@@ -478,17 +479,20 @@ function applyPlanTimelineGeometry(timeline){
  if(!timeline)return;
  const axisStart=Number(timeline.dataset.axisStart),axisEnd=Number(timeline.dataset.axisEnd),scale=Number(timeline.dataset.minuteScale)||PLAN_MINUTE_SCALE;
  const rows=[...timeline.querySelectorAll('.plan-timeline-row')].sort((a,b)=>Number(a.dataset.startMin)-Number(b.dataset.startMin));
- let cursor=0,previousEnd=axisStart;
+ let cursor=0,previousEnd=axisStart,previousCollapsed=false;
  for(const row of rows){
   const startMin=Number(row.dataset.startMin),endMin=Number(row.dataset.endMin);
-  cursor+=Math.max(0,startMin-previousEnd)*scale;
   const collapsed=row.dataset.kind==='course'&&row.classList.contains('past');
+  let gapPx=Math.max(0,startMin-previousEnd)*scale;
+  if(collapsed&&previousCollapsed)gapPx=Math.max(gapPx,PLAN_PAST_MIN_GAP);
+  cursor+=gapPx;
   const height=collapsed?PLAN_PAST_COURSE_HEIGHT:Math.max(46,(endMin-startMin)*scale);
   row.classList.toggle('collapsed-past',collapsed);
   row.style.top=cursor.toFixed(1)+'px';
   row.style.height=height.toFixed(1)+'px';
   cursor+=height;
   previousEnd=Math.max(previousEnd,endMin);
+  previousCollapsed=collapsed;
  }
  cursor+=Math.max(0,axisEnd-previousEnd)*scale;
  timeline.style.height=Math.max(72,cursor).toFixed(1)+'px';
