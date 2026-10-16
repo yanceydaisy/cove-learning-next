@@ -208,6 +208,8 @@ function historyList(sessions,max=5){
  ).join('')+'</div>':'<p class="muted-line">还没有学习记录，第一段专注从这里开始。</p>';
 }
 let todayTaskView='list';
+let todayTimedEvents=[];
+let todayRealityDate='';
 let courseContextId=null;
 let planSelectedDate=null;
 function localDay(){
@@ -232,6 +234,39 @@ function todayAgendaRow(t){
  return '<div class="today-agenda-item"><span class="today-agenda-dot" aria-hidden="true"></span>'+
   '<div class="today-agenda-copy"><strong>'+esc(t.title)+'</strong><small>'+esc(t.reasons?.[0]||'今日安排')+'</small></div>'+
   '<span class="today-agenda-time">'+esc(detail)+'</span></div>';
+}
+function todayTimedSchedule(schedule,tasks){
+ const day=localDay();
+ const classes=(schedule||[]).map(item=>({kind:'course',title:item.title,start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)}));
+ const scheduled=(tasks||[]).filter(t=>t.status==='open'&&t.scheduled_start&&localDateFromIso(t.scheduled_start)===day).map(t=>{
+  const start=localTimeFromIso(t.scheduled_start),end=t.scheduled_end?localTimeFromIso(t.scheduled_end):'';
+  const startMin=clockMinutes(start),endMin=end?clockMinutes(end):Math.min(1439,startMin+Number(t.estimated_minutes||45));
+  return {kind:'task',title:t.title,start,end:end||minutesClock(endMin),startMin,endMin};
+ });
+ return [...classes,...scheduled].filter(item=>Number.isFinite(item.startMin)&&Number.isFinite(item.endMin)&&item.endMin>item.startMin).sort((a,b)=>a.startMin-b.startMin||a.endMin-b.endMin||a.title.localeCompare(b.title,'zh-CN'));
+}
+function todayRealityMarkup(events,now=new Date()){
+ const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+ const current=(events||[]).filter(item=>item.startMin<=nowMin&&item.endMin>nowMin).sort((a,b)=>(a.kind==='course'?0:1)-(b.kind==='course'?0:1)||b.startMin-a.startMin)[0];
+ const next=(events||[]).find(item=>item.startMin>nowMin);
+ let label,title,distance,windowText,state;
+ if(current){
+  const mins=Math.max(1,Math.ceil(current.endMin-nowMin));
+  label=current.kind==='course'?'正在上课：':'正在进行：';title=current.title;distance=(current.kind==='course'?'距离下课：':'距离结束：')+mins+'min';windowText=current.start+'—'+current.end;state='current';
+ }else if(next){
+  const mins=Math.max(1,Math.ceil(next.startMin-nowMin));
+  label=next.kind==='course'?'下一课：':'下一项：';title=next.title;distance=(next.kind==='course'?'距离开课：':'距离开始：')+mins+'min';windowText=next.start+'—'+next.end;state='next';
+ }else if((events||[]).length){
+  label='日程：';title='今天的有时段安排已结束';distance='现在可以自由安排下一件事';windowText='';state='done';
+ }else{
+  label='日程：';title='今天没有排定时间的安排';distance='可以从待办任务里选一件开始';windowText='';state='empty';
+ }
+ return '<div class="today-reality '+state+'" data-today-reality><span class="today-reality-eyebrow">NOW / SCHEDULE</span><div class="today-reality-main"><span>'+esc(label)+'</span><strong>'+esc(title)+'</strong></div><div class="today-reality-sub"><span class="today-reality-distance">'+esc(distance)+'</span>'+(windowText?'<span class="today-reality-window">'+esc(windowText)+'</span>':'')+'</div></div>';
+}
+function refreshTodayReality(){
+ if(todayRealityDate!==localDay()){render();return;}
+ const current=root.querySelector('[data-today-reality]');
+ if(current)current.outerHTML=todayRealityMarkup(todayTimedEvents);
 }
 function decisionRow(t,index=0){
  const importanceNote=t.importance?' · 重要度 '+({low:'低',medium:'中',high:'高'}[t.importance]||t.importance):'';
@@ -266,7 +301,12 @@ function todayMatrix(model,tasks){
   '<div><p class="today-matrix-note">'+(ready?'只显示你已确认低 / 中 / 高重要度的任务；未确认任务不会被伪造位置。':linked?'任务已经关联课程证据，但还没有确认主依据与贡献等级，所以暂不放点。':'课程证据与任务还没有建立足够关联，所以现在只保留坐标框架，不伪造任务位置。')+'</p>'+legend+'</div></div>';
 }
 async function today(){
- const d=await api('/today?local_date='+encodeURIComponent(localDay()));
+ if(timer){clearInterval(timer);timer=null;}
+ const day=localDay();
+ const [d,schedule,tasks]=await Promise.all([
+  api('/today?local_date='+encodeURIComponent(day)),api('/schedule?local_date='+encodeURIComponent(day)),api('/tasks')
+ ]);
+ todayRealityDate=day;todayTimedEvents=todayTimedSchedule(schedule,tasks);
  const activity=d.activeFocus;
  const planned=d.todayTasks;
  const latest=d.recentSessions?.[0]||null;
@@ -288,8 +328,8 @@ async function today(){
   '<header class="head today-head"><div><p class="kicker">TODAY / OVERVIEW</p><h1>Learning</h1></div>'+
    '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span>'+ornament('plus')+'</a></header>'+
   '<div class="workarea daily-flow today-v3">'+
-   '<section class="today-brief" aria-label="今日任务与学习回顾">'+
-    '<div class="today-agenda"><div class="today-mini-head"><span>01 / TODAY</span><h2>今日任务</h2></div>'+
+   '<section class="today-brief" aria-label="今日日程与学习回顾">'+
+    '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents)+
      '<div class="today-agenda-list">'+agenda+'</div></div>'+
     '<aside class="today-review"><div class="today-mini-head"><span>REVIEW</span><h2>回顾 / 总结</h2></div>'+
      review+'<a href="#/learn">学习记录 '+ornament('arrow')+'</a></aside>'+
@@ -316,6 +356,7 @@ async function today(){
   await today();root.querySelector('.workarea').scrollTop=scroll;
   notify(boost?'已标记：今天先做，今晚失效':'已撤销今天优先');
  })));
+ timer=setInterval(refreshTodayReality,30_000);
 }
 function localDatetimeValue(iso){
  if(!iso)return '';
