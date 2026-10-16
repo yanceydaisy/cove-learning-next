@@ -23,7 +23,7 @@ The selected date combines two explicit sources:
 - recurring course slots from `weekly_schedule_entries`;
 - open tasks with an explicit `scheduled_start` on that local day.
 
-Course slots and tasks are sorted by local clock time. Each scheduled interval is rendered as a vertical duration bar with explicit start/end anchors, rather than a single start-point dot.
+Course slots and tasks are sorted by local clock time. The day uses one shared minute-based vertical coordinate system: event top, event height, idle gaps, and the current-time marker are all derived from the same local-minute scale. Each scheduled interval is rendered as a vertical duration bar with explicit start/end anchors rather than a single start-point dot.
 
 For the current local day:
 
