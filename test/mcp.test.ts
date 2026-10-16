@@ -48,6 +48,10 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    assert.ok(names.includes('learning_focus'));
    assert.ok(names.includes('learning_course_context'));
    assert.ok(names.includes('learning_schedule'));
+   assert.ok(names.includes('learning_plan_day'));
+   assert.ok(names.includes('learning_plan_week'));
+   assert.ok(names.includes('learning_schedule_task'));
+   assert.ok(names.includes('learning_unschedule_task'));
    assert.ok(!names.some(name=>/delete|remove|upload/i.test(name)),'V0 exposes no delete/remove/upload tool');
 
    const course=toolJson(await client.callTool({
@@ -67,9 +71,26 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    }));
    const task=toolJson(await client.callTool({
     name:'learning_create_task',
-    arguments:{title:'状态空间复习',object_id:course.id,planned_for:'2026-10-15',scheduled_start:'2026-10-15T06:00:00.000Z',scheduled_end:'2026-10-15T06:45:00.000Z'}
+    arguments:{title:'状态空间复习',object_id:course.id,due_at:'2026-10-18T12:00:00.000Z',estimated_minutes:45}
    }));
-   assert.equal(task.scheduled_start,'2026-10-15T06:00:00.000Z');
+   const beforePlan=toolJson(await client.callTool({
+    name:'learning_plan_day',arguments:{local_date:'2026-10-15'}
+   }));
+   assert.ok(beforePlan.unscheduled_with_ddl.some((item:any)=>item.id===task.id));
+   const scheduledTask=toolJson(await client.callTool({
+    name:'learning_schedule_task',
+    arguments:{task_id:task.id,local_date:'2026-10-15',start_time:'14:00',end_time:'14:45'}
+   }));
+   assert.equal(scheduledTask.planned_for,'2026-10-15');
+   assert.equal(scheduledTask.scheduled_start,'2026-10-15T06:00:00.000Z');
+   assert.equal(scheduledTask.scheduled_end,'2026-10-15T06:45:00.000Z');
+   const planDay=toolJson(await client.callTool({name:'learning_plan_day',arguments:{local_date:'2026-10-15'}}));
+   assert.deepEqual(planDay.timeline.map((item:any)=>[item.kind,item.start_time]),[['course','09:55'],['task','14:00']]);
+   assert.ok(!planDay.unscheduled_with_ddl.some((item:any)=>item.id===task.id));
+   const planWeek=toolJson(await client.callTool({name:'learning_plan_week',arguments:{anchor_date:'2026-10-15'}}));
+   assert.equal(planWeek.week_start,'2026-10-12');
+   assert.equal(planWeek.week_end,'2026-10-18');
+   assert.ok(planWeek.days.find((day:any)=>day.local_date==='2026-10-15').timeline.some((item:any)=>item.id===task.id));
    const evidence=toolJson(await client.callTool({
     name:'learning_task_evidence',
     arguments:{action:'link',task_id:task.id,context_item_id:objective.id}
@@ -89,6 +110,15 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    const ranked=today.recommendations.find((item:any)=>item.id===task.id);
    assert.equal(ranked.importance,'high');
    assert.ok(ranked.reasons.some((reason:string)=>reason.includes('主依据')));
+
+   const unscheduledTask=toolJson(await client.callTool({
+    name:'learning_unschedule_task',arguments:{task_id:task.id}
+   }));
+   assert.equal(unscheduledTask.scheduled_start,null);
+   assert.equal(unscheduledTask.scheduled_end,null);
+   assert.equal(unscheduledTask.planned_for,'2026-10-15','unscheduling preserves the planned date by default');
+   const afterPlan=toolJson(await client.callTool({name:'learning_plan_day',arguments:{local_date:'2026-10-15'}}));
+   assert.ok(afterPlan.unscheduled_with_ddl.some((item:any)=>item.id===task.id));
 
    const started=toolJson(await client.callTool({name:'learning_focus',arguments:{action:'start',object_id:course.id}}));
    assert.equal(started.state,'running');
