@@ -117,6 +117,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.screenshot({path:join(dir,'mobile-learning.png'),fullPage:true});
   const planDate=await page.evaluate(()=>{const d=new Date();return {day:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),weekday:d.getDay()===0?7:d.getDay()};});
   app.schedule.create({title:'固定课表回归',weekday:planDate.weekday,start_time:'08:00',end_time:'09:35',effective_from:planDate.day});
+  app.schedule.create({title:'当前时间轴回归',weekday:planDate.weekday,start_time:'00:00',end_time:'23:59',effective_from:planDate.day});
   await page.locator('a[data-nav=plan]').click();
   await page.locator('.plan-calendar').waitFor();
   assert.equal(await page.locator('#connectDialog').count(),0);
@@ -131,6 +132,9 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.ok(Math.abs((planHeaderGeometry.titleTop+planHeaderGeometry.titleBottom)/2-(planHeaderGeometry.actionTop+planHeaderGeometry.actionBottom)/2)<4,'Plan and add action share one visual row');
   assert.equal(await page.locator('.plan-day-button').count(),7,'Plan exposes a compact seven-day calendar strip');
   await page.getByText('固定课表回归',{exact:true}).waitFor();
+  await page.getByText('当前时间轴回归',{exact:true}).waitFor();
+  assert.equal(await page.locator('.plan-now-marker.in-event').count(),1,'current-time marker is positioned inside the real active interval');
+  assert.equal(await page.locator('.plan-now-marker.in-event').evaluate(el=>el.parentElement?.classList.contains('current')),true);
   await page.locator('#addPlan').click();
   await page.locator('#planDialog[open]').waitFor();
   await page.locator('#taskForm').waitFor();
