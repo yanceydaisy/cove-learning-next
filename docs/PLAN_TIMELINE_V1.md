@@ -27,7 +27,7 @@ Course slots and tasks are sorted by local clock time.
 
 For the current local day:
 
-- the page renders the current clock time as a **现在** marker;
+- the page renders the current clock time as a **现在** marker at its true chronological position: inside an active interval by elapsed-time ratio, between adjacent events when idle, or before/after the day's events when appropriate; the marker refreshes in place while Plan stays open;
 - items whose effective end has passed are visually muted;
 - an item whose interval contains the current time is highlighted;
 - future items remain full-contrast.

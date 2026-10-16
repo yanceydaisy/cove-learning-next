@@ -775,7 +775,7 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-day-button.selected{background:var(--surface-strong);border-color:var(--rule);color:var(--ink);box-shadow:0 8px 20px var(--shadow)}
 .plan-day-section{padding-top:22px;border-top:1px solid var(--line)}
 .plan-timeline{margin-top:13px}
-.plan-timeline-row{display:grid;grid-template-columns:54px 17px minmax(0,1fr);gap:8px;min-height:74px}
+.plan-timeline-row{position:relative;display:grid;grid-template-columns:54px 17px minmax(0,1fr);gap:8px;min-height:74px}
 .plan-time-cell{display:flex;flex-direction:column;align-items:flex-end;padding-top:11px;font-variant-numeric:tabular-nums}
 .plan-time-cell strong{font:500 11px/1.2 var(--display);color:var(--ink)}
 .plan-time-cell span{font:400 8px/1.2 var(--display);color:var(--muted);margin-top:5px}
@@ -794,10 +794,13 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-timeline-row.current .plan-time-rail i{width:9px;height:9px;margin-top:13px;border-color:var(--ink);background:var(--ink)}
 .plan-timeline-row.current .plan-event-card{background:var(--surface);border:1px solid var(--rule);border-radius:15px;margin:3px 0 8px;padding:9px 11px}
 .plan-now-marker{display:grid;grid-template-columns:54px 17px minmax(0,1fr);gap:8px;align-items:center;min-height:28px}
+.plan-now-marker.in-event{position:absolute;left:0;right:0;top:calc(var(--now-progress)*100%);z-index:4;min-height:0;transform:translateY(-50%);pointer-events:none}
 .plan-now-marker span{font:500 8px/1 var(--display);color:var(--ink);text-align:right}
 .plan-now-marker i{height:1px;background:var(--ink);position:relative}
 .plan-now-marker i::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:var(--ink)}
 .plan-now-marker b{font:500 8px/1 var(--display);color:var(--muted);letter-spacing:.12em}
+.plan-now-marker.in-event span,.plan-now-marker.in-event b{width:max-content;padding:3px 5px;border-radius:100px;background:var(--surface-strong);box-shadow:0 2px 8px var(--shadow)}
+.plan-now-marker.in-event span{justify-self:end}
 .plan-empty-day{min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:13px;color:var(--muted)}
 .plan-empty-day span{font:400 30px/1 var(--serif)}
 .plan-empty-day p,.plan-empty-loose{margin:0;color:var(--muted);font-size:10px}
@@ -821,6 +824,8 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 html[data-learning-ui="glass"] .plan-add-button,
 html[data-learning-ui="glass"] .plan-day-button.selected,
 html[data-learning-ui="glass"] .plan-timeline-row.current .plan-event-card,
+html[data-learning-ui="glass"] .plan-now-marker.in-event span,
+html[data-learning-ui="glass"] .plan-now-marker.in-event b,
 html[data-learning-ui="glass"] .plan-dialog-card{background:var(--glass-panel-strong);border-color:var(--glass-border);color:var(--glass-text)}
 html[data-learning-ui="glass"] .plan-calendar-head h2,
 html[data-learning-ui="glass"] .plan-day-button.selected,
