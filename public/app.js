@@ -209,6 +209,8 @@ function historyList(sessions,max=5){
 }
 let todayTaskView='list';
 let todayTimedEvents=[];
+let todayWeeklySchedule=[];
+let todayNextCourse=null;
 let todayRealityDate='';
 let courseContextId=null;
 let planSelectedDate=null;
@@ -235,38 +237,66 @@ function todayAgendaRow(t){
   '<div class="today-agenda-copy"><strong>'+esc(t.title)+'</strong><small>'+esc(t.reasons?.[0]||'今日安排')+'</small></div>'+
   '<span class="today-agenda-time">'+esc(detail)+'</span></div>';
 }
-function todayTimedSchedule(schedule,tasks){
- const day=localDay();
- const classes=(schedule||[]).map(item=>({kind:'course',title:item.title,start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)}));
- const scheduled=(tasks||[]).filter(t=>t.status==='open'&&t.scheduled_start&&localDateFromIso(t.scheduled_start)===day).map(t=>{
-  const start=localTimeFromIso(t.scheduled_start),end=t.scheduled_end?localTimeFromIso(t.scheduled_end):'';
-  const startMin=clockMinutes(start),endMin=end?clockMinutes(end):Math.min(1439,startMin+Number(t.estimated_minutes||45));
-  return {kind:'task',title:t.title,start,end:end||minutesClock(endMin),startMin,endMin};
- });
- return [...classes,...scheduled].filter(item=>Number.isFinite(item.startMin)&&Number.isFinite(item.endMin)&&item.endMin>item.startMin).sort((a,b)=>a.startMin-b.startMin||a.endMin-b.endMin||a.title.localeCompare(b.title,'zh-CN'));
+function scheduleForDay(entries,day){
+ const d=dayDate(day),jsDay=d.getDay(),weekday=jsDay===0?7:jsDay;
+ return (entries||[]).filter(item=>Number(item.weekday)===weekday&&item.effective_from<=day&&(!item.effective_until||item.effective_until>=day))
+  .sort((a,b)=>a.start_time.localeCompare(b.start_time)||a.end_time.localeCompare(b.end_time)||a.title.localeCompare(b.title,'zh-CN'));
 }
-function todayRealityMarkup(events,now=new Date()){
+function todayTimedSchedule(schedule){
+ return (schedule||[]).map(item=>({kind:'course',title:item.title,start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)}))
+  .filter(item=>Number.isFinite(item.startMin)&&Number.isFinite(item.endMin)&&item.endMin>item.startMin)
+  .sort((a,b)=>a.startMin-b.startMin||a.endMin-b.endMin||a.title.localeCompare(b.title,'zh-CN'));
+}
+function nextCourseOccurrence(entries,now=new Date()){
+ const today=localDay();let best=null;
+ for(let offset=0;offset<56;offset++){
+  const day=shiftDay(today,offset);
+  for(const item of scheduleForDay(entries,day)){
+   const startAt=Date.parse(localDateTimeIso(day,item.start_time));
+   const endAt=Date.parse(localDateTimeIso(day,item.end_time));
+   if(!Number.isFinite(startAt)||!Number.isFinite(endAt)||startAt<=now.getTime())continue;
+   const candidate={kind:'course',title:item.title,start:item.start_time,end:item.end_time,date:day,startAt,endAt};
+   if(!best||candidate.startAt<best.startAt)best=candidate;
+  }
+  if(best&&best.date===day)break;
+ }
+ return best;
+}
+function courseDistance(ms){
+ const mins=Math.max(1,Math.ceil(ms/60_000));
+ if(mins<60)return mins+'min';
+ if(mins<1440){const h=Math.floor(mins/60),m=mins%60;return h+'小时'+(m?m+'min':'');}
+ const days=Math.floor(mins/1440),hours=Math.floor((mins%1440)/60);
+ return days+'天'+(hours?hours+'小时':'');
+}
+function courseWindow(item){
+ if(!item)return '';
+ if(!item.date||item.date===localDay())return item.start+'—'+item.end;
+ const label=dayDate(item.date).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',weekday:'short'});
+ return label+' · '+item.start+'—'+item.end;
+}
+function todayRealityMarkup(events,nextCourse,now=new Date()){
  const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
- const current=(events||[]).filter(item=>item.startMin<=nowMin&&item.endMin>nowMin).sort((a,b)=>(a.kind==='course'?0:1)-(b.kind==='course'?0:1)||b.startMin-a.startMin)[0];
- const next=(events||[]).find(item=>item.startMin>nowMin);
+ const current=(events||[]).filter(item=>item.startMin<=nowMin&&item.endMin>nowMin).sort((a,b)=>b.startMin-a.startMin)[0];
+ const nextToday=(events||[]).find(item=>item.startMin>nowMin);
  let label,title,distance,windowText,state;
  if(current){
-  const mins=Math.max(1,Math.ceil(current.endMin-nowMin));
-  label=current.kind==='course'?'正在上课：':'正在进行：';title=current.title;distance=(current.kind==='course'?'距离下课：':'距离结束：')+mins+'min';windowText=current.start+'—'+current.end;state='current';
- }else if(next){
-  const mins=Math.max(1,Math.ceil(next.startMin-nowMin));
-  label=next.kind==='course'?'下一课：':'下一项：';title=next.title;distance=(next.kind==='course'?'距离开课：':'距离开始：')+mins+'min';windowText=next.start+'—'+next.end;state='next';
- }else if((events||[]).length){
-  label='日程：';title='今天的有时段安排已结束';distance='现在可以自由安排下一件事';windowText='';state='done';
+  label='正在上课：';title=current.title;distance='距离下课：'+courseDistance((current.endMin-nowMin)*60_000);windowText=current.start+'—'+current.end;state='current';
+ }else if(nextToday){
+  label='下一课：';title=nextToday.title;distance='距离开课：'+courseDistance((nextToday.startMin-nowMin)*60_000);windowText=nextToday.start+'—'+nextToday.end;state='next';
+ }else if(nextCourse){
+  const delta=nextCourse.startAt-now.getTime();
+  label='下一课：';title=nextCourse.title;distance='距离开课：'+courseDistance(delta);windowText=courseWindow(nextCourse);state='next';
  }else{
-  label='日程：';title='今天没有排定时间的安排';distance='可以从待办任务里选一件开始';windowText='';state='empty';
+  label='课表：';title='暂时没有下一节课程';distance='可以在 Plan 里补充固定课表';windowText='';state='empty';
  }
- return '<div class="today-reality '+state+'" data-today-reality><span class="today-reality-eyebrow">NOW / SCHEDULE</span><div class="today-reality-main"><span>'+esc(label)+'</span><strong>'+esc(title)+'</strong></div><div class="today-reality-sub"><span class="today-reality-distance">'+esc(distance)+'</span>'+(windowText?'<span class="today-reality-window">'+esc(windowText)+'</span>':'')+'</div></div>';
+ return '<div class="today-reality '+state+'" data-today-reality><span class="today-reality-eyebrow">NOW / COURSE</span><div class="today-reality-main"><span>'+esc(label)+'</span><strong>'+esc(title)+'</strong></div><div class="today-reality-sub"><span class="today-reality-distance">'+esc(distance)+'</span>'+(windowText?'<span class="today-reality-window">'+esc(windowText)+'</span>':'')+'</div></div>';
 }
 function refreshTodayReality(){
  if(todayRealityDate!==localDay()){render();return;}
+ todayNextCourse=nextCourseOccurrence(todayWeeklySchedule,new Date());
  const current=root.querySelector('[data-today-reality]');
- if(current)current.outerHTML=todayRealityMarkup(todayTimedEvents);
+ if(current)current.outerHTML=todayRealityMarkup(todayTimedEvents,todayNextCourse);
 }
 function decisionRow(t,index=0){
  const importanceNote=t.importance?' · 重要度 '+({low:'低',medium:'中',high:'高'}[t.importance]||t.importance):'';
@@ -303,10 +333,11 @@ function todayMatrix(model,tasks){
 async function today(){
  if(timer){clearInterval(timer);timer=null;}
  const day=localDay();
- const [d,schedule,tasks]=await Promise.all([
-  api('/today?local_date='+encodeURIComponent(day)),api('/schedule?local_date='+encodeURIComponent(day)),api('/tasks')
+ const [d,weeklySchedule]=await Promise.all([
+  api('/today?local_date='+encodeURIComponent(day)),api('/schedule')
  ]);
- todayRealityDate=day;todayTimedEvents=todayTimedSchedule(schedule,tasks);
+ const todaySchedule=scheduleForDay(weeklySchedule,day);
+ todayRealityDate=day;todayWeeklySchedule=weeklySchedule;todayTimedEvents=todayTimedSchedule(todaySchedule);todayNextCourse=nextCourseOccurrence(weeklySchedule);
  const activity=d.activeFocus;
  const planned=d.todayTasks;
  const latest=d.recentSessions?.[0]||null;
@@ -325,11 +356,11 @@ async function today(){
    '<p class="today-empty">还没有待办任务。</p>'):
   todayMatrix(d.priorityModel,d.recommendations);
  view(
-  '<header class="head today-head"><div><p class="kicker">TODAY / OVERVIEW</p><h1>Learning</h1></div>'+
+  '<header class="head today-head"><div><p class="kicker">HOME / OVERVIEW</p><h1>Learning</h1></div>'+
    '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span>'+ornament('plus')+'</a></header>'+
   '<div class="workarea daily-flow today-v3">'+
-   '<section class="today-brief" aria-label="今日日程与学习回顾">'+
-    '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents)+
+   '<section class="today-brief" aria-label="首页课程与今日安排">'+
+    '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+
      '<div class="today-agenda-list">'+agenda+'</div></div>'+
     '<aside class="today-review"><div class="today-mini-head"><span>REVIEW</span><h2>回顾 / 总结</h2></div>'+
      review+'<a href="#/learn">学习记录 '+ornament('arrow')+'</a></aside>'+
