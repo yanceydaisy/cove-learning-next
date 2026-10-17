@@ -1,3 +1,4 @@
+
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync} from 'node:fs';
@@ -18,9 +19,10 @@ test('weekly class schedule and task time blocks stay explicit and date-addressa
   const course=f.app.catalog.create({kind:'course',title:'现代控制系统'}) as {id:string};
   const project=f.app.catalog.create({kind:'project',title:'Cove Learning'}) as {id:string};
   const slot=f.app.schedule.create({
-   object_id:course.id,title:'现代控制系统',weekday:2,start_time:'13:30',end_time:'15:05',effective_from:'2026-09-07'
+   object_id:course.id,title:'现代控制系统',location:'1教 1A111 多',weekday:2,start_time:'13:30',end_time:'15:05',effective_from:'2026-09-07'
   }) as {id:string};
   assert.equal(f.app.schedule.forDate('2026-10-13').length,1,'Tuesday resolves recurring course');
+  assert.equal((f.app.schedule.forDate('2026-10-13')[0] as {location:string}).location,'1教 1A111 多');
   assert.equal(f.app.schedule.forDate('2026-10-14').length,0,'Wednesday does not inherit Tuesday course');
   assert.throws(()=>f.app.schedule.create({
    object_id:project.id,title:'不合法固定课',weekday:2,start_time:'10:00',end_time:'11:00',effective_from:'2026-09-07'
@@ -42,9 +44,11 @@ test('weekly class schedule and task time blocks stay explicit and date-addressa
 
   const again=new LearningApplication(f.dir);
   try{
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,6);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,7);
    assert.equal(again.schedule.list().length,1);
    assert.equal(again.schedule.forDate('2026-10-13').length,1);
   }finally{again.close();}
  }finally{f.end();}
 });
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
