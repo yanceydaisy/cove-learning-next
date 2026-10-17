@@ -1,3 +1,4 @@
+
 /* Cove Learning / B direction: editorial hierarchy, restrained glass, open rhythm */
 :root{
  color-scheme:light;
@@ -21,7 +22,7 @@
 }
 :root[data-theme="light"]{
  --ink:#000;--body:#000;--muted:#000;
- --rule:#000;--line:#000;
+ --rule:rgba(0,0,0,.15);--line:rgba(0,0,0,.12);
  --glass-text:#000;--glass-text-strong:#000;--glass-muted:#000;--glass-subtle:#000;
  --glass-primary-text:#000;--milk-text:#000;--on-primary:#000;
 }
@@ -878,7 +879,13 @@ html[data-learning-ui="glass"] .plan-dialog-close{color:var(--glass-muted)}
 html[data-learning-ui="glass"] .plan-create-form input,
 html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-input);border-color:var(--glass-input-border);color:var(--glass-text)}
 @media(max-width:610px){
- .plan-flow{gap:23px}.plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
+ .plan-view{gap:0}
+ .plan-top-row{padding-bottom:0;margin-bottom:-14px}
+ .plan-top-row h1{line-height:.78}
+ .plan-flow{gap:0}
+ .plan-day-section{padding-top:0;margin-top:-30px}
+ .plan-loose-section{margin-top:23px}
+ .plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
  .plan-week-strip{gap:3px}.plan-day-button{min-height:58px;border-radius:15px}
  .plan-timeline-row,.plan-now-marker{grid-template-columns:46px 14px minmax(0,1fr);gap:6px}
  .plan-time-cell strong{font-size:10px}.plan-event-card{padding-left:8px}
@@ -898,3 +905,5 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
 .plan-other-loose[open] summary{color:var(--ink)}
 html[data-learning-ui="glass"] .plan-other-loose summary{color:var(--glass-muted)}
 html[data-learning-ui="glass"] .plan-other-loose[open] summary{color:var(--glass-text-strong)}
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
