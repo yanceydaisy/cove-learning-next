@@ -1,3 +1,4 @@
+
 import {randomUUID} from 'node:crypto';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -303,6 +304,7 @@ export function createLearningMcpServer(app:LearningApplication){
    entry_id:z.string().uuid().optional(),
    object_id:z.string().uuid().nullable().optional(),
    title:z.string().min(1).max(160).optional(),
+   location:z.string().max(160).nullable().optional(),
    weekday:z.number().int().min(1).max(7).optional(),
    start_time:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
    end_time:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
@@ -313,7 +315,7 @@ export function createLearningMcpServer(app:LearningApplication){
  },async args=>safe(()=>{
   if(args.action==='list')return app.schedule.list();
   if(args.action==='date')return app.schedule.forDate(requireValue(args.local_date,'date 需要 local_date。'));
-  const payload=clean({object_id:args.object_id,title:args.title,weekday:args.weekday,start_time:args.start_time,end_time:args.end_time,
+  const payload=clean({object_id:args.object_id,title:args.title,location:args.location,weekday:args.weekday,start_time:args.start_time,end_time:args.end_time,
    effective_from:args.effective_from,effective_until:args.effective_until});
   if(args.action==='create')return app.schedule.create(payload);
   return app.schedule.update(requireValue(args.entry_id,'update 需要 entry_id。'),payload);
@@ -424,3 +426,5 @@ export class LearningMcpEndpoint{
   await Promise.allSettled(sessions.flatMap(s=>[s.transport.close(),s.server.close()]));
  }
 }
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
