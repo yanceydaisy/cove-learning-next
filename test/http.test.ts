@@ -22,8 +22,11 @@ test('HTTP adapter serves all four workspaces and writes only through owned serv
   const worker=await fetch(base+'/sw.js');assert.equal(worker.status,200);
   const alias=await fetch(base+'/learning-next/');assert.equal(alias.status,200);
   const noKey=await fetch(base+'/api/today');assert.equal(noKey.status,401);
-  const object=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'project',title:'我们的项目'})});
-  assert.equal(object.status,201);const item=await object.json() as {id:string};
+  const object=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'project',title:'我们的项目',project_stage:'构想',next_action:'先做原型'})});
+  assert.equal(object.status,201);const item=await object.json() as {id:string;project_status:string;progress_percent:number};
+  assert.equal(item.project_status,'idea');assert.equal(item.progress_percent,0);
+  const objectUpdate=await request('/api/objects/'+item.id,{method:'POST',body:JSON.stringify({project_status:'active',progress_percent:10,next_action:'验证主链路'})});
+  assert.equal(objectUpdate.status,200);assert.equal((await objectUpdate.json() as {next_action:string}).next_action,'验证主链路');
   const courseRes=await request('/api/objects',{method:'POST',body:JSON.stringify({kind:'course',title:'现代控制'})});
   assert.equal(courseRes.status,201);const course=await courseRes.json() as {id:string};
   const scheduleRes=await request('/api/schedule',{method:'POST',body:JSON.stringify({object_id:course.id,title:'现代控制',weekday:2,start_time:'13:30',end_time:'15:05',effective_from:'2026-09-07'})});

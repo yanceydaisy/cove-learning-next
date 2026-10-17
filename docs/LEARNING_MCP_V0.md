@@ -41,7 +41,8 @@ Create / update:
 - `learning_focus` — active / recent / start / pause / resume / finish
 - `learning_course_context` — list / create / update
 - `learning_schedule` — list / resolve one date / create / update recurring class slots
-- `learning_create_object` — course / project / track
+- `learning_create_object` — course / project / track; Project can carry status / stage / progress / next action / blocker
+- `learning_update_object` — update object copy and Project metadata
 
 ## Deliberate V0 omissions
 
@@ -68,6 +69,10 @@ Assessment `weight_percent` is not copied into task importance, and Importance V
 ### Plan schedule
 
 `learning_schedule` uses local calendar weekdays/times for recurring class slots. `learning_create_task` / `learning_update_task` may additionally set explicit UTC `scheduled_start` / `scheduled_end` timestamps for one-off task time blocks. A recurring slot can only link to a `course` object.
+
+### Project metadata
+
+Project objects can carry a lightweight truthful state without pretending milestones exist: `project_status` (`idea / active / paused / done`), `project_stage`, `progress_percent`, `next_action`, and `blocker`. Courses and tracks reject these Project-only fields. Milestones remain a future normalized domain rather than being flattened into text columns.
 
 ### Focus
 

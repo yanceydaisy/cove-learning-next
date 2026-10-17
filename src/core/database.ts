@@ -109,6 +109,16 @@ CREATE INDEX idx_weekly_schedule_day ON weekly_schedule_entries(weekday,effectiv
  ,{version:7,name:'weekly_schedule_location',sql:`
 ALTER TABLE weekly_schedule_entries ADD COLUMN location TEXT;
 `}
+ ,{version:8,name:'project_metadata',sql:`
+ALTER TABLE learning_objects ADD COLUMN project_status TEXT CHECK(project_status IS NULL OR project_status IN ('idea','active','paused','done'));
+ALTER TABLE learning_objects ADD COLUMN project_stage TEXT;
+ALTER TABLE learning_objects ADD COLUMN progress_percent INTEGER CHECK(progress_percent IS NULL OR (progress_percent BETWEEN 0 AND 100));
+ALTER TABLE learning_objects ADD COLUMN next_action TEXT;
+ALTER TABLE learning_objects ADD COLUMN blocker TEXT;
+ALTER TABLE learning_objects ADD COLUMN updated_at TEXT;
+UPDATE learning_objects SET updated_at=created_at WHERE updated_at IS NULL;
+CREATE INDEX idx_learning_objects_project_status ON learning_objects(kind,project_status,updated_at);
+`}
 ] as const;
 
 export class Database {

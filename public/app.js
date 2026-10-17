@@ -802,9 +802,18 @@ async function library(){
  if(courseContextId&&!courses.some(o=>o.id===courseContextId))courseContextId=null;
  const context=courseContextId?await api('/courses/'+courseContextId+'/context'):null;
  const counts={course:courses.length,project:objects.filter(o=>o.kind==='project').length,track:objects.filter(o=>o.kind==='track').length};
- const objectList=objects.length?objects.map(o=>row(o.title,kinds[o.kind]||o.kind,
-  o.kind==='course'?'<button type="button" class="button sm quiet-button" data-context-course="'+esc(o.id)+'">'+(courseContextId===o.id?'收起档案':'课程档案')+'</button>':''
- )).join(''):'<p class="muted-line">还没有课程或项目，从上方创建一个。</p>';
+ const projectStatusNames={idea:'想法',active:'进行中',paused:'暂停',done:'已完成'};
+ const objectList=objects.length?objects.map(o=>{
+  let sub=kinds[o.kind]||o.kind;
+  if(o.kind==='project'){
+   const meta=[projectStatusNames[o.project_status]||'想法',o.project_stage||'',o.progress_percent!=null?o.progress_percent+'%':''].filter(Boolean).join(' · ');
+   const notes=[o.description||'',o.next_action?'下一步：'+o.next_action:'',o.blocker?'卡点：'+o.blocker:''].filter(Boolean).join(' · ');
+   sub='项目'+(meta?' · '+meta:'')+(notes?' · '+notes:'');
+  }
+  return row(o.title,sub,
+   o.kind==='course'?'<button type="button" class="button sm quiet-button" data-context-course="'+esc(o.id)+'">'+(courseContextId===o.id?'收起档案':'课程档案')+'</button>':''
+  );
+ }).join(''):'<p class="muted-line">还没有课程或项目，从上方创建一个。</p>';
  const resourceList=resources.length?resources.map(r=>row(r.title,Math.ceil(r.size_bytes/1024)+' KB · 原始资料',
   '<button type="button" class="button sm quiet-button" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button>')).join(''):'<p class="muted-line">还没有保存的资料。</p>';
  const objectiveItems=context?context.items.filter(i=>i.kind==='objective'):[];

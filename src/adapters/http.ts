@@ -56,6 +56,7 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     else if(path==='/api/today'&&method==='GET')result=app.today.snapshot(url.searchParams.get('local_date')??undefined);
     else if(path==='/api/objects'&&method==='GET')result=app.catalog.list();
     else if(path==='/api/objects'&&method==='POST'){result=app.catalog.create(await parseBody(req));status=201;}
+    else if(parts.length===3&&parts[1]==='objects'&&method==='POST')result=app.catalog.update(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='courses'&&parts[3]==='context'&&method==='GET')
      result=app.courseContext.list(parts[2]!);
     else if(parts.length===4&&parts[1]==='courses'&&parts[3]==='context'&&method==='POST'){

@@ -47,12 +47,23 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    assert.ok(names.includes('learning_set_importance'));
    assert.ok(names.includes('learning_focus'));
    assert.ok(names.includes('learning_course_context'));
+   assert.ok(names.includes('learning_update_object'));
    assert.ok(names.includes('learning_schedule'));
    assert.ok(names.includes('learning_plan_day'));
    assert.ok(names.includes('learning_plan_week'));
    assert.ok(names.includes('learning_schedule_task'));
    assert.ok(names.includes('learning_unschedule_task'));
    assert.ok(!names.some(name=>/delete|remove|upload/i.test(name)),'V0 exposes no delete/remove/upload tool');
+
+   const project=toolJson(await client.callTool({
+    name:'learning_create_object',
+    arguments:{kind:'project',title:'Cove Reader',description:'触摸墨水屏共读器',project_stage:'构想',next_action:'验证硬件方案'}
+   }));
+   assert.equal(project.project_status,'idea');assert.equal(project.progress_percent,0);
+   const projectUpdated=toolJson(await client.callTool({
+    name:'learning_update_object',arguments:{object_id:project.id,project_status:'active',progress_percent:10,next_action:'跑通第一版'}
+   }));
+   assert.equal(projectUpdated.project_status,'active');assert.equal(projectUpdated.next_action,'跑通第一版');
 
    const course=toolJson(await client.callTool({
     name:'learning_create_object',

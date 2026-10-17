@@ -32,6 +32,21 @@ test('cross-module: object → task → focus → real Today read model',()=>{
   assert.equal(f.app.today.snapshot().recentSessions.length,1);
  }finally{f.end();}
 });
+test('project metadata supports idea → active progress and next actions',()=>{
+ const f=fixture();
+ try{
+  const project=f.app.catalog.create({
+   kind:'project',title:'Cove Reader',description:'触摸墨水屏共读器',project_stage:'构想',next_action:'验证屏幕与触摸方案'
+  }) as any;
+  assert.equal(project.project_status,'idea');assert.equal(project.progress_percent,0);
+  const updated=f.app.catalog.update(project.id,{project_status:'active',project_stage:'原型',progress_percent:15,next_action:'跑通显示与触摸',blocker:null}) as any;
+  assert.equal(updated.project_status,'active');assert.equal(updated.project_stage,'原型');assert.equal(updated.progress_percent,15);
+  assert.equal(updated.next_action,'跑通显示与触摸');assert.equal(updated.blocker,null);
+  const course=f.app.catalog.create({kind:'course',title:'课程'}) as any;
+  assert.throws(()=>f.app.catalog.update(course.id,{project_status:'active'}),e=>e instanceof AppError&&e.code==='VALIDATION_ERROR');
+ }finally{f.end();}
+});
+
 test('Focus remains unbound, rejects duplicate active sessions and invalid transitions',()=>{
  const f=fixture();
  try{
@@ -83,7 +98,7 @@ test('transaction rolls back and migration metadata stays stable',()=>{
  const f=fixture();
  try{
   const before=f.app.database.raw.prepare('SELECT * FROM schema_migrations').all();
-  assert.equal(before.length,7);
+  assert.equal(before.length,8);
   assert.throws(()=>f.app.database.transaction(()=>{
    f.app.catalog.create({kind:'track',title:'中途回滚'});
    throw new Error('abort');
