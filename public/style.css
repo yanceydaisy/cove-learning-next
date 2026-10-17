@@ -21,7 +21,7 @@
 }
 :root[data-theme="light"]{
  --ink:#000;--body:#000;--muted:#000;
- --rule:#000;--line:#000;
+ --rule:rgba(0,0,0,.15);--line:rgba(0,0,0,.12);
  --glass-text:#000;--glass-text-strong:#000;--glass-muted:#000;--glass-subtle:#000;
  --glass-primary-text:#000;--milk-text:#000;--on-primary:#000;
 }
