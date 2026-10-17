@@ -878,7 +878,11 @@ html[data-learning-ui="glass"] .plan-dialog-close{color:var(--glass-muted)}
 html[data-learning-ui="glass"] .plan-create-form input,
 html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-input);border-color:var(--glass-input-border);color:var(--glass-text)}
 @media(max-width:610px){
- .plan-flow{gap:23px}.plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
+ .plan-view{gap:2px}
+ .plan-top-row{padding-bottom:0}
+ .plan-flow{gap:0}
+ .plan-loose-section{margin-top:23px}
+ .plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
  .plan-week-strip{gap:3px}.plan-day-button{min-height:58px;border-radius:15px}
  .plan-timeline-row,.plan-now-marker{grid-template-columns:46px 14px minmax(0,1fr);gap:6px}
  .plan-time-cell strong{font-size:10px}.plan-event-card{padding-left:8px}
