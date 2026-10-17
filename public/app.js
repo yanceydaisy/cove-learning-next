@@ -262,12 +262,23 @@ function nextCourseOccurrence(entries,now=new Date()){
  }
  return best;
 }
-function courseDistance(ms){
+function courseDistanceParts(ms){
  const mins=Math.max(1,Math.ceil(ms/60_000));
- if(mins<60)return mins+'min';
- if(mins<1440){const h=Math.floor(mins/60),m=mins%60;return h+'小时'+(m?m+'min':'');}
- const days=Math.floor(mins/1440),hours=Math.floor((mins%1440)/60);
- return days+'天'+(hours?hours+'小时':'');
+ if(mins<60)return [{value:mins,unit:'min',scale:'major'}];
+ if(mins<1440){
+  const hours=Math.floor(mins/60),minutes=mins%60,parts=[{value:hours,unit:'小时',scale:'major'}];
+  if(minutes)parts.push({value:minutes,unit:'min',scale:'minor'});
+  return parts;
+ }
+ const days=Math.floor(mins/1440),hours=Math.floor((mins%1440)/60),parts=[{value:days,unit:'天',scale:'major'}];
+ if(hours)parts.push({value:hours,unit:'小时',scale:'minor'});
+ return parts;
+}
+function courseDistanceMarkup(ms,caption){
+ const parts=courseDistanceParts(ms).map(part=>
+  '<span class="today-distance-part '+part.scale+'"><strong>'+part.value+'</strong><em>'+part.unit+'</em></span>'
+ ).join('');
+ return '<span class="today-distance-stack"><span class="today-distance-caption">'+esc(caption)+'</span><span class="today-distance-display">'+parts+'</span></span>';
 }
 function courseWindow(item){
  if(!item)return '';
@@ -279,18 +290,21 @@ function todayRealityMarkup(events,nextCourse,now=new Date()){
  const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
  const current=(events||[]).filter(item=>item.startMin<=nowMin&&item.endMin>nowMin).sort((a,b)=>b.startMin-a.startMin)[0];
  const nextToday=(events||[]).find(item=>item.startMin>nowMin);
- let label,title,distance,windowText,state;
+ let title,windowText,state,eyebrow,distanceMarkup;
  if(current){
-  label='正在上课：';title=current.title;distance='距离下课：'+courseDistance((current.endMin-nowMin)*60_000);windowText=current.start+'—'+current.end;state='current';
+  title=current.title;windowText=current.start+'—'+current.end;state='current';eyebrow='NOW / COURSE';
+  distanceMarkup=courseDistanceMarkup((current.endMin-nowMin)*60_000,'距离下课');
  }else if(nextToday){
-  label='下一课：';title=nextToday.title;distance='距离开课：'+courseDistance((nextToday.startMin-nowMin)*60_000);windowText=nextToday.start+'—'+nextToday.end;state='next';
+  title=nextToday.title;windowText=nextToday.start+'—'+nextToday.end;state='next';eyebrow='NEXT / COURSE';
+  distanceMarkup=courseDistanceMarkup((nextToday.startMin-nowMin)*60_000,'距离开课');
  }else if(nextCourse){
-  const delta=nextCourse.startAt-now.getTime();
-  label='下一课：';title=nextCourse.title;distance='距离开课：'+courseDistance(delta);windowText=courseWindow(nextCourse);state='next';
+  title=nextCourse.title;windowText=courseWindow(nextCourse);state='next';eyebrow='NEXT / COURSE';
+  distanceMarkup=courseDistanceMarkup(nextCourse.startAt-now.getTime(),'距离开课');
  }else{
-  label='课表：';title='暂时没有下一节课程';distance='可以在 Plan 里补充固定课表';windowText='';state='empty';
+  title='暂时没有下一节课程';windowText='';state='empty';eyebrow='COURSE';
+  distanceMarkup='<span class="today-distance-empty">可以在 Plan 里补充固定课表</span>';
  }
- return '<div class="today-reality '+state+'" data-today-reality><span class="today-reality-eyebrow">NOW / COURSE</span><div class="today-reality-main"><span>'+esc(label)+'</span><strong>'+esc(title)+'</strong></div><div class="today-reality-sub"><span class="today-reality-distance">'+esc(distance)+'</span>'+(windowText?'<span class="today-reality-window">'+esc(windowText)+'</span>':'')+'</div></div>';
+ return '<div class="today-reality '+state+'" data-today-reality><span class="today-reality-eyebrow">'+eyebrow+'</span><div class="today-reality-main"><strong>'+esc(title)+'</strong></div><div class="today-reality-sub">'+distanceMarkup+(windowText?'<span class="today-reality-window">'+esc(windowText)+'</span>':'')+'</div></div>';
 }
 function refreshTodayReality(){
  if(todayRealityDate!==localDay()){render();return;}
