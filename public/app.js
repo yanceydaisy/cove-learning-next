@@ -280,31 +280,34 @@ function courseDistanceMarkup(ms,caption){
  ).join('');
  return '<span class="today-distance-stack"><span class="today-distance-caption">'+esc(caption)+'</span><span class="today-distance-display">'+parts+'</span></span>';
 }
-function courseWindow(item){
- if(!item)return '';
- if(!item.date||item.date===localDay())return item.start+'—'+item.end;
- const label=dayDate(item.date).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',weekday:'short'});
- return label+' · '+item.start+'—'+item.end;
+function courseWhen(item){
+ if(!item)return {date:'',start:'',end:''};
+ const day=item.date||localDay();
+ const label=dayDate(day).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',weekday:'short'});
+ return {date:label,start:item.start||'',end:item.end||''};
 }
 function todayRealityMarkup(events,nextCourse,now=new Date()){
  const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
  const current=(events||[]).filter(item=>item.startMin<=nowMin&&item.endMin>nowMin).sort((a,b)=>b.startMin-a.startMin)[0];
  const nextToday=(events||[]).find(item=>item.startMin>nowMin);
- let title,windowText,state,eyebrow,distanceMarkup;
+ let item,title,state,eyebrow,distanceMarkup;
  if(current){
-  title=current.title;windowText=current.start+'—'+current.end;state='current';eyebrow='NOW / COURSE';
+  item=current;title=current.title;state='current';eyebrow='NOW / COURSE';
   distanceMarkup=courseDistanceMarkup((current.endMin-nowMin)*60_000,'距离下课');
  }else if(nextToday){
-  title=nextToday.title;windowText=nextToday.start+'—'+nextToday.end;state='next';eyebrow='NEXT / COURSE';
+  item=nextToday;title=nextToday.title;state='next';eyebrow='NEXT / COURSE';
   distanceMarkup=courseDistanceMarkup((nextToday.startMin-nowMin)*60_000,'距离开课');
  }else if(nextCourse){
-  title=nextCourse.title;windowText=courseWindow(nextCourse);state='next';eyebrow='NEXT / COURSE';
+  item=nextCourse;title=nextCourse.title;state='next';eyebrow='NEXT / COURSE';
   distanceMarkup=courseDistanceMarkup(nextCourse.startAt-now.getTime(),'距离开课');
  }else{
-  title='暂时没有下一节课程';windowText='';state='empty';eyebrow='COURSE';
+  item=null;title='暂时没有下一节课程';state='empty';eyebrow='COURSE';
   distanceMarkup='<span class="today-distance-empty">可以在 Plan 里补充固定课表</span>';
  }
- return '<div class="today-reality '+state+'" data-today-reality><span class="today-reality-eyebrow">'+eyebrow+'</span><div class="today-reality-main"><strong>'+esc(title)+'</strong></div><div class="today-reality-sub">'+distanceMarkup+(windowText?'<span class="today-reality-window">'+esc(windowText)+'</span>':'')+'</div></div>';
+ const when=courseWhen(item);
+ const dateText=when.date?'<span class="today-reality-date">'+esc(when.date)+'</span>':'';
+ const timeText=when.start?'<span class="today-reality-time"><strong>'+esc(when.start)+'</strong>'+(when.end?'<i>—</i><span>'+esc(when.end)+'</span>':'')+'</span>':'';
+ return '<div class="today-reality '+state+'" data-today-reality>'+  '<div class="today-reality-head"><span class="today-reality-eyebrow">'+eyebrow+'</span>'+dateText+'</div>'+  '<div class="today-reality-main"><strong>'+esc(title)+'</strong></div>'+  '<div class="today-reality-composition">'+distanceMarkup+timeText+'</div></div>';
 }
 function refreshTodayReality(){
  if(todayRealityDate!==localDay()){render();return;}
