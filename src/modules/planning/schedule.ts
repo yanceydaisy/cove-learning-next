@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import type {Database} from '../../core/database.js';
 import {AppError} from '../../core/errors.js';
-import {optionalId,record,requiredId,title} from '../../core/validation.js';
+import {optionalId,record,requiredId,textOrNull,title} from '../../core/validation.js';
 import type {CatalogService} from '../catalog/service.js';
 
 function localDate(value:unknown,field='日期'):string{
@@ -57,12 +57,12 @@ export class ScheduleService{
   const effective_until=data.effective_until==null||data.effective_until===''?null:localDate(data.effective_until,'结束日期');
   if(effective_until&&effective_until<effective_from)throw new AppError('VALIDATION_ERROR','课表结束日期不能早于生效日期。');
   const at=this.now(),item={
-   id:randomUUID(),object_id,title:title(data.title),weekday:weekday(data.weekday),
+   id:randomUUID(),object_id,title:title(data.title),location:textOrNull(data.location,160),weekday:weekday(data.weekday),
    start_time,end_time,effective_from,effective_until,created_at:at,updated_at:at
   };
   this.db.transaction(()=>this.db.raw.prepare(
-   'INSERT INTO weekly_schedule_entries(id,object_id,title,weekday,start_time,end_time,effective_from,effective_until,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)'
-  ).run(item.id,item.object_id,item.title,item.weekday,item.start_time,item.end_time,item.effective_from,item.effective_until,item.created_at,item.updated_at));
+   'INSERT INTO weekly_schedule_entries(id,object_id,title,location,weekday,start_time,end_time,effective_from,effective_until,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)'
+  ).run(item.id,item.object_id,item.title,item.location,item.weekday,item.start_time,item.end_time,item.effective_from,item.effective_until,item.created_at,item.updated_at));
   return item;
  }
 
@@ -81,6 +81,7 @@ export class ScheduleService{
    }
    const next={
     title:Object.hasOwn(data,'title')?title(data.title):current.title as string,
+    location:Object.hasOwn(data,'location')?textOrNull(data.location,160):current.location as string|null,
     weekday:Object.hasOwn(data,'weekday')?weekday(data.weekday):current.weekday as number,
     start_time:Object.hasOwn(data,'start_time')?clock(data.start_time,'开始时间'):current.start_time as string,
     end_time:Object.hasOwn(data,'end_time')?clock(data.end_time,'结束时间'):current.end_time as string,
@@ -93,8 +94,8 @@ export class ScheduleService{
    if(next.start_time>=next.end_time)throw new AppError('VALIDATION_ERROR','结束时间必须晚于开始时间。');
    if(next.effective_until&&next.effective_until<next.effective_from)throw new AppError('VALIDATION_ERROR','课表结束日期不能早于生效日期。');
    this.db.raw.prepare(
-    'UPDATE weekly_schedule_entries SET object_id=?,title=?,weekday=?,start_time=?,end_time=?,effective_from=?,effective_until=?,updated_at=? WHERE id=?'
-   ).run(next.object_id,next.title,next.weekday,next.start_time,next.end_time,next.effective_from,next.effective_until,this.now(),id);
+    'UPDATE weekly_schedule_entries SET object_id=?,title=?,location=?,weekday=?,start_time=?,end_time=?,effective_from=?,effective_until=?,updated_at=? WHERE id=?'
+   ).run(next.object_id,next.title,next.location,next.weekday,next.start_time,next.end_time,next.effective_from,next.effective_until,this.now(),id);
    return this.db.raw.prepare('SELECT * FROM weekly_schedule_entries WHERE id=?').get(id);
   });
  }
