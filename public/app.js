@@ -343,8 +343,6 @@ async function today(){
  const planned=d.todayTasks;
  const latest=d.recentSessions?.[0]||null;
  const startLabel=activity?'继续学习':'开始学习';
- const agenda=planned.length?planned.slice(0,4).map(todayAgendaRow).join(''):
-  '<p class="today-empty">今天还没有安排任务。去 Plan 放一件真正想完成的事进来。</p>';
  const review=latest?
   '<div class="today-review-stat"><strong>'+minutes(latest.accumulated_ms)+'</strong><span>min</span></div>'+
   '<p>'+esc(date(latest.started_at))+' · '+esc(time(latest.started_at))+' '+esc(latest.state==='finished'?'完成':'暂停')+'</p>':
@@ -353,21 +351,20 @@ async function today(){
   [['list','列表'],['matrix','坐标图']].map(([id,label])=>
    '<button type="button" data-task-view="'+id+'" aria-pressed="'+(todayTaskView===id)+'">'+label+'</button>').join('')+'</div>';
  const taskBody=todayTaskView==='list'?
-  (d.recommendations.length?'<div class="today-task-list">'+d.recommendations.map(decisionRow).join('')+'</div>':
-   '<p class="today-empty">还没有待办任务。</p>'):
-  todayMatrix(d.priorityModel,d.recommendations);
+  (planned.length?'<div class="today-task-list">'+planned.map(decisionRow).join('')+'</div>':
+   '<p class="today-empty">今天还没有安排任务。去 Plan 放一件真正想完成的事进来。</p>'):
+  todayMatrix(d.priorityModel,planned);
  view(
   '<header class="head today-head"><div><p class="kicker">HOME / OVERVIEW</p><h1>Learning</h1></div>'+
    '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span>'+ornament('plus')+'</a></header>'+
   '<div class="workarea daily-flow today-v3">'+
    '<section class="today-brief" aria-label="首页课程与今日安排">'+
-    '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+
-     '<div class="today-agenda-list">'+agenda+'</div></div>'+
+    '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+'</div>'+
     '<aside class="today-review"><div class="today-mini-head"><span>REVIEW</span><h2>回顾 / 总结</h2></div>'+
      review+'<a href="#/learn">学习记录 '+ornament('arrow')+'</a></aside>'+
    '</section>'+
-   '<section class="today-backlog" aria-label="待办任务">'+
-    '<div class="today-backlog-head"><div><span class="section-eyebrow">02 / TASKS</span><h2>待办任务</h2></div>'+switcher+'</div>'+
+   '<section class="today-backlog" aria-label="今日安排">'+
+    '<div class="today-backlog-head"><div><span class="section-eyebrow">02 / TODAY</span><h2>今日安排</h2></div>'+switcher+'</div>'+
     '<p class="today-disclaimer">列表按当前证据给出可解释建议；“今天先做”只改变今天的推荐顺序。坐标图只有在重要度证据成立后才放置任务点。</p>'+
     taskBody+
    '</section>'+
@@ -380,7 +377,7 @@ async function today(){
   root.querySelector('.today-view-switch [data-task-view="'+todayTaskView+'"]')?.focus({preventScroll:true});
  })));
  root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
-  const item=d.recommendations.find(t=>t.id===button.dataset.preference);
+  const item=planned.find(t=>t.id===button.dataset.preference);
   if(!item)return;
   const boost=Number(item.boost||0)>0?0:2;
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
