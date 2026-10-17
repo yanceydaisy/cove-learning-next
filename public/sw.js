@@ -1,4 +1,4 @@
-const NAME='cove-learning-v0.35-20261017-plan-spacing';
+const NAME='cove-learning-v0.36-20261017-plan-spacing-tight';
 const SHELL=['./','./style.css','./app.js','./icon.svg','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(NAME).then(cache=>cache.addAll(SHELL)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cove-learning-')&&k!==NAME).map(k=>caches.delete(k)))));self.clients.claim();});
