@@ -1,3 +1,4 @@
+
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
@@ -83,7 +84,7 @@ test('transaction rolls back and migration metadata stays stable',()=>{
  const f=fixture();
  try{
   const before=f.app.database.raw.prepare('SELECT * FROM schema_migrations').all();
-  assert.equal(before.length,6);
+  assert.equal(before.length,7);
   assert.throws(()=>f.app.database.transaction(()=>{
    f.app.catalog.create({kind:'track',title:'中途回滚'});
    throw new Error('abort');
@@ -94,3 +95,5 @@ test('transaction rolls back and migration metadata stays stable',()=>{
   finally{again.close();}
  }finally{f.end();}
 });
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
