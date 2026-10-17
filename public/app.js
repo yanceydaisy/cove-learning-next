@@ -244,7 +244,7 @@ function scheduleForDay(entries,day){
   .sort((a,b)=>a.start_time.localeCompare(b.start_time)||a.end_time.localeCompare(b.end_time)||a.title.localeCompare(b.title,'zh-CN'));
 }
 function todayTimedSchedule(schedule){
- return (schedule||[]).map(item=>({kind:'course',title:item.title,start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)}))
+ return (schedule||[]).map(item=>({kind:'course',title:item.title,location:item.location||'',start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)}))
   .filter(item=>Number.isFinite(item.startMin)&&Number.isFinite(item.endMin)&&item.endMin>item.startMin)
   .sort((a,b)=>a.startMin-b.startMin||a.endMin-b.endMin||a.title.localeCompare(b.title,'zh-CN'));
 }
@@ -256,7 +256,7 @@ function nextCourseOccurrence(entries,now=new Date()){
    const startAt=Date.parse(localDateTimeIso(day,item.start_time));
    const endAt=Date.parse(localDateTimeIso(day,item.end_time));
    if(!Number.isFinite(startAt)||!Number.isFinite(endAt)||startAt<=now.getTime())continue;
-   const candidate={kind:'course',title:item.title,start:item.start_time,end:item.end_time,date:day,startAt,endAt};
+   const candidate={kind:'course',title:item.title,location:item.location||'',start:item.start_time,end:item.end_time,date:day,startAt,endAt};
    if(!best||candidate.startAt<best.startAt)best=candidate;
   }
   if(best&&best.date===day)break;
@@ -285,7 +285,7 @@ function courseWhen(item){
  if(!item)return {date:'',start:'',end:''};
  const day=item.date||localDay();
  const label=dayDate(day).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',weekday:'short'});
- return {date:label,start:item.start||'',end:item.end||''};
+ return {date:label,start:item.start||'',end:item.end||'',location:item.location||''};
 }
 function todayRealityMarkup(events,nextCourse,now=new Date()){
  const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
@@ -307,7 +307,8 @@ function todayRealityMarkup(events,nextCourse,now=new Date()){
  }
  const when=courseWhen(item);
  const dateText=when.date?'<span class="today-reality-date">'+esc(when.date)+'</span>':'';
- const timeText=when.start?'<span class="today-reality-time"><strong>'+esc(when.start)+'</strong>'+(when.end?'<i>—</i><span>'+esc(when.end)+'</span>':'')+'</span>':'';
+ const placeText=when.location?'<span class="today-reality-place">'+esc(when.location)+'</span>':'';
+ const timeText=when.start?'<span class="today-reality-time">'+placeText+'<strong>'+esc(when.start)+'</strong>'+(when.end?'<i>—</i><span>'+esc(when.end)+'</span>':'')+'</span>':'';
  return '<div class="today-reality '+state+'" data-today-reality>'+  '<div class="today-reality-head"><span class="today-reality-eyebrow">'+eyebrow+'</span>'+dateText+'</div>'+  '<div class="today-reality-main"><strong>'+esc(title)+'</strong></div>'+  '<div class="today-reality-composition">'+distanceMarkup+timeText+'</div></div>';
 }
 function refreshTodayReality(){
@@ -625,7 +626,7 @@ function refreshPlanNowMarker(){
 function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
  const day=planSelectedDate||localDay();
  const classEvents=(schedule||[]).map(item=>({
-  kind:'course',id:item.id,title:item.title,object_id:item.object_id,
+  kind:'course',id:item.id,title:item.title,location:item.location||'',object_id:item.object_id,
   start:item.start_time,end:item.end_time,startMin:clockMinutes(item.start_time),endMin:clockMinutes(item.end_time)
  }));
  const taskEvents=tasks.filter(t=>t.status==='open'&&t.scheduled_start&&localDateFromIso(t.scheduled_start)===day).map(t=>{
@@ -642,7 +643,7 @@ function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
  for(const item of events){
   const status=planEventStatus(day,item.startMin,item.endMin,nowMin);
   const object=objectsById.get(item.object_id);
-  const meta=item.kind==='course'?'课程':(object?.title||'任务');
+  const meta=item.kind==='course'?('课程'+(item.location?' · '+item.location:'')):(object?.title||'任务');
   const endLabel=item.end||minutesClock(item.endMin);
   const task=item.kind==='task'?item.task:null,courseTask=Boolean(task?.object_id&&courseIds.has(task.object_id));
   html+='<article class="plan-timeline-row '+status+'" data-kind="'+item.kind+'" data-start-min="'+item.startMin+'" data-end-min="'+item.endMin+'"><div class="plan-time-cell"><strong>'+esc(item.start)+'</strong><span>'+esc(endLabel)+'</span></div>'+
