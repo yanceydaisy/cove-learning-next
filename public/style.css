@@ -598,6 +598,7 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon{p
 .today-distance-part.minor strong{font-size:clamp(25px,7.5vw,33px);letter-spacing:-.055em}
 .today-distance-part.minor em{font-size:8px;color:var(--muted);padding-bottom:2px}
 .today-reality-time{display:grid;grid-template-columns:auto auto;align-items:end;justify-items:end;column-gap:3px;min-width:58px;padding-bottom:1px;color:var(--muted);font-variant-numeric:tabular-nums}
+.today-reality-place{grid-column:1/-1;font:400 7.5px/1.25 var(--display);letter-spacing:.025em;color:var(--muted);margin-bottom:2px}
 .today-reality-time strong{grid-column:1/-1;font:500 14px/.95 var(--display);letter-spacing:-.025em;color:var(--ink)}
 .today-reality-time i{font:400 7px/1 var(--display);font-style:normal;color:var(--muted)}
 .today-reality-time span{font:400 8px/1 var(--display);color:var(--muted)}
@@ -671,6 +672,7 @@ html[data-learning-ui="glass"] .today-reality-eyebrow,
 html[data-learning-ui="glass"] .today-reality-main>span,
 html[data-learning-ui="glass"] .today-reality-date,
 html[data-learning-ui="glass"] .today-reality-time,
+html[data-learning-ui="glass"] .today-reality-place,
 html[data-learning-ui="glass"] .today-distance-caption,
 html[data-learning-ui="glass"] .today-distance-empty,
 html[data-learning-ui="glass"] .today-agenda-copy small,
