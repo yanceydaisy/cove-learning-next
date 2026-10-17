@@ -882,7 +882,7 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
  .plan-top-row{padding-bottom:0;margin-bottom:-14px}
  .plan-top-row h1{line-height:.78}
  .plan-flow{gap:0}
- .plan-day-section{padding-top:0;margin-top:-52px}
+ .plan-day-section{padding-top:0;margin-top:-30px}
  .plan-loose-section{margin-top:23px}
  .plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
  .plan-week-strip{gap:3px}.plan-day-button{min-height:58px;border-radius:15px}
