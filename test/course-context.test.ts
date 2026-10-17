@@ -1,3 +1,4 @@
+
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync} from 'node:fs';
@@ -51,7 +52,9 @@ test('course context stores confirmed objectives and assessment evidence without
    const restored=again.courseContext.list(course.id);
    assert.equal(restored.items.length,1);
    assert.equal(restored.evidence.confirmedObjectives,1);
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,6);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,7);
   }finally{again.close();}
  }finally{f.end();}
 });
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
