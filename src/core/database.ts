@@ -1,3 +1,4 @@
+
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -106,6 +107,9 @@ CREATE TABLE weekly_schedule_entries (
 );
 CREATE INDEX idx_weekly_schedule_day ON weekly_schedule_entries(weekday,effective_from,effective_until,start_time);
 `}
+ ,{version:7,name:'weekly_schedule_location',sql:`
+ALTER TABLE weekly_schedule_entries ADD COLUMN location TEXT;
+`}
 ] as const;
 
 export class Database {
@@ -154,3 +158,5 @@ export class Database {
   }
   close(){this.raw.close();}
 }
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
