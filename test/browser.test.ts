@@ -281,7 +281,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.getByText('学习记录',{exact:true}).waitFor();
   await page.locator('a[data-nav=today]').click();
   await page.locator('.today-reality').waitFor();
-  assert.match(await page.locator('.today-reality').innerText(),/正在上课|下一课|暂时没有下一节课程/,'Homepage keeps course reality live and looks ahead to the next class');
+  assert.match(await page.locator('.today-reality').innerText(),/NOW \/ COURSE|NEXT \/ COURSE|暂时没有下一节课程/,'Homepage keeps course reality live and looks ahead to the next class');
   await page.getByText('极点配置',{exact:true}).first().waitFor();
   await page.getByText('状态空间复习',{exact:true}).first().waitFor();
   assert.equal(await page.locator('.today-task-card').count(),2,'both open tasks appear in the ranked backlog');
