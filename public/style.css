@@ -191,7 +191,18 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .object-overview strong{font:400 clamp(33px,7.5vw,47px)/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
 .object-overview span{font-size:11px;color:var(--muted)}
 .object-composer{max-width:580px;margin:0 0 14px}
-.object-list{margin-top:15px}
+.object-list{margin-top:10px}
+.object-kind-stack{display:flex;flex-direction:column;gap:22px;margin-top:20px}
+.object-kind-group{min-width:0;padding-top:16px;border-top:1px solid var(--line)}
+.object-kind-group:first-child{padding-top:0;border-top:0}
+.object-kind-head{display:flex;align-items:end;justify-content:space-between;gap:12px}
+.object-kind-head>div{min-width:0}
+.object-kind-head span{display:block;font:500 8px/1.3 var(--display);letter-spacing:.18em;color:var(--muted);margin-bottom:3px}
+.object-kind-head h3{margin:0;font:500 20px/1.15 var(--serif);color:var(--ink)}
+.object-kind-head>strong{font:400 20px/1 var(--display);color:var(--muted);font-variant-numeric:tabular-nums}
+.library-filter-wrap{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:9px}
+.library-filter-wrap>span{letter-spacing:.04em}
+.library-filter{min-height:31px;padding:5px 28px 5px 11px;border:1px solid var(--line);border-radius:100px;background:var(--surface);color:var(--ink);font-size:10px}
 .course-context-panel{padding-top:23px;border-top:1px solid var(--line);min-width:0}
 .context-intro{margin:10px 0 15px;color:var(--muted);font-size:11px;line-height:1.75;max-width:680px}
 .context-evidence{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
@@ -568,7 +579,7 @@ html[data-learning-ui="glass"] .toast{color:var(--glass-text-strong);background:
 .today-v3{width:min(100%,760px);gap:18px;padding-bottom:26px}
 .today-head{align-items:center;padding-bottom:2px}
 .today-head .kicker{margin-bottom:8px}
-.today-start-action{display:inline-flex;align-items:center;gap:8px;flex:none;min-height:40px;padding:8px 14px;
+.today-start-action{display:inline-flex;align-items:center;flex:none;min-height:40px;padding:8px 14px;
  border:1px solid var(--milk-border);border-radius:100px;background:var(--milk-glass);color:var(--milk-text);font-size:11px;
  box-shadow:inset 0 1px rgba(255,255,255,.58),0 8px 24px var(--milk-shadow);
  -webkit-backdrop-filter:blur(18px) saturate(1.18);backdrop-filter:blur(18px) saturate(1.18)}
@@ -918,11 +929,5 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
  .plan-event-main{display:block}.plan-event-main small{display:block;margin-top:2px}
  .plan-event-actions .button{min-height:29px;padding-inline:9px}
 }
-.plan-other-loose{margin-top:12px;border-top:1px dashed var(--line);padding-top:9px}
-.plan-other-loose summary{cursor:pointer;list-style:none;font-size:9px;color:var(--muted);letter-spacing:.04em;padding:5px 0}
-.plan-other-loose summary::-webkit-details-marker{display:none}
-.plan-other-loose[open] summary{color:var(--ink)}
-html[data-learning-ui="glass"] .plan-other-loose summary{color:var(--glass-muted)}
-html[data-learning-ui="glass"] .plan-other-loose[open] summary{color:var(--glass-text-strong)}
 
 [executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
