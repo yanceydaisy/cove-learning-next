@@ -87,8 +87,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .kicker{color:var(--muted);text-transform:uppercase;letter-spacing:.20em;font:400 10px/1.5 var(--display);margin:0 0 9px}
 .quiet{font-size:11px;color:var(--muted);padding-bottom:4px}
 .workarea{display:flex;flex-direction:column;gap:22px;overflow:auto;overscroll-behavior:contain;min-height:0;
- padding:1px 3px 18px;scrollbar-width:thin;scrollbar-color:var(--line) transparent;
+ padding:1px 3px 18px;scrollbar-width:none;-ms-overflow-style:none;
  -webkit-overflow-scrolling:touch}
+.workarea::-webkit-scrollbar,.plan-dialog-card::-webkit-scrollbar{display:none;width:0;height:0}
 .daily-flow{width:min(100%,730px);gap:24px}
 .spacious-flow{width:min(100%,720px);gap:28px}
 .library-flow{width:min(100%,760px);gap:40px;padding-bottom:28px}
@@ -385,7 +386,7 @@ html[data-learning-ui="glass"] .head .quiet{
 html[data-learning-ui="glass"] .workarea{
  gap:clamp(25px,4vh,40px);
  padding:1px 2px 34px;
- scrollbar-color:var(--glass-border) transparent;
+ scrollbar-width:none;
 }
 html[data-learning-ui="glass"] .daily-flow,
 html[data-learning-ui="glass"] .spacious-flow,
@@ -734,7 +735,7 @@ html[data-learning-ui="glass"] .task-extra-fields input{color:var(--glass-text);
 @media(max-width:520px){.task-extra-fields{grid-template-columns:1fr}}
 
 .plan-task-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
-.plan-task-copy .task-description{display:block;flex:initial}
+.plan-task-copy .task-description{display:block;flex:initial;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
 .plan-task-copy small{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plan-task .task-item{gap:8px}
 .plan-task .task-item .button{padding-inline:12px}
@@ -849,13 +850,13 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-duration-bar::before,.plan-duration-bar::after{content:"";position:absolute;left:50%;width:7px;height:7px;border-radius:50%;transform:translateX(-50%);background:var(--surface-strong);border:1px solid var(--muted)}
 .plan-duration-bar::before{top:0}
 .plan-duration-bar::after{bottom:0}
-.plan-event-card{min-width:0;align-self:start;padding:9px 2px 12px 10px;border-bottom:1px solid var(--line)}
+.plan-event-card{min-width:0;width:100%;max-width:100%;box-sizing:border-box;align-self:start;padding:9px 2px 12px 10px;border-bottom:1px solid var(--line)}
 .plan-event-meta{display:flex;align-items:center;gap:7px;min-height:14px}
 .plan-event-meta span{font-size:8px;letter-spacing:.13em;color:var(--muted);text-transform:uppercase}
 .plan-event-meta b{font:600 7px/1 var(--display);letter-spacing:.12em;border:1px solid var(--rule);border-radius:100px;padding:3px 5px;color:var(--ink)}
 .plan-event-main{display:flex;align-items:baseline;gap:9px;min-width:0;margin-top:4px}
-.plan-event-main strong{font:500 13px/1.4 var(--display);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.plan-event-main small{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-event-main strong{min-width:0;max-width:100%;font:500 13px/1.4 var(--display);color:var(--ink);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
+.plan-event-main small{min-width:0;max-width:100%;font-size:9px;color:var(--muted);white-space:normal;overflow-wrap:anywhere;word-break:break-word}
 .plan-event-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .plan-timeline-row.past{opacity:.36}
 .plan-timeline-row.collapsed-past{opacity:.46}
@@ -886,7 +887,7 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-loose-list .plan-task>.task-item{padding-inline:2px}
 .plan-dialog{width:min(92vw,640px);max-height:min(86vh,760px);padding:0;border:0;border-radius:26px;background:transparent;color:var(--ink);overflow:visible}
 .plan-dialog::backdrop{background:rgba(5,8,15,.42);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.plan-dialog-card{max-height:min(86vh,760px);overflow:auto;border:1px solid var(--rule);border-radius:26px;background:var(--surface-strong);box-shadow:0 28px 80px var(--shadow);padding:22px}
+.plan-dialog-card{max-height:min(86vh,760px);overflow:auto;scrollbar-width:none;-ms-overflow-style:none;border:1px solid var(--rule);border-radius:26px;background:var(--surface-strong);box-shadow:0 28px 80px var(--shadow);padding:22px}
 .plan-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
 .plan-dialog-head h2{font:400 27px/1.2 var(--serif);margin:4px 0 0;color:var(--ink)}
 .plan-dialog-close{width:35px;height:35px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--muted);font-size:22px;line-height:1}
