@@ -370,8 +370,8 @@ async function today(){
  const startLabel=activity?'继续学习':'开始学习';
  const focusTotal=minutes(focusHistory.total_ms||0);
  const review='<div class="today-review-kicker">REVIEW</div>'+
-  '<div class="today-review-total"><span>累计专注时间</span><div><strong>'+focusTotal+'</strong><em>min</em></div></div>'+
-  '<a class="today-review-trace" href="#/archive">轨迹 '+ornament('arrow')+'</a>';
+  '<a class="today-review-trace" href="#/archive">轨迹 '+ornament('arrow')+'</a>'+
+  '<div class="today-review-total"><span>累计专注时间</span><div><strong>'+focusTotal+'</strong><em>min</em></div></div>';
  const switcher='<div class="today-view-switch" role="group" aria-label="待办任务视图">'+
   [['list','列表'],['matrix','坐标图']].map(([id,label])=>
    '<button type="button" data-task-view="'+id+'" aria-pressed="'+(todayTaskView===id)+'">'+label+'</button>').join('')+'</div>';
