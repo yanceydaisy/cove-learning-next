@@ -1359,7 +1359,7 @@ void main(){
     }
     function syncCards(){
       const selected=new Set(document.querySelectorAll(
-        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-start-action,.today-task-card:not(.complete),.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
+        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-task-card:not(.complete),.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
       ));
       for(const [card,optic] of optics){
         if(!selected.has(card)){optic.dispose();optics.delete(card);}
