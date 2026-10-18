@@ -135,6 +135,13 @@ export function createLearningMcpServer(app:LearningApplication){
   annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
  },async({task_id})=>safe(()=>app.planning.complete(task_id)));
 
+ server.registerTool('learning_reopen_task',{
+  title:'Reopen Learning Task',
+  description:'Restore one completed task to open state. This is idempotent but changes task state.',
+  inputSchema:{task_id:z.string().uuid()},
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({task_id})=>safe(()=>app.planning.reopen(task_id)));
+
  server.registerTool('learning_task_evidence',{
   title:'Task Course Evidence',
   description:'Read, link, or unlink confirmed course evidence for a course task. A task can only link evidence from its own course.',
@@ -224,14 +231,35 @@ export function createLearningMcpServer(app:LearningApplication){
 
  server.registerTool('learning_create_object',{
   title:'Create Learning Object',
-  description:'Create a course, project, or track in Learning. No delete action is exposed through MCP.',
+  description:'Create a course, project, or track in Learning. Projects may include status, stage, progress, next action, and blocker. No delete action is exposed through MCP.',
   inputSchema:{
    kind:z.enum(['course','project','track']),
    title:z.string().min(1).max(160),
-   description:z.string().max(1200).nullable().optional()
+   description:z.string().max(1200).nullable().optional(),
+   project_status:z.enum(['idea','active','paused','done']).optional(),
+   project_stage:z.string().max(160).nullable().optional(),
+   progress_percent:z.number().int().min(0).max(100).nullable().optional(),
+   next_action:z.string().max(1200).nullable().optional(),
+   blocker:z.string().max(1200).nullable().optional()
   },
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
  },async args=>safe(()=>app.catalog.create(clean(args as Record<string,unknown>))));
+
+ server.registerTool('learning_update_object',{
+  title:'Update Learning Object',
+  description:'Update a Learning object. Project fields support status, stage, progress, next action, and blocker. Pass null to clear nullable fields.',
+  inputSchema:{
+   object_id:z.string().uuid(),
+   title:z.string().min(1).max(160).optional(),
+   description:z.string().max(1200).nullable().optional(),
+   project_status:z.enum(['idea','active','paused','done']).optional(),
+   project_stage:z.string().max(160).nullable().optional(),
+   progress_percent:z.number().int().min(0).max(100).nullable().optional(),
+   next_action:z.string().max(1200).nullable().optional(),
+   blocker:z.string().max(1200).nullable().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({object_id,...fields})=>safe(()=>app.catalog.update(object_id,clean(fields as Record<string,unknown>))));
 
  server.registerTool('learning_plan_day',{
   title:'Learning Plan Day',
