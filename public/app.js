@@ -573,53 +573,55 @@ function planEventStatus(day,startMin,endMin,nowMin=null){
  if(startMin<=current&&endMin>current)return 'current';
  return 'future';
 }
-const PLAN_MINUTE_SCALE=.58;
+const PLAN_EVENT_GAP=34;
+const PLAN_EDGE_GAP=28;
+const PLAN_EVENT_MIN_HEIGHT=76;
 const PLAN_PAST_COURSE_HEIGHT=46;
-const PLAN_PAST_MIN_GAP=18;
 function planNowMarkerMarkup(now,minute){
  const clock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
  return '<div class="plan-now-marker" data-now-minute="'+minute+'"><span>'+clock+'</span><i></i><b>现在</b></div>';
 }
 function applyPlanTimelineGeometry(timeline){
  if(!timeline)return;
- const axisStart=Number(timeline.dataset.axisStart),axisEnd=Number(timeline.dataset.axisEnd),scale=Number(timeline.dataset.minuteScale)||PLAN_MINUTE_SCALE;
  const rows=[...timeline.querySelectorAll('.plan-timeline-row')].sort((a,b)=>Number(a.dataset.startMin)-Number(b.dataset.startMin));
- let cursor=0,previousEnd=axisStart,previousCollapsed=false;
- for(const row of rows){
+ let cursor=PLAN_EDGE_GAP;
+ for(const [index,row] of rows.entries()){
   const startMin=Number(row.dataset.startMin),endMin=Number(row.dataset.endMin);
   const collapsed=row.dataset.kind==='course'&&row.classList.contains('past');
   row.classList.toggle('collapsed-past',collapsed);
-  let gapPx=Math.max(0,startMin-previousEnd)*scale;
-  if(collapsed&&previousCollapsed)gapPx=Math.max(gapPx,PLAN_PAST_MIN_GAP);
-  cursor+=gapPx;
+  if(index>0)cursor+=PLAN_EVENT_GAP;
   const card=row.querySelector('.plan-event-card');
   const contentHeight=card?Math.ceil(card.scrollHeight)+2:0;
-  const baseHeight=collapsed?PLAN_PAST_COURSE_HEIGHT:Math.max(46,(endMin-startMin)*scale);
+  const baseHeight=collapsed?PLAN_PAST_COURSE_HEIGHT:PLAN_EVENT_MIN_HEIGHT;
   const height=Math.max(baseHeight,contentHeight);
   row.style.top=cursor.toFixed(1)+'px';
   row.style.height=height.toFixed(1)+'px';
   cursor+=height;
-  previousEnd=Math.max(previousEnd,endMin);
-  previousCollapsed=collapsed;
  }
- cursor+=Math.max(0,axisEnd-previousEnd)*scale;
- timeline.style.height=Math.max(72,cursor).toFixed(1)+'px';
+ const timelineHeight=Math.max(72,cursor+PLAN_EDGE_GAP);
+ timeline.style.height=timelineHeight.toFixed(1)+'px';
  timeline.querySelectorAll('.plan-now-marker').forEach(marker=>{
   const minute=Number(marker.dataset.nowMinute);
-  const current=rows.find(row=>row.classList.contains('current')&&minute>=Number(row.dataset.startMin)&&minute<Number(row.dataset.endMin));
-  let top=0;
+  const current=rows.find(row=>minute>=Number(row.dataset.startMin)&&minute<Number(row.dataset.endMin));
+  let top=PLAN_EDGE_GAP/2;
   if(current){
-   const startMin=Number(current.dataset.startMin),endMin=Number(current.dataset.endMin),progress=(minute-startMin)/Math.max(1,endMin-startMin);
+   const startMin=Number(current.dataset.startMin),endMin=Number(current.dataset.endMin);
+   const progress=Math.max(0,Math.min(1,(minute-startMin)/Math.max(1,endMin-startMin)));
    top=parseFloat(current.style.top||'0')+progress*parseFloat(current.style.height||'0');
-  }else{
-   const next=rows.find(row=>Number(row.dataset.startMin)>minute);
-   if(next)top=parseFloat(next.style.top||'0')-Math.max(0,Number(next.dataset.startMin)-minute)*scale;
-   else if(rows.length){
-    const last=rows[rows.length-1],lastEnd=Number(last.dataset.endMin);
-    top=parseFloat(last.style.top||'0')+parseFloat(last.style.height||'0')+Math.max(0,minute-lastEnd)*scale;
-   }else top=Math.max(0,minute-axisStart)*scale;
+  }else if(rows.length){
+   const nextIndex=rows.findIndex(row=>Number(row.dataset.startMin)>minute);
+   if(nextIndex===0){
+    top=Math.max(0,parseFloat(rows[0].style.top||'0')-PLAN_EDGE_GAP/2);
+   }else if(nextIndex>0){
+    const previous=rows[nextIndex-1],next=rows[nextIndex];
+    const previousBottom=parseFloat(previous.style.top||'0')+parseFloat(previous.style.height||'0');
+    top=(previousBottom+parseFloat(next.style.top||'0'))/2;
+   }else{
+    const last=rows[rows.length-1];
+    top=parseFloat(last.style.top||'0')+parseFloat(last.style.height||'0')+PLAN_EDGE_GAP/2;
+   }
   }
-  marker.style.top=Math.max(0,top).toFixed(1)+'px';
+  marker.style.top=Math.max(0,Math.min(timelineHeight,top)).toFixed(1)+'px';
  });
  timeline.classList.add('geometry-ready');
 }
@@ -628,10 +630,6 @@ function refreshPlanNowMarker(){
  const day=planSelectedDate||localDay();
  if(!timeline||day!==localDay())return;
  const now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
- const axisStart=Number(timeline.dataset.axisStart);
- let axisEnd=Number(timeline.dataset.axisEnd);
- const requiredEnd=Math.min(1440,Math.ceil(nowMin/15)*15);
- if(requiredEnd>axisEnd){axisEnd=requiredEnd;timeline.dataset.axisEnd=String(axisEnd);}
  timeline.querySelectorAll('.plan-now-marker').forEach(marker=>marker.remove());
  for(const row of timeline.querySelectorAll('.plan-timeline-row')){
   const startMin=Number(row.dataset.startMin),endMin=Number(row.dataset.endMin);
@@ -674,7 +672,7 @@ function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
    '</div></article>';
  }
  if(day===today)html+=planNowMarkerMarkup(now,nowMin);
- return '<div class="plan-timeline" data-axis-start="'+axisStart+'" data-axis-end="'+axisEnd+'" data-minute-scale="'+PLAN_MINUTE_SCALE+'">'+html+'</div>';
+ return '<div class="plan-timeline" data-axis-start="'+axisStart+'" data-axis-end="'+axisEnd+'">'+html+'</div>';
 }
 function planDialogMarkup(objects){
  const selected=planSelectedDate||localDay();
