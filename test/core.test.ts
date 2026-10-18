@@ -25,6 +25,9 @@ test('cross-module: object → task → focus → real Today read model',()=>{
   f.tick(120_000);f.app.activity.resume(session.id);
   f.tick(30_000);const finished=f.app.activity.finish(session.id) as {accumulated_ms:number;state:string};
   assert.equal(finished.accumulated_ms,90_000);
+  const history=f.app.activity.history() as unknown as {total_ms:number;sessions:{id:string}[]};
+  assert.equal(history.total_ms,90_000);
+  assert.equal(history.sessions.some(item=>item.id===session.id),true);
   assert.equal(finished.state,'finished');
   assert.equal(f.app.activity.events(session.id).length,4);
   f.app.planning.complete(task.id);
@@ -110,5 +113,3 @@ test('transaction rolls back and migration metadata stays stable',()=>{
   finally{again.close();}
  }finally{f.end();}
 });
-
-[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
