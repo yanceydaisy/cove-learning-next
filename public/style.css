@@ -83,7 +83,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .view{height:100%;display:flex;flex-direction:column;min-height:0;gap:clamp(15px,2.5vh,23px);animation:enter .22s ease}
 @keyframes enter{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
 .head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-shrink:0;min-height:0}
-.head h1{margin:0;color:var(--ink);font:400 clamp(43px,8.8vw,67px)/.94 var(--display);letter-spacing:-.055em}
+.head h1{margin:0;color:var(--ink);font:400 clamp(40px,9vw,54px)/.9 var(--display);letter-spacing:-.055em}
 .kicker{color:var(--muted);text-transform:uppercase;letter-spacing:.20em;font:400 10px/1.5 var(--display);margin:0 0 9px}
 .quiet{font-size:11px;color:var(--muted);padding-bottom:4px}
 .workarea{display:flex;flex-direction:column;gap:22px;overflow:auto;overscroll-behavior:contain;min-height:0;
@@ -163,8 +163,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .row-sub{font-size:10px;color:var(--muted);margin-top:4px}
 .row-trailing{flex:none;font-size:11px;color:var(--muted)}
 .task-item{display:flex;align-items:center;gap:13px;min-width:0;min-height:54px;padding:9px 1px;border-bottom:1px solid var(--line)}
-.task-check{width:19px;height:19px;border-radius:50%;border:1px solid var(--muted);flex:none;
+.task-check{width:19px;height:19px;border-radius:50%;border:1px solid var(--muted);flex:none;padding:0;background:transparent;
  display:flex;justify-content:center;align-items:center;color:var(--muted);font-size:11px}
+button.task-check{cursor:pointer}
+button.task-check:active{transform:scale(.9)}
 .task-check.complete{border-color:var(--line)}
 .task-description{flex:1;min-width:0;color:var(--ink);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .task-description.complete{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
@@ -263,7 +265,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 }
 @media(max-width:390px){
  .shell{padding-inline:14px}
- .head h1{font-size:42px}
+ .head h1{font-size:40px}
  .feature{padding:21px}
  .composer-pane{padding:19px}
  .section-heading h2{font-size:18px}
@@ -369,8 +371,8 @@ html[data-learning-ui="glass"] .wallpaper-picker{
 html[data-learning-ui="glass"] .view{gap:clamp(17px,3vh,28px)}
 html[data-learning-ui="glass"] .head{align-items:flex-end;padding:3px 1px 2px}
 html[data-learning-ui="glass"] .head h1{
- color:var(--glass-text-strong);font:400 clamp(62px,14.8vw,92px)/.92 var(--display);
- letter-spacing:-.075em;
+ color:var(--glass-text-strong);font:400 clamp(40px,9vw,54px)/.9 var(--display);
+ letter-spacing:-.055em;
  text-shadow:0 2px 28px var(--glass-shadow);
 }
 html[data-learning-ui="glass"] .head .kicker{
@@ -560,7 +562,7 @@ html[data-learning-ui="glass"] .dock svg{width:19px;height:19px;stroke-width:1.3
 html[data-learning-ui="glass"] .toast{color:var(--glass-text-strong);background:var(--glass-panel-strong);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
 @media(max-width:390px){
  html[data-learning-ui="glass"] .shell{padding-inline:17px}
- html[data-learning-ui="glass"] .head h1{font-size:61px}
+ html[data-learning-ui="glass"] .head h1{font-size:40px}
  html[data-learning-ui="glass"] .feature-today{min-height:240px}
 }
 @media(max-height:700px){
@@ -579,15 +581,17 @@ html[data-learning-ui="glass"] .toast{color:var(--glass-text-strong);background:
 .today-v3{width:min(100%,760px);gap:18px;padding-bottom:26px}
 .today-head{align-items:center;padding-bottom:2px}
 .today-head .kicker{margin-bottom:8px}
-.today-start-action{display:inline-flex;align-items:center;flex:none;min-height:40px;padding:8px 14px;
+.today-start-action{display:inline-flex;align-items:center;gap:8px;flex:none;min-height:40px;padding:8px 14px;
  border:1px solid var(--milk-border);border-radius:100px;background:var(--milk-glass);color:var(--milk-text);font-size:11px;
  box-shadow:inset 0 1px rgba(255,255,255,.58),0 8px 24px var(--milk-shadow);
  -webkit-backdrop-filter:blur(18px) saturate(1.18);backdrop-filter:blur(18px) saturate(1.18)}
 .today-start-action>span{font-weight:600;letter-spacing:.015em}
 .today-start-action .micro-icon{width:14px;height:14px;color:currentColor;stroke:currentColor}
+.today-start-plus{font:400 18px/1 var(--display);color:currentColor;transform:translateY(-1px)}
 html[data-learning-ui="glass"] .today-start-action.learning-liquid{border:1px solid var(--milk-border)!important;background:var(--milk-glass)!important;box-shadow:inset 0 1px rgba(255,255,255,.56),0 9px 26px var(--milk-shadow)!important;color:var(--milk-text)}
 html[data-learning-ui="glass"] .today-start-action.learning-liquid>span,
-html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon{position:relative;z-index:2}
+html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon,
+html[data-learning-ui="glass"] .today-start-action.learning-liquid>.today-start-plus{position:relative;z-index:2}
 .today-brief{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(118px,.72fr);
  border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-height:176px}
 .today-agenda{padding:12px 18px 12px 1px;min-width:0;display:flex;align-items:stretch}
@@ -648,9 +652,17 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon{p
 .today-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
 .today-task-copy strong{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today-task-copy span{font-size:9px;color:var(--muted);line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.today-priority-button{flex:none;min-height:34px;padding:6px 10px;border-radius:100px;
- border:1px solid var(--line);background:transparent;color:var(--body);font-size:9px;white-space:nowrap}
+.today-priority-button,.today-task-check{flex:none;width:30px;height:30px;padding:0;border-radius:50%;
+ border:1px solid var(--line);background:transparent;color:var(--body);display:grid;place-items:center}
+.today-priority-button .micro-icon{width:13px;height:13px}
 .today-priority-button.active{background:var(--surface-strong);color:var(--ink)}
+.today-task-check{width:22px;height:22px;color:var(--muted);cursor:pointer}
+.today-task-check .micro-icon{width:12px;height:12px}
+.today-task-check.complete{border-color:var(--line);cursor:default}
+.today-task-card.complete{opacity:.58;background:rgba(255,255,255,.055);border-color:var(--line);
+ -webkit-backdrop-filter:blur(20px) saturate(.75);backdrop-filter:blur(20px) saturate(.75);box-shadow:none}
+.today-task-card.complete .today-task-copy strong{text-decoration:line-through;text-decoration-thickness:.6px;text-decoration-color:var(--muted);color:var(--muted)}
+.today-task-card.complete .today-task-index,.today-task-card.complete .today-task-copy span{color:var(--muted)}
 .today-matrix-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.42fr);gap:16px;align-items:center;
  border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:15px}
 .today-matrix{position:relative;min-height:228px;border-radius:13px;background:rgba(255,255,255,.018);overflow:hidden}
@@ -666,6 +678,8 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon{p
 html[data-learning-ui="glass"] .today-view-switch,
 html[data-learning-ui="glass"] .today-task-card,
 html[data-learning-ui="glass"] .today-matrix-wrap{background:var(--glass-panel);border-color:var(--glass-border)}
+html[data-learning-ui="glass"] .today-task-card.complete{background:rgba(235,238,244,.08);border-color:var(--glass-border);box-shadow:none;
+ -webkit-backdrop-filter:blur(22px) saturate(.72);backdrop-filter:blur(22px) saturate(.72)}
 html[data-learning-ui="glass"] .today-mini-head h2,
 html[data-learning-ui="glass"] .today-backlog-head h2,
 html[data-learning-ui="glass"] .today-reality-main strong,
@@ -692,7 +706,7 @@ html[data-learning-ui="glass"] .today-review p,
 html[data-learning-ui="glass"] .today-task-copy span,
 html[data-learning-ui="glass"] .today-matrix-note{color:var(--glass-muted)}
 @media(max-width:430px){
- .today-head h1{font-size:clamp(48px,15vw,61px)}
+ .today-head h1{font-size:clamp(40px,9vw,54px)}
  .today-start-action{padding-inline:11px}
  .today-brief{grid-template-columns:minmax(0,1.48fr) minmax(108px,.72fr)}
  .today-agenda{padding-right:12px}
@@ -700,7 +714,6 @@ html[data-learning-ui="glass"] .today-matrix-note{color:var(--glass-muted)}
  .today-agenda-time{max-width:76px;overflow:hidden;text-overflow:ellipsis}
  .today-task-card{gap:7px;padding-inline:9px}
  .today-task-index{width:18px}
- .today-priority-button{padding-inline:8px}
  .today-matrix-wrap{grid-template-columns:1fr}
  .today-matrix{min-height:210px}
 }
