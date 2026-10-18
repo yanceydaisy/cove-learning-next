@@ -22,6 +22,13 @@ export class ActivityService {
  }
  active(){return this.db.raw.prepare("SELECT * FROM focus_sessions WHERE state IN ('running','paused') LIMIT 1").get()??null;}
  recent(){return this.db.raw.prepare('SELECT * FROM focus_sessions ORDER BY started_at DESC,id DESC LIMIT 12').all();}
+ history(){
+  const sessions=this.db.raw.prepare('SELECT * FROM focus_sessions ORDER BY started_at DESC,id DESC').all() as unknown as {state:string;current_started_at:string|null;accumulated_ms:number}[];
+  const now=Date.parse(this.now());
+  const total_ms=sessions.reduce((sum,item)=>sum+Math.max(0,Number(item.accumulated_ms)||0)+
+   (item.state==='running'&&item.current_started_at?Math.max(0,now-Date.parse(item.current_started_at)):0),0);
+  return {total_ms,sessions};
+ }
  events(id:string){return this.db.raw.prepare('SELECT * FROM learning_events WHERE session_id=? ORDER BY occurred_at,id').all(requiredId(id));}
  start(input:unknown={}){
   const data=record(input),object_id=optionalId(data.object_id);
@@ -54,5 +61,3 @@ export class ActivityService {
  resume(id:string){return this.change(id,'resume');}
  finish(id:string){return this.change(id,'finish');}
 }
-
-[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
