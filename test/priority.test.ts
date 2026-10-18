@@ -103,5 +103,9 @@ test('completed tasks planned for today remain visible in Today history',()=>{
   const snapshot=f.app.today.snapshot('2026-10-12') as unknown as {todayTasks:{id:string}[];completedTodayTasks:{id:string;status:string}[]};
   assert.equal(snapshot.todayTasks.some(item=>item.id===task.id),false);
   assert.equal(snapshot.completedTodayTasks.some(item=>item.id===task.id&&item.status==='done'),true);
+  f.app.planning.reopen(task.id);
+  const restored=f.app.today.snapshot('2026-10-12') as unknown as {todayTasks:{id:string}[];completedTodayTasks:{id:string}[]};
+  assert.equal(restored.todayTasks.some(item=>item.id===task.id),true);
+  assert.equal(restored.completedTodayTasks.some(item=>item.id===task.id),false);
  }finally{f.finish();}
 });

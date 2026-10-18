@@ -134,6 +134,13 @@ export function createLearningMcpServer(app:LearningApplication){
   annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:false}
  },async({task_id})=>safe(()=>app.planning.complete(task_id)));
 
+ server.registerTool('learning_reopen_task',{
+  title:'Reopen Learning Task',
+  description:'Restore one completed task to open state. This is idempotent but changes task state.',
+  inputSchema:{task_id:z.string().uuid()},
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({task_id})=>safe(()=>app.planning.reopen(task_id)));
+
  server.registerTool('learning_task_evidence',{
   title:'Task Course Evidence',
   description:'Read, link, or unlink confirmed course evidence for a course task. A task can only link evidence from its own course.',

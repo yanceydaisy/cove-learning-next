@@ -113,4 +113,13 @@ export class PlanningService {
    return this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(id);
   });
  }
+ reopen(id:string){
+  return this.db.transaction(()=>{
+   const current=this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(requiredId(id));
+   if(!current)throw new AppError('NOT_FOUND','任务不存在。');
+   if((current as {status:string}).status==='open')return current;
+   this.db.raw.prepare("UPDATE tasks SET status='open',updated_at=? WHERE id=?").run(this.now(),id);
+   return this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(id);
+  });
+ }
 }
