@@ -94,3 +94,14 @@ test('preference can be lowered or cancelled and cannot target completed tasks',
   assert.throws(()=>f.app.planning.setPreference(id,{boost:1,expires_at:'2026-10-12T16:00:00.000Z'}),AppError);
  }finally{f.finish();}
 });
+
+test('completed tasks planned for today remain visible in Today history',()=>{
+ const f=fixture();
+ try{
+  const task=f.app.planning.create({title:'完成后仍保留',planned_for:'2026-10-12'}) as {id:string};
+  f.app.planning.complete(task.id);
+  const snapshot=f.app.today.snapshot('2026-10-12') as unknown as {todayTasks:{id:string}[];completedTodayTasks:{id:string;status:string}[]};
+  assert.equal(snapshot.todayTasks.some(item=>item.id===task.id),false);
+  assert.equal(snapshot.completedTodayTasks.some(item=>item.id===task.id&&item.status==='done'),true);
+ }finally{f.finish();}
+});

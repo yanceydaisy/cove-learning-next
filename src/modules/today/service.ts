@@ -57,8 +57,12 @@ export class TodayService {
   const horizon=instant.getTime()+7*86_400_000;
   const deadlineTasks=recommendations.filter(t=>t.due_at && Date.parse(t.due_at)<=horizon).slice(0,8);
   const todayTasks=recommendations.filter(t=>t.planned_for===today);
+  const completedTodayTasks=this.db.raw.prepare(
+   `SELECT id,title,object_id,status,created_at,updated_at,due_at,estimated_minutes,planned_for,scheduled_start,scheduled_end
+    FROM tasks WHERE status='done' AND planned_for=? ORDER BY updated_at DESC,id DESC`
+  ).all(today) as unknown as Record<string,unknown>[];
   return {openTasks,activeFocus,recentSessions,recentResources,
-   todayTasks,deadlineTasks,recommendations,
+   todayTasks,completedTodayTasks,deadlineTasks,recommendations,
    priorityModel:{version:'rules-v0+importance-ordinal-v1',importanceAvailable:importanceRows.length>0,
     importanceScale:'ordinal-low-medium-high',evidenceLinksAvailable:evidenceRows.length>0,
     description:'重要度只来自你确认的主依据与低/中/高贡献等级；当前仍不与紧急度合并成一个黑箱分数。'},

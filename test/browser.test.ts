@@ -20,7 +20,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+addr.port+'/',{waitUntil:'networkidle'});
   await page.locator('.head h1').waitFor();
-  assert.equal(await page.locator('.head h1').innerText(),'Learning');
+  assert.equal(await page.locator('.head h1').innerText(),'Today');
   assert.equal(await page.locator('.dock a').count(),4);
   await page.evaluate(()=>{const brand=document.querySelector('.brand') as HTMLElement;brand.click();brand.click();brand.click();});
   await page.locator('#viewportDebug').waitFor();
@@ -115,7 +115,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.waitForFunction(()=>Boolean((window as any).__coveLearningGlass?.isUsingPhoto()));
   await page.reload({waitUntil:'networkidle'});
   await page.waitForFunction(()=>Boolean((window as any).__coveLearningGlass?.isUsingPhoto()),null,{timeout:5000});
-  assert.equal(await page.locator('.head h1').innerText(),'Learning','saved wallpaper survives a full reload');
+  assert.equal(await page.locator('.head h1').innerText(),'Today','saved wallpaper survives a full reload');
   await page.screenshot({path:join(dir,'mobile-learning.png'),fullPage:true});
   const planDate=await page.evaluate(()=>{const d=new Date();return {day:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),weekday:d.getDay()===0?7:d.getDay()};});
   app.schedule.create({title:'固定课表回归',weekday:planDate.weekday,start_time:'08:00',end_time:'09:35',effective_from:planDate.day});
@@ -186,6 +186,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.screenshot({path:join(dir,'mobile-plan.png'),fullPage:true});
   await page.locator('a[data-nav=library]').click();
   await page.locator('#objectForm').waitFor();
+  assert.equal(await page.locator('.head h1').innerText(),'Library');
+  assert.equal(await page.locator('.head .kicker').count(),0,'Library does not repeat COVE / LEARNING inside the page');
   assert.equal(await page.locator('.library-objects').count(),1);
   assert.equal(await page.locator('.library-materials').count(),1);
   assert.equal(await page.locator('.library-flow .panel').count(),0,'Library must not use twin dense cards');
@@ -270,6 +272,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
 
   await page.locator('a[data-nav=learn]').click();
   await page.locator('#focusForm').waitFor();
+  assert.equal(await page.locator('.head h1').innerText(),'Learning');
+  assert.equal(await page.locator('.head .kicker').count(),0,'Learning page does not repeat COVE / LEARNING inside the page');
   assert.equal(await page.locator('.focus-stage').evaluate(el=>getComputedStyle(el).textAlign),'center');
   assert.equal(await page.locator('.focus-decoration svg.micro-orbit').count(),1);
   assert.equal(await page.locator('#focusForm button .micro-arrow').count(),1);
@@ -289,9 +293,11 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.match(await deadlineCard.innerText(),/距截止/,'deadline distance is visible in the approved compact layout');
   assert.match(await evidenceCard.innerText(),/重要度 高/,'Today shows the user-confirmed ordinal importance');
   assert.match(await evidenceCard.innerText(),/证据 掌握状态空间模型分析/,'Today explains linked course evidence');
-  assert.equal(await deadlineCard.locator('.today-priority-button').innerText(),'今天先做');
+  assert.equal(await deadlineCard.locator('.today-priority-button').getAttribute('title'),'今天先做');
+  assert.equal(await deadlineCard.locator('.today-priority-button svg.micro-up').count(),1);
   await deadlineCard.locator('.today-priority-button').click();
-  await deadlineCard.locator('.today-priority-button').getByText('已优先').waitFor();
+  await deadlineCard.locator('.today-priority-button[aria-pressed=true]').waitFor();
+  assert.equal(await deadlineCard.locator('.today-priority-button svg.micro-pin').count(),1);
   await page.locator('.today-view-switch button[data-task-view=matrix]').click();
   await page.locator('.today-matrix').waitFor();
   assert.equal(await page.locator('.matrix-point').count(),1,'only tasks with confirmed importance receive a coordinate point');
@@ -310,7 +316,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const desktop=await browser.newContext({viewport:{width:1440,height:900}});
   const p2=await desktop.newPage();await p2.goto('http://127.0.0.1:'+addr.port+'/');
   await p2.screenshot({path:join(exportDir,'desktop-learning.png'),fullPage:true});
-  assert.equal(await p2.locator('.head h1').innerText(),'Learning');
+  assert.equal(await p2.locator('.head h1').innerText(),'Today');
   assert.equal(await p2.locator('.dock a').count(),4);
   await desktop.close();
   // iPhone network handoff regression: retry safe reads and self-heal on reconnection.
