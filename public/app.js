@@ -214,6 +214,7 @@ let todayWeeklySchedule=[];
 let todayNextCourse=null;
 let todayRealityDate='';
 let courseContextId=null;
+let libraryObjectFilter='all';
 let planSelectedDate=null;
 function localDay(){
  const n=new Date(),pad=v=>String(v).padStart(2,'0');
@@ -374,7 +375,7 @@ async function today(){
   todayMatrix(d.priorityModel,planned);
  view(
   '<header class="head today-head"><div><p class="kicker">HOME / OVERVIEW</p><h1>Learning</h1></div>'+
-   '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span>'+ornament('plus')+'</a></header>'+
+   '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span></a></header>'+
   '<div class="workarea daily-flow today-v3">'+
    '<section class="today-brief" aria-label="首页课程与今日安排">'+
     '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+'</div>'+
@@ -678,6 +679,7 @@ async function plan(){
  const openTasks=tasks.filter(t=>t.status==='open');
  const looseDdl=openTasks.filter(t=>!t.scheduled_start&&t.due_at).sort((a,b)=>Date.parse(a.due_at)-Date.parse(b.due_at));
  const looseOther=openTasks.filter(t=>!t.scheduled_start&&!t.due_at).sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+ const looseTasks=[...looseDdl,...looseOther];
  const selected=dayDate(planSelectedDate);
  const fullDate=selected.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
  view('<header class="plan-top-row"><h1>Plan</h1><button type="button" class="button sm plan-add-button" id="addPlan">'+ornament('plus')+' 添加计划</button></header>'+
@@ -685,9 +687,8 @@ async function plan(){
    planWeekMarkup(planSelectedDate)+'</section>'+
   '<section class="plan-day-section">'+sectionTitle('TIMELINE / DAY',esc(fullDate),'<span class="count-caption">'+(schedule.length+openTasks.filter(t=>t.scheduled_start&&localDateFromIso(t.scheduled_start)===planSelectedDate).length)+' 项</span>')+
    planTimelineMarkup(schedule,openTasks,objectsById,courseIds)+'</section>'+
-  '<section class="plan-loose-section">'+sectionTitle('UNSCHEDULED / DDL','零散任务','<span class="count-caption">'+looseDdl.length+' 有 DDL 未排期</span>')+
-   (looseDdl.length?'<div class="plan-loose-list">'+looseDdl.map(t=>planTaskRow(t,courseIds)).join('')+'</div>':'<p class="plan-empty-loose">没有带 DDL 但尚未排进具体日程的任务。</p>')+
-   (looseOther.length?'<details class="plan-other-loose"><summary>其他未排期 '+looseOther.length+'</summary><div class="plan-loose-list">'+looseOther.map(t=>planTaskRow(t,courseIds)).join('')+'</div></details>':'')+
+  '<section class="plan-loose-section">'+sectionTitle('UNSCHEDULED / TASKS','未排期任务','<span class="count-caption">'+looseTasks.length+' 项</span>')+
+   (looseTasks.length?'<div class="plan-loose-list">'+looseTasks.map(t=>planTaskRow(t,courseIds)).join('')+'</div>':'<p class="plan-empty-loose">所有任务都已经排进具体日程。</p>')+
   '</section></div>'+planDialogMarkup(objects),'plan-view');
 
  applyPlanTimelineGeometry(root.querySelector('.plan-timeline'));
@@ -803,9 +804,31 @@ async function library(){
  if(courseContextId&&!courses.some(o=>o.id===courseContextId))courseContextId=null;
  const context=courseContextId?await api('/courses/'+courseContextId+'/context'):null;
  const counts={course:courses.length,project:objects.filter(o=>o.kind==='project').length,track:objects.filter(o=>o.kind==='track').length};
- const objectList=objects.length?objects.map(o=>row(o.title,kinds[o.kind]||o.kind,
-  o.kind==='course'?'<button type="button" class="button sm quiet-button" data-context-course="'+esc(o.id)+'">'+(courseContextId===o.id?'收起档案':'课程档案')+'</button>':''
- )).join(''):'<p class="muted-line">还没有课程或项目，从上方创建一个。</p>';
+ const projectStatusNames={idea:'想法',active:'进行中',paused:'暂停',done:'已完成'};
+ const objectsByKind={course:objects.filter(o=>o.kind==='course'),project:objects.filter(o=>o.kind==='project'),track:objects.filter(o=>o.kind==='track')};
+ const objectRow=o=>{
+  let sub=kinds[o.kind]||o.kind;
+  if(o.kind==='project'){
+   const meta=[projectStatusNames[o.project_status]||'想法',o.project_stage||'',o.progress_percent!=null?o.progress_percent+'%':''].filter(Boolean).join(' · ');
+   const notes=[o.description||'',o.next_action?'下一步：'+o.next_action:'',o.blocker?'卡点：'+o.blocker:''].filter(Boolean).join(' · ');
+   sub='项目'+(meta?' · '+meta:'')+(notes?' · '+notes:'');
+  }else if(o.description){
+   sub+=(o.description?' · '+o.description:'');
+  }
+  return row(o.title,sub,
+   o.kind==='course'?'<button type="button" class="button sm quiet-button" data-context-course="'+esc(o.id)+'">'+(courseContextId===o.id?'收起档案':'课程档案')+'</button>':''
+  );
+ };
+ const kindOrder=['course','project','track'];
+ const kindEyebrow={course:'COURSES',project:'PROJECTS',track:'TRACKS'};
+ const visibleKinds=libraryObjectFilter==='all'?kindOrder:[libraryObjectFilter];
+ const objectGroups=visibleKinds.map(kind=>{
+  const items=objectsByKind[kind]||[];
+  return '<div class="object-kind-group" data-object-kind="'+kind+'"><div class="object-kind-head"><div><span>'+kindEyebrow[kind]+'</span><h3>'+kinds[kind]+'</h3></div><strong>'+items.length+'</strong></div>'+
+   '<div class="simple-list object-list">'+(items.length?items.map(objectRow).join(''):'<p class="muted-line">这一类还没有内容。</p>')+'</div></div>';
+ }).join('');
+ const filterOptions=[['all','全部'],['course','课程'],['project','项目'],['track','路线']].map(([value,label])=>
+  '<option value="'+value+'" '+(libraryObjectFilter===value?'selected':'')+'>'+label+'</option>').join('');
  const resourceList=resources.length?resources.map(r=>row(r.title,Math.ceil(r.size_bytes/1024)+' KB · 原始资料',
   '<button type="button" class="button sm quiet-button" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button>')).join(''):'<p class="muted-line">还没有保存的资料。</p>';
  const objectiveItems=context?context.items.filter(i=>i.kind==='objective'):[];
@@ -828,18 +851,21 @@ async function library(){
    '<div class="context-list">'+(assessmentItems.length?assessmentItems.map(i=>contextItemRow(i,resources)).join(''):'<p class="muted-line">还没有已记录的考核信息。</p>')+'</div></div></div></section>':'';
  view(head('Library','资料库')+
  '<div class="workarea library-flow">'+
- '<section class="library-objects">'+sectionTitle('01 / COLLECTION','学习对象','<span class="count-caption">'+objects.length+' 个</span>')+
+ '<section class="library-objects">'+sectionTitle('01 / COLLECTION','学习对象','<label class="library-filter-wrap"><span>筛选</span><select id="libraryObjectFilter" class="library-filter" aria-label="筛选学习对象">'+filterOptions+'</select></label>')+
  '<div class="object-overview"><div><strong>'+counts.course+'</strong><span>课程</span></div><div><strong>'+counts.project+'</strong><span>项目</span></div><div><strong>'+counts.track+'</strong><span>路线</span></div></div>'+
  '<form id="objectForm" class="form object-composer"><input name="title" placeholder="新建课程或项目" aria-label="名称" required maxlength="160">'+
  '<button class="button primary">创建 '+ornament('arrow')+'</button>'+
  '<select class="wide" name="kind" aria-label="学习对象类型"><option value="course">课程</option><option value="project">项目</option><option value="track">学习路线</option></select></form>'+
- '<div class="simple-list object-list">'+objectList+'</div></section>'+
+ '<div class="object-kind-stack">'+objectGroups+'</div></section>'+
  contextPanel+
  '<section class="library-materials">'+sectionTitle(context?'03 / MATERIALS':'02 / MATERIALS','我的资料','<span class="count-caption">'+resources.length+' 份</span>')+
  '<p class="muted-line">保存原始文件，随时回到学习资料。课程档案可以把条目追溯到这里的原件。</p>'+
  '<form id="fileForm" class="upload-strip"><div class="upload-copy"><span class="upload-mark" aria-hidden="true">'+ornament('plus')+'</span><label for="sourceFile">选择文件</label><small>支持 8MB 以内文件 · 公开测试版请勿上传隐私资料</small></div>'+
  '<div class="file-picker"><span class="file-picker-label">浏览文件</span><span class="file-picker-name" id="fileName" aria-live="polite">尚未选择</span><input id="sourceFile" type="file" name="file" aria-label="选择资料" required></div><button class="button secondary">保存原件 '+ornament('arrow')+'</button></form>'+
  '<div class="simple-list resource-list">'+resourceList+'</div></section></div>');
+ root.querySelector('#libraryObjectFilter')?.addEventListener('change',e=>perform(async()=>{
+  libraryObjectFilter=e.currentTarget.value;await library();
+ }));
  root.querySelector('#objectForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
   const created=await api('/objects','POST',{title:f.get('title'),kind:f.get('kind')});
   if(created.kind==='course')courseContextId=created.id;
