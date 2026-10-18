@@ -179,7 +179,7 @@ export function createLearningMcpServer(app:LearningApplication){
   title:'Learning Focus Session',
   description:'Read or control the Learning focus timer. pause/resume/finish may omit session_id to target the current active session.',
   inputSchema:{
-   action:z.enum(['active','recent','history','start','pause','resume','finish']),
+   action:z.enum(['active','recent','start','pause','resume','finish']),
    session_id:z.string().uuid().optional(),
    object_id:z.string().uuid().optional()
   },
@@ -187,7 +187,6 @@ export function createLearningMcpServer(app:LearningApplication){
  },async({action,session_id,object_id})=>safe(()=>{
   if(action==='active')return app.activity.active();
   if(action==='recent')return app.activity.recent();
-  if(action==='history')return app.activity.history();
   if(action==='start')return app.activity.start(clean({object_id}));
   const active=app.activity.active() as {id?:string}|null;
   const id=session_id??active?.id;
