@@ -16,11 +16,10 @@ function notify(message){
  clearTimeout(notify.timer);
  notify.timer=setTimeout(()=>toast.classList.remove('on'),2800);
 }
-function page(){const p=(location.hash||'#/today').replace(/^#\/?/,'').split('/')[0];return ['today','plan','learn','library','archive'].includes(p)?p:'today';}
-function archiveMode(){const p=(location.hash||'').replace(/^#\/?/,'').split('/')[1];return p==='tasks'?'tasks':'focus';}
+function page(){const p=(location.hash||'#/today').replace(/^#\/?/,'').split('/')[0];return ['today','plan','learn','library'].includes(p)?p:'today';}
 function currentNav(){
- const here=page(),navHere=here==='archive'?'learn':here;
- document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===navHere?'page':'false'));
+ const here=page();
+ document.querySelectorAll('[data-nav]').forEach(a=>a.setAttribute('aria-current',a.dataset.nav===here?'page':'false'));
 }
 let stableLayoutHeight=Math.max(1,window.innerHeight);
 let stableVisualHeight=Math.max(1,window.visualViewport?.height||stableLayoutHeight);
@@ -359,8 +358,8 @@ function todayMatrix(model,tasks){
 async function today(){
  if(timer){clearInterval(timer);timer=null;}
  const day=localDay();
- const [d,weeklySchedule,focusHistory]=await Promise.all([
-  api('/today?local_date='+encodeURIComponent(day)),api('/schedule'),api('/focus/history')
+ const [d,weeklySchedule]=await Promise.all([
+  api('/today?local_date='+encodeURIComponent(day)),api('/schedule')
  ]);
  const todaySchedule=scheduleForDay(weeklySchedule,day);
  todayRealityDate=day;todayWeeklySchedule=weeklySchedule;todayTimedEvents=todayTimedSchedule(todaySchedule);todayNextCourse=nextCourseOccurrence(weeklySchedule);
@@ -368,9 +367,12 @@ async function today(){
  const plannedOpen=d.todayTasks;
  const plannedDone=d.completedTodayTasks||[];
  const planned=[...plannedOpen,...plannedDone];
+ const latest=d.recentSessions?.[0]||null;
  const startLabel=activity?'继续学习':'开始学习';
- const focusTotal=minutes(focusHistory.total_ms||0);
- const review='<div class="today-review-label">REVIEW</div>'+  '<div class="today-review-total"><small>累计专注</small><div><strong>'+focusTotal+'</strong><span>min</span></div></div>'+  '<nav class="today-review-links" aria-label="回顾入口">'+   '<a href="#/archive/focus">学习记录 '+ornament('arrow')+'</a>'+   '<a href="#/archive/tasks">已完成任务 '+ornament('arrow')+'</a></nav>';
+ const review=latest?
+  '<div class="today-review-stat"><strong>'+minutes(latest.accumulated_ms)+'</strong><span>min</span></div>'+
+  '<p>'+esc(date(latest.started_at))+' · '+esc(time(latest.started_at))+' '+esc(latest.state==='finished'?'完成':'暂停')+'</p>':
+  '<div class="today-review-stat"><strong>—</strong></div><p>还没有可回顾的学习记录。</p>';
  const switcher='<div class="today-view-switch" role="group" aria-label="待办任务视图">'+
   [['list','列表'],['matrix','坐标图']].map(([id,label])=>
    '<button type="button" data-task-view="'+id+'" aria-pressed="'+(todayTaskView===id)+'">'+label+'</button>').join('')+'</div>';
@@ -384,10 +386,11 @@ async function today(){
   '<div class="workarea daily-flow today-v3">'+
    '<section class="today-brief" aria-label="首页课程与今日安排">'+
     '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+'</div>'+
-    '<aside class="today-review">'+review+'</aside>'+
+    '<aside class="today-review"><div class="today-mini-head"><span>REVIEW</span><h2>回顾 / 总结</h2></div>'+
+     review+'<a href="#/learn">学习记录 '+ornament('arrow')+'</a></aside>'+
    '</section>'+
    '<section class="today-backlog" aria-label="今日安排">'+
-    '<div class="today-backlog-head"><div><h2>今日安排</h2></div>'+switcher+'</div>'+
+    '<div class="today-backlog-head"><div><span class="section-eyebrow">02 / TODAY</span><h2>今日安排</h2></div>'+switcher+'</div>'+
     '<p class="today-disclaimer">↑ 表示今天先做；图钉表示已优先。已完成任务会沉到底部保留记录。</p>'+
     taskBody+
    '</section>'+
@@ -702,10 +705,10 @@ async function plan(){
  const selected=dayDate(planSelectedDate);
  const fullDate=selected.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
  view('<header class="plan-top-row"><h1>Plan</h1><button type="button" class="button sm plan-add-button" id="addPlan">'+ornament('plus')+' 添加计划</button></header>'+
-  '<div class="workarea plan-flow"><div class="plan-schedule-shell"><section class="plan-calendar">'+
+  '<div class="workarea plan-flow"><section class="plan-calendar">'+
    planWeekMarkup(planSelectedDate)+'</section>'+
   '<section class="plan-day-section">'+sectionTitle('TIMELINE / DAY',esc(fullDate),'<span class="count-caption">'+(schedule.length+openTasks.filter(t=>t.scheduled_start&&localDateFromIso(t.scheduled_start)===planSelectedDate).length)+' 项</span>')+
-   planTimelineMarkup(schedule,openTasks,objectsById,courseIds)+'</section></div>'+
+   planTimelineMarkup(schedule,openTasks,objectsById,courseIds)+'</section>'+
   '<section class="plan-loose-section">'+sectionTitle('UNSCHEDULED / TASKS','未排期任务','<span class="count-caption">'+looseTasks.length+' 项</span>')+
    (looseTasks.length?'<div class="plan-loose-list">'+looseTasks.map(t=>planTaskRow(t,courseIds)).join('')+'</div>':'<p class="plan-empty-loose">所有任务都已经排进具体日程。</p>')+
   '</section></div>'+planDialogMarkup(objects),'plan-view');
@@ -936,56 +939,6 @@ async function library(){
   setTimeout(()=>URL.revokeObjectURL(href),2000);
  })));
 }
-
-function archiveDateLabel(day){
- const d=dayDate(day);
- return {date:d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'}),weekday:d.toLocaleDateString('zh-CN',{weekday:'short'})};
-}
-function archiveTimeLabel(iso){return iso?new Date(iso).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}):'';}
-function archiveTimeline(tasks,history,objects,mode){
- const objectMap=new Map(objects.map(o=>[o.id,o]));
- const events=[];
- for(const task of tasks.filter(t=>t.status==='done')){
-  const at=task.updated_at||task.created_at;
-  if(!at)continue;
-  events.push({kind:'task',at,title:task.title,object:objectMap.get(task.object_id)?.title||''});
- }
- for(const session of history.sessions||[]){
-  const ms=Number(session.accumulated_ms)||0;
-  if(ms<=0)continue;
-  const at=session.ended_at||session.updated_at||session.started_at;
-  if(!at)continue;
-  events.push({kind:'focus',at,ms,started_at:session.started_at,ended_at:session.ended_at,object:objectMap.get(session.object_id)?.title||''});
- }
- events.sort((a,b)=>Date.parse(b.at)-Date.parse(a.at));
- const groups=new Map();
- for(const event of events){
-  const day=localDateFromIso(event.at);
-  if(!groups.has(day))groups.set(day,[]);
-  groups.get(day).push(event);
- }
- if(!groups.size)return '<div class="archive-empty"><span>—</span><p>还没有可以放进学习轨迹的记录。</p></div>';
- return '<div class="archive-timeline '+(mode==='tasks'?'emphasize-tasks':'emphasize-focus')+'">'+[...groups.entries()].map(([day,items])=>{
-  const label=archiveDateLabel(day);
-  return '<section class="archive-day"><div class="archive-date"><strong>'+esc(label.date)+'</strong><span>'+esc(label.weekday)+'</span></div>'+items.map(item=>{
-   if(item.kind==='task')return '<div class="archive-event task"><div class="archive-side left"><article class="archive-card task-card"><span>DONE</span><strong>'+esc(item.title)+'</strong>'+(item.object?'<small>'+esc(item.object)+'</small>':'')+'<time>'+esc(archiveTimeLabel(item.at))+'</time></article></div><i class="archive-dot"></i><div class="archive-side right"></div></div>';
-   const start=archiveTimeLabel(item.started_at),end=archiveTimeLabel(item.ended_at);
-   return '<div class="archive-event focus"><div class="archive-side left"></div><i class="archive-dot"></i><div class="archive-side right"><article class="archive-card focus-card"><span>FOCUS</span><div class="archive-duration"><strong>'+minutes(item.ms)+'</strong><small>min</small></div>'+(item.object?'<b>'+esc(item.object)+'</b>':'')+'<time>'+esc(start+(end?' — '+end:''))+'</time></article></div></div>';
-  }).join('')+'</section>';
- }).join('')+'</div>';
-}
-async function archive(){
- if(timer){clearInterval(timer);timer=null;}
- const mode=archiveMode();
- const [history,tasks,objects]=await Promise.all([api('/focus/history'),api('/tasks'),api('/objects')]);
- const title=mode==='tasks'?'已完成任务':'学习记录';
- view(
-  '<header class="archive-top-row"><div><a class="archive-back" href="#/today">‹ Today</a><h1>'+title+'</h1></div><span>学习轨迹</span></header>'+
-  '<div class="workarea archive-flow"><div class="archive-columns-head"><span>完成任务</span><i></i><span>专注记录</span></div>'+archiveTimeline(tasks,history,objects,mode)+'</div>',
-  'archive-view'
- );
-}
-
 async function perform(action){
  try{await action();}catch(error){notify(error.message);}
 }
@@ -994,7 +947,7 @@ async function render(){
  if(timer){clearInterval(timer);timer=null;}
  try{
   root.innerHTML='<div class="view"><div class="kicker">LEARNING</div><div class="quiet">正在载入…</div></div>';
-  await({today,plan,learn,library,archive}[name])();
+  await({today,plan,learn,library}[name])();
  }catch(error){
   if(seq!==viewId)return;
   root.innerHTML='<div class="view"><div class="head"><h1>连接失败</h1></div><p class="quiet">'+esc(error.message)+'</p><button class="button secondary" id="retry">重试</button></div>';root.querySelector('#retry').addEventListener('click',render);
