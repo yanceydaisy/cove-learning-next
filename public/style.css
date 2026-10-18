@@ -658,7 +658,7 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.today-start-
 .today-priority-button.active{background:var(--surface-strong);color:var(--ink)}
 .today-task-check{width:22px;height:22px;color:var(--muted);cursor:pointer}
 .today-task-check .micro-icon{width:12px;height:12px}
-.today-task-check.complete{border-color:var(--line);cursor:default}
+.today-task-check.complete{border-color:var(--line);cursor:pointer}
 .today-task-card.complete{opacity:.58;background:rgba(255,255,255,.055);border-color:var(--line);
  -webkit-backdrop-filter:blur(20px) saturate(.75);backdrop-filter:blur(20px) saturate(.75);box-shadow:none}
 .today-task-card.complete .today-task-copy strong{text-decoration:line-through;text-decoration-thickness:.6px;text-decoration-color:var(--muted);color:var(--muted)}
