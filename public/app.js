@@ -186,6 +186,8 @@ const ornamentPaths={
  sparkle:'<path d="M12 2.5v19M2.5 12h19M5.3 5.3l13.4 13.4M18.7 5.3 5.3 18.7"/>',
  orbit:'<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="2"/><path d="M18.4 5.8l3-3"/>',
  plus:'<path d="M12 4v16M4 12h16"/>',
+ up:'<path d="m6.5 13 5.5-5.5 5.5 5.5M12 7.5V19"/>',
+ pin:'<path d="M9 3.5h6l-1 5 3 3v1.7H7v-1.7l3-3-1-5ZM12 13.2V21"/>',
  check:'<path d="m4.5 12.5 5 5 10-11"/>'
 };
 function ornament(name,extra=''){
@@ -194,7 +196,7 @@ function ornament(name,extra=''){
 function actionLink(href,label){return '<a class="text-action" href="'+href+'">'+label+' '+ornament('arrow')+'</a>';}
 function list(items,cb){return items.length?items.map(cb).join(''):'<p class="empty">暂时没有记录</p>';}
 function head(english,cn,kicker='COVE / LEARNING'){
- return '<header class="head"><div><p class="kicker">'+kicker+'</p><h1>'+english+'</h1></div><span class="quiet">'+cn+'</span></header>';
+ return '<header class="head"><div>'+(kicker?'<p class="kicker">'+kicker+'</p>':'')+'<h1>'+english+'</h1></div><span class="quiet">'+cn+'</span></header>';
 }
 function row(label,sub,right=''){
  return '<div class="row"><div class="row-body"><div class="row-title">'+esc(label)+'</div>'+(sub?'<div class="row-sub">'+esc(sub)+'</div>':'')+'</div>'+right+'</div>';
@@ -319,14 +321,17 @@ function refreshTodayReality(){
  if(current)current.outerHTML=todayRealityMarkup(todayTimedEvents,todayNextCourse);
 }
 function decisionRow(t,index=0){
+ const done=t.status==='done',id=esc(t.id);
  const importanceNote=t.importance?' · 重要度 '+({low:'低',medium:'中',high:'高'}[t.importance]||t.importance):'';
  const evidenceNote=t.evidence?.length?' · 证据 '+t.evidence.slice(0,2).map(item=>item.title).join(' / '):'';
- const note=(t.reasons?.[0]||'由任务状态生成的建议')+importanceNote+evidenceNote;
+ const note=done?('已完成 · '+date(t.updated_at)+' '+time(t.updated_at)):((t.reasons?.[0]||'由任务状态生成的建议')+importanceNote+evidenceNote);
  const preferred=Number(t.boost||0)>0;
- const control='<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+esc(t.id)+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销 '+esc(t.title)+' 的今日优先':'今天先做 '+esc(t.title))+'">'+
-  (preferred?'已优先':'今天先做')+'</button>';
- return '<article class="today-task-card"><span class="today-task-index">'+String(index+1).padStart(2,'0')+'</span>'+
-  '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(deadlineDistance(t.due_at))+' · '+esc(note)+'</span></div>'+control+'</article>';
+ const priority=done?'':'<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+id+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销今天优先':'今天先做')+'" title="'+(preferred?'已优先':'今天先做')+'">'+ornament(preferred?'pin':'up')+'</button>';
+ const check=done
+  ?'<span class="today-task-check complete" aria-label="已完成">'+ornament('check')+'</span>'
+  :'<button type="button" class="today-task-check" data-today-done="'+id+'" aria-label="完成 '+esc(t.title)+'" title="完成"> </button>';
+ return '<article class="today-task-card'+(done?' complete':'')+'"><span class="today-task-index">'+String(index+1).padStart(2,'0')+'</span>'+
+  '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(done?note:(deadlineDistance(t.due_at)+' · '+note))+'</span></div>'+priority+check+'</article>';
 }
 function todayMatrix(model,tasks){
  const ready=Boolean(model?.importanceAvailable),linked=Boolean(model?.evidenceLinksAvailable);
@@ -359,7 +364,9 @@ async function today(){
  const todaySchedule=scheduleForDay(weeklySchedule,day);
  todayRealityDate=day;todayWeeklySchedule=weeklySchedule;todayTimedEvents=todayTimedSchedule(todaySchedule);todayNextCourse=nextCourseOccurrence(weeklySchedule);
  const activity=d.activeFocus;
- const planned=d.todayTasks;
+ const plannedOpen=d.todayTasks;
+ const plannedDone=d.completedTodayTasks||[];
+ const planned=[...plannedOpen,...plannedDone];
  const latest=d.recentSessions?.[0]||null;
  const startLabel=activity?'继续学习':'开始学习';
  const review=latest?
@@ -372,10 +379,10 @@ async function today(){
  const taskBody=todayTaskView==='list'?
   (planned.length?'<div class="today-task-list">'+planned.map(decisionRow).join('')+'</div>':
    '<p class="today-empty">今天还没有安排任务。去 Plan 放一件真正想完成的事进来。</p>'):
-  todayMatrix(d.priorityModel,planned);
+  todayMatrix(d.priorityModel,plannedOpen);
  view(
-  '<header class="head today-head"><div><p class="kicker">HOME / OVERVIEW</p><h1>Learning</h1></div>'+
-   '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span></a></header>'+
+  '<header class="head today-head"><div><p class="kicker">HOME / OVERVIEW</p><h1>Today</h1></div>'+
+   '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span><span class="today-start-plus" aria-hidden="true">+</span></a></header>'+
   '<div class="workarea daily-flow today-v3">'+
    '<section class="today-brief" aria-label="首页课程与今日安排">'+
     '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+'</div>'+
@@ -384,7 +391,7 @@ async function today(){
    '</section>'+
    '<section class="today-backlog" aria-label="今日安排">'+
     '<div class="today-backlog-head"><div><span class="section-eyebrow">02 / TODAY</span><h2>今日安排</h2></div>'+switcher+'</div>'+
-    '<p class="today-disclaimer">列表按当前证据给出可解释建议；“今天先做”只改变今天的推荐顺序。坐标图只有在重要度证据成立后才放置任务点。</p>'+
+    '<p class="today-disclaimer">↑ 表示今天先做；图钉表示已优先。已完成任务会沉到底部保留记录。</p>'+
     taskBody+
    '</section>'+
   '</div>'
@@ -396,13 +403,18 @@ async function today(){
   root.querySelector('.today-view-switch [data-task-view="'+todayTaskView+'"]')?.focus({preventScroll:true});
  })));
  root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
-  const item=planned.find(t=>t.id===button.dataset.preference);
+  const item=plannedOpen.find(t=>t.id===button.dataset.preference);
   if(!item)return;
   const boost=Number(item.boost||0)>0?0:2;
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
   await api('/tasks/'+item.id+'/preference','POST',{boost,...(boost?{expires_at:localMidnight()}:{})});
   await today();root.querySelector('.workarea').scrollTop=scroll;
-  notify(boost?'已标记：今天先做，今晚失效':'已撤销今天优先');
+  notify(boost?'已优先':'已撤销今天优先');
+ })));
+ root.querySelectorAll('[data-today-done]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  const scroll=root.querySelector('.workarea')?.scrollTop||0;
+  await api('/tasks/'+button.dataset.todayDone+'/complete','POST');await today();
+  root.querySelector('.workarea').scrollTop=scroll;notify('已完成，保留在今日安排底部');
  })));
  timer=setInterval(refreshTodayReality,30_000);
 }
@@ -468,11 +480,11 @@ function taskEditForm(t){
   '<label>预计分钟<input type="number" name="estimated_minutes" min="1" max="20160" value="'+esc(t.estimated_minutes||'')+'"></label>'+
   '<button class="button sm primary" type="submit">保存</button></form>';
 }
-function taskActionButtons(t,courseTask){
+function taskActionButtons(t,courseTask,includeDone=true){
  const id=esc(t.id);
  return (courseTask?'<button type="button" class="button sm quiet-button" data-evidence="'+id+'">证据</button>':'')+
   '<button type="button" class="button sm quiet-button" data-edit="'+id+'">设置</button>'+
-  '<button type="button" class="button sm quiet-button" data-done="'+id+'">完成</button>';
+  (includeDone?'<button type="button" class="button sm quiet-button" data-done="'+id+'">完成</button>':'');
 }
 function planTaskRow(t,courseIds){
  const done=t.status==='done',id=esc(t.id),courseTask=Boolean(t.object_id&&courseIds.has(t.object_id));
@@ -481,10 +493,12 @@ function planTaskRow(t,courseIds){
   t.due_at?'DDL '+date(t.due_at)+' '+time(t.due_at):'',
   t.estimated_minutes?t.estimated_minutes+' 分钟':''
  ].filter(Boolean).join(' · ');
- return '<div class="plan-task"><div class="task-item"><span class="task-check '+(done?'complete':'')+'" aria-hidden="true">'+(done?ornament('check'):'')+'</span>'+
+ return '<div class="plan-task"><div class="task-item">'+(done
+  ?'<span class="task-check complete" aria-label="已完成">'+ornament('check')+'</span>'
+  :'<button type="button" class="task-check" data-done="'+id+'" aria-label="完成 '+esc(t.title)+'" title="完成"></button>')+
   '<div class="plan-task-copy"><span class="task-description '+(done?'complete':'')+'">'+esc(t.title)+'</span>'+
   (details?'<small>'+esc(details)+'</small>':'')+'</div>'+
-  (done?'<span class="row-trailing">已完成</span>':taskActionButtons(t,courseTask))+'</div>'+
+  (done?'<span class="row-trailing">已完成</span>':taskActionButtons(t,courseTask,false))+'</div>'+
   (done?'':taskEditForm(t)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+id+'" hidden></div>':''))+'</div>';
 }
 function taskEvidenceMarkup(data){
@@ -755,7 +769,7 @@ async function learn(){
  '<form id="focusForm" class="focus-form"><select name="object_id" aria-label="选择学习对象"><option value="">自由学习 · 不关联任务</option>'+
  objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+
  '</select><button class="button focus-main">开始专注 '+ornament('arrow')+'</button></form>';
- view(head('Learn','专注')+
+ view(head('Learning','专注','')+
  '<div class="workarea spacious-flow">'+
  '<section class="focus-stage"><p class="focus-eyebrow">FOCUS / NOW</p><span class="focus-decoration" aria-hidden="true">'+ornament('orbit')+'</span>'+action+'</section>'+
  '<section class="open-section">'+sectionTitle('ARCHIVE / RECENT','学习记录')+historyList(recent,6)+'</section>'+
@@ -849,7 +863,7 @@ async function library(){
     '<select name="source_resource_id">'+sourceOptions(resources)+'</select><input name="source_locator" maxlength="300" placeholder="来源位置（可选）">'+
     '<button class="button sm primary" type="submit">添加考核</button></form>'+
    '<div class="context-list">'+(assessmentItems.length?assessmentItems.map(i=>contextItemRow(i,resources)).join(''):'<p class="muted-line">还没有已记录的考核信息。</p>')+'</div></div></div></section>':'';
- view(head('Library','资料库')+
+ view(head('Library','资料库','')+
  '<div class="workarea library-flow">'+
  '<section class="library-objects">'+sectionTitle('01 / COLLECTION','学习对象','<label class="library-filter-wrap"><span>筛选</span><select id="libraryObjectFilter" class="library-filter" aria-label="筛选学习对象">'+filterOptions+'</select></label>')+
  '<div class="object-overview"><div><strong>'+counts.course+'</strong><span>课程</span></div><div><strong>'+counts.project+'</strong><span>项目</span></div><div><strong>'+counts.track+'</strong><span>路线</span></div></div>'+
@@ -1340,7 +1354,7 @@ void main(){
     }
     function syncCards(){
       const selected=new Set(document.querySelectorAll(
-        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-start-action,.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
+        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-start-action,.today-task-card:not(.complete),.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
       ));
       for(const [card,optic] of optics){
         if(!selected.has(card)){optic.dispose();optics.delete(card);}
