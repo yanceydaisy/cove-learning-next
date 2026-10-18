@@ -1320,8 +1320,8 @@ void main(){
         gl.uniform1f(loc.u_lBlur,1);
         gl.uniform1f(loc.u_lEdge,1);
         gl.uniform1f(loc.u_lShadow,isStart ? .72 : 1);
-        gl.uniform1f(loc.u_lDistort,1);
-        gl.uniform1f(loc.u_softBlur,isHero?1.7:isStart?1.15:0.0);
+        gl.uniform1f(loc.u_lDistort,isStart ? 0.0 : 1);
+        gl.uniform1f(loc.u_softBlur,isHero?1.7:isStart?0.35:0.0);
         if(isStart)gl.uniform3f(loc.u_color,.99,.965,.91);
         else if(light)gl.uniform3f(loc.u_color,.84,.89,.96);
         else gl.uniform3f(loc.u_color,.81,.71,.94);
