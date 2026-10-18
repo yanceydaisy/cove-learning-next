@@ -870,6 +870,7 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
  -webkit-backdrop-filter:blur(21px) saturate(1.16);backdrop-filter:blur(21px) saturate(1.16);
  box-shadow:0 15px 36px rgba(42,50,67,.065)}
 .plan-schedule-shell>.plan-calendar,.plan-schedule-shell>.plan-day-section{position:relative;z-index:1}
+.plan-schedule-shell .plan-calendar-head,.plan-schedule-shell .plan-day-section>.section-heading{padding-inline:7px}
 :root[data-theme="light"] .plan-schedule-shell::before{background:linear-gradient(155deg,rgba(255,255,255,.28),rgba(255,255,255,.11))}
 :root[data-theme="dark"] .plan-schedule-shell::before{background:linear-gradient(155deg,rgba(238,232,244,.085),rgba(18,21,32,.10));box-shadow:0 16px 38px rgba(0,0,0,.12)}
 .plan-add-button{background:var(--surface);color:var(--ink);border-color:var(--rule);box-shadow:0 8px 22px var(--shadow);white-space:nowrap;flex:none}
@@ -976,7 +977,10 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
  .plan-schedule-shell{gap:14px}
  .plan-day-section{padding-top:14px;margin-top:0}
  .plan-loose-section{margin-top:23px}
- .plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:23px}
+ .plan-calendar-head{align-items:center}.plan-calendar-head h2{font-size:21px}
+ .plan-schedule-shell .plan-calendar-head .section-eyebrow,.plan-schedule-shell .plan-day-section>.section-heading .section-eyebrow{font-size:9px;letter-spacing:.15em}
+ .plan-schedule-shell .plan-day-section>.section-heading h2{font-size:17px}
+ .plan-schedule-shell .plan-day-section>.section-heading .count-caption{font-size:10px}
  .plan-week-strip{gap:3px}.plan-day-button{min-height:58px;border-radius:15px}
  .plan-timeline-row,.plan-now-marker{grid-template-columns:46px 14px minmax(0,1fr);gap:6px}
  .plan-time-cell strong{font-size:10px}.plan-event-card{padding-left:8px}
