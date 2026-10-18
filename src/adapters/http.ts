@@ -1,3 +1,4 @@
+
 import {createServer,type IncomingMessage,type ServerResponse} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -56,6 +57,7 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     else if(path==='/api/today'&&method==='GET')result=app.today.snapshot(url.searchParams.get('local_date')??undefined);
     else if(path==='/api/objects'&&method==='GET')result=app.catalog.list();
     else if(path==='/api/objects'&&method==='POST'){result=app.catalog.create(await parseBody(req));status=201;}
+    else if(parts.length===3&&parts[1]==='objects'&&method==='POST')result=app.catalog.update(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='courses'&&parts[3]==='context'&&method==='GET')
      result=app.courseContext.list(parts[2]!);
     else if(parts.length===4&&parts[1]==='courses'&&parts[3]==='context'&&method==='POST'){
@@ -81,6 +83,7 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='preference'&&method==='POST')
      result=app.planning.setPreference(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='complete'&&method==='POST')result=app.planning.complete(parts[2]!);
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='reopen'&&method==='POST')result=app.planning.reopen(parts[2]!);
     else if(path==='/api/resources'&&method==='GET')result=app.library.list();
     else if(path==='/api/resources'&&method==='POST'){result=app.library.ingest(await parseBody(req));status=201;}
     else if(parts.length===4&&parts[1]==='resources'&&parts[3]==='content'&&method==='GET'){
@@ -114,3 +117,5 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
  server.on('close',()=>{void mcp?.close();});
  return server;
 }
+
+[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
