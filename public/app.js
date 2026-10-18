@@ -591,11 +591,14 @@ function applyPlanTimelineGeometry(timeline){
  for(const row of rows){
   const startMin=Number(row.dataset.startMin),endMin=Number(row.dataset.endMin);
   const collapsed=row.dataset.kind==='course'&&row.classList.contains('past');
+  row.classList.toggle('collapsed-past',collapsed);
   let gapPx=Math.max(0,startMin-previousEnd)*scale;
   if(collapsed&&previousCollapsed)gapPx=Math.max(gapPx,PLAN_PAST_MIN_GAP);
   cursor+=gapPx;
-  const height=collapsed?PLAN_PAST_COURSE_HEIGHT:Math.max(46,(endMin-startMin)*scale);
-  row.classList.toggle('collapsed-past',collapsed);
+  const card=row.querySelector('.plan-event-card');
+  const contentHeight=card?Math.ceil(card.scrollHeight)+2:0;
+  const baseHeight=collapsed?PLAN_PAST_COURSE_HEIGHT:Math.max(46,(endMin-startMin)*scale);
+  const height=Math.max(baseHeight,contentHeight);
   row.style.top=cursor.toFixed(1)+'px';
   row.style.height=height.toFixed(1)+'px';
   cursor+=height;
