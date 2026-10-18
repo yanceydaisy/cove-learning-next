@@ -93,6 +93,7 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     }
     else if(path==='/api/focus/active'&&method==='GET')result=app.activity.active();
     else if(path==='/api/focus/recent'&&method==='GET')result=app.activity.recent();
+    else if(path==='/api/focus/history'&&method==='GET')result=app.activity.history();
     else if(path==='/api/focus/start'&&method==='POST'){result=app.activity.start(await parseBody(req));status=201;}
     else if(parts.length===4&&parts[1]==='focus'&&['pause','resume','finish'].includes(parts[3]!)&&method==='POST'){
      const id=parts[2]!,action=parts[3];
@@ -117,5 +118,3 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
  server.on('close',()=>{void mcp?.close();});
  return server;
 }
-
-[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
