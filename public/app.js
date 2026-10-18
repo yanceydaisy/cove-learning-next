@@ -328,7 +328,7 @@ function decisionRow(t,index=0){
  const preferred=Number(t.boost||0)>0;
  const priority=done?'':'<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+id+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销今天优先':'今天先做')+'" title="'+(preferred?'已优先':'今天先做')+'">'+ornament(preferred?'pin':'up')+'</button>';
  const check=done
-  ?'<span class="today-task-check complete" aria-label="已完成">'+ornament('check')+'</span>'
+  ?'<button type="button" class="today-task-check complete" data-today-reopen="'+id+'" aria-label="恢复 '+esc(t.title)+'" title="恢复为未完成">'+ornament('check')+'</button>'
   :'<button type="button" class="today-task-check" data-today-done="'+id+'" aria-label="完成 '+esc(t.title)+'" title="完成"> </button>';
  return '<article class="today-task-card'+(done?' complete':'')+'"><span class="today-task-index">'+String(index+1).padStart(2,'0')+'</span>'+
   '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(done?note:(deadlineDistance(t.due_at)+' · '+note))+'</span></div>'+priority+check+'</article>';
@@ -415,6 +415,11 @@ async function today(){
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
   await api('/tasks/'+button.dataset.todayDone+'/complete','POST');await today();
   root.querySelector('.workarea').scrollTop=scroll;notify('已完成，保留在今日安排底部');
+ })));
+ root.querySelectorAll('[data-today-reopen]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
+  const scroll=root.querySelector('.workarea')?.scrollTop||0;
+  await api('/tasks/'+button.dataset.todayReopen+'/reopen','POST');await today();
+  root.querySelector('.workarea').scrollTop=scroll;notify('已恢复为未完成');
  })));
  timer=setInterval(refreshTodayReality,30_000);
 }
@@ -1310,7 +1315,7 @@ void main(){
         gl.uniform1f(loc.u_tint,isStart?(light?1.42:1.52):preset.tint/100);
         gl.uniform1f(loc.u_blur,preset.blur);
         gl.uniform1f(loc.u_edge,preset.edge/100);
-        gl.uniform1f(loc.u_shine,isStart ? .22 : preset.shine/100);
+        gl.uniform1f(loc.u_shine,isStart ? 0.0 : preset.shine/100);
         gl.uniform1f(loc.u_lTint,isStart ? 1.34 : 1);
         gl.uniform1f(loc.u_lBlur,1);
         gl.uniform1f(loc.u_lEdge,1);
