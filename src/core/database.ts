@@ -1,4 +1,3 @@
-
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -110,6 +109,40 @@ CREATE INDEX idx_weekly_schedule_day ON weekly_schedule_entries(weekday,effectiv
  ,{version:7,name:'weekly_schedule_location',sql:`
 ALTER TABLE weekly_schedule_entries ADD COLUMN location TEXT;
 `}
+ ,{version:8,name:'project_metadata',sql:`
+ALTER TABLE learning_objects ADD COLUMN project_status TEXT CHECK(project_status IS NULL OR project_status IN ('idea','active','paused','done'));
+ALTER TABLE learning_objects ADD COLUMN project_stage TEXT;
+ALTER TABLE learning_objects ADD COLUMN progress_percent INTEGER CHECK(progress_percent IS NULL OR (progress_percent BETWEEN 0 AND 100));
+ALTER TABLE learning_objects ADD COLUMN next_action TEXT;
+ALTER TABLE learning_objects ADD COLUMN blocker TEXT;
+ALTER TABLE learning_objects ADD COLUMN updated_at TEXT;
+UPDATE learning_objects SET updated_at=created_at WHERE updated_at IS NULL;
+CREATE INDEX idx_learning_objects_project_status ON learning_objects(kind,project_status,updated_at);
+`}
+ ,{version:9,name:'learning_records',sql:`
+CREATE TABLE learning_records (
+ id TEXT PRIMARY KEY,
+ local_date TEXT NOT NULL,
+ started_at TEXT NOT NULL,
+ ended_at TEXT NOT NULL,
+ elapsed_minutes INTEGER NOT NULL CHECK(elapsed_minutes>=0),
+ focused_minutes INTEGER NOT NULL CHECK(focused_minutes>=0 AND focused_minutes<=elapsed_minutes),
+ title TEXT NOT NULL,
+ summary TEXT,
+ activity_type TEXT NOT NULL CHECK(activity_type IN ('study','review','practice','reading','project','other')),
+ object_id TEXT REFERENCES learning_objects(id) ON DELETE SET NULL,
+ task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+ next_action TEXT,
+ note TEXT,
+ tags_json TEXT NOT NULL DEFAULT '[]',
+ source TEXT NOT NULL CHECK(source IN ('manual','focus','mcp','import')),
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL
+);
+CREATE INDEX idx_learning_records_date ON learning_records(local_date,started_at,id);
+CREATE INDEX idx_learning_records_object ON learning_records(object_id,local_date);
+CREATE INDEX idx_learning_records_task ON learning_records(task_id,local_date);
+`}
 ] as const;
 
 export class Database {
@@ -158,5 +191,3 @@ export class Database {
   }
   close(){this.raw.close();}
 }
-
-[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
