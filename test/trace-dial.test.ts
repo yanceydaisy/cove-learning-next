@@ -25,7 +25,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   const iso=(day:string,time:string)=>day+'T'+time+':00+08:00';
   const records=[
    {id:'a',title:'一小时记录',summary:'复习状态空间模型。',next_action:'整理一道例题',note:'检查单位',tags:['复习'],started_at:iso('2024-02-29','09:00'),ended_at:iso('2024-02-29','10:00'),focused_minutes:45,activity_type:'study'},
-   {id:'b',title:'两小时记录',started_at:iso('2024-02-29','12:00'),ended_at:iso('2024-02-29','14:00'),focused_minutes:100,activity_type:'study'},
+   {id:'b',title:'两小时记录',summary:('这一段用于核对较长记录能否完整翻页展示，不能靠隐藏内容代替无滚动。\n').repeat(12),started_at:iso('2024-02-29','12:00'),ended_at:iso('2024-02-29','14:00'),focused_minutes:100,activity_type:'study'},
    {id:'c',title:'跨午夜记录',started_at:iso('2024-02-29','23:30'),ended_at:iso('2024-03-01','00:30'),focused_minutes:60,activity_type:'reading'}
   ];
   for(const item of records)app.records.create({...item,local_date:'2024-02-29',time_zone:'Asia/Shanghai'});
@@ -160,7 +160,11 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   await page.locator('#ephemerisHost .event-node[data-minute="540"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
   assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录');
   assert.equal(await page.locator('#ephemerisHost [data-record-detail=summary]').innerText(),'复习状态空间模型。');
+  await page.locator('#ephemerisHost [data-detail-step="1"]').click();
+  assert.equal(await page.locator('#ephemerisHost [data-record-detail=note]').innerText(),'检查单位');
+  await page.locator('#ephemerisHost [data-detail-step="1"]').click();
   assert.match(await page.locator('#ephemerisHost [data-record-detail=next]').innerText(),/整理一道例题/);
+  await page.locator('#ephemerisHost [data-detail-step="1"]').click();
   assert.match(await page.locator('#ephemerisHost [data-record-detail=tags]').innerText(),/#复习/);
   for(let i=0;i<3&&await page.locator('#ephemerisHost').getAttribute('data-theme')!=='dark';i++)await page.locator('#appearance').click();
   assert.equal(await page.locator('#ephemerisHost').getAttribute('data-theme'),'dark');
@@ -168,7 +172,63 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
    const svg=host.shadowRoot!.querySelector('#traceDial') as SVGSVGElement,m=svg.getScreenCTM()!;
    return 416*Math.hypot(m.a,m.b)/innerWidth;
   });
-  assert.ok(Math.abs(embeddedLayout-.75)<.002);
+  assert.ok(embeddedLayout<=.752&&embeddedLayout>.5,'native dial fits available height and never exceeds approved width');
+  await page.locator('#ephemerisHost .event-node[data-minute="720"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  const totalPages=Number((await page.locator('#ephemerisHost #detailPageCount').innerText()).split('/')[1]);
+  assert.ok(totalPages>3);
+  let recovered='';
+  for(let i=0;i<totalPages;i++){
+   recovered+=await page.locator('#ephemerisHost [data-record-detail=summary]').innerText();
+   if(i<totalPages-1)await page.locator('#ephemerisHost [data-detail-step="1"]').click();
+  }
+  assert.equal(recovered.replace(/\n/g,''),records[1]!.summary!.replace(/\n/g,''),'all long-summary text is reachable through paging');
+  for(const size of [{width:320,height:568},{width:393,height:852},{width:414,height:896}]){
+   await page.setViewportSize(size);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   const fixed=await page.locator('#ephemerisHost').evaluate(host=>{
+    const shadow=host.shadowRoot!,screen=document.querySelector('#screen') as HTMLElement;
+    const measured=shadow.querySelector('.dial-shell') as HTMLElement;
+    const stage=shadow.querySelector('#dialStage') as HTMLElement;
+    const svg=shadow.querySelector('#traceDial') as SVGSVGElement,m=svg.getScreenCTM()!;
+    const footer=shadow.querySelector('.dial-footer')!.getBoundingClientRect();
+    const pager=shadow.querySelector('#detailPager')!.getBoundingClientRect(),caption=shadow.querySelector('.editorial-bottom')!.getBoundingClientRect();
+    return {background:getComputedStyle(host).backgroundColor,rows:[screen.scrollHeight-screen.clientHeight,measured.scrollHeight-measured.clientHeight,stage.scrollHeight-stage.clientHeight],
+     footerBottom:footer.bottom,screenBottom:screen.getBoundingClientRect().bottom,pagerBottom:pager.bottom,captionBottom:caption.bottom,header:shadow.querySelector('.dial-header'),masks:shadow.querySelectorAll('mask').length,topbar:document.querySelector('.topbar')!.getBoundingClientRect().height,
+     ratio:416*Math.hypot(m.a,m.b)/innerWidth};
+   });
+   assert.equal(fixed.background,'rgba(0, 0, 0, 0)','Learning wallpaper is visible through the archive');
+   assert.deepEqual(fixed.rows,[0,0,0],'no nested page overflows or scrolls');
+   assert.equal(fixed.header,null);assert.equal(fixed.masks,4,'needle and hub details use real negative space');
+   assert.ok(fixed.footerBottom<=fixed.screenBottom+1);assert.ok(fixed.pagerBottom<=fixed.captionBottom+1,'detail paging controls stay visible');
+   assert.ok(fixed.ratio<=.752&&fixed.ratio>.45);assert.ok(fixed.topbar<=28);
+  }
+  await page.setViewportSize({width:393,height:852});
+  await page.evaluate(()=>document.documentElement.style.setProperty('--safe-top','59px'));await page.waitForTimeout(50);
+  const safeArea=await page.locator('#ephemerisHost').evaluate(host=>{
+   const shell=host.shadowRoot!.querySelector('.dial-shell') as HTMLElement,screen=document.querySelector('#screen') as HTMLElement;
+   return {scroll:screen.scrollHeight-screen.clientHeight,content:shell.scrollHeight-shell.clientHeight,top:document.querySelector('.topbar')!.getBoundingClientRect().top};
+  });
+  assert.deepEqual(safeArea,{scroll:0,content:0,top:59},'iPhone safe-area padding keeps all content fixed and in bounds');
+  await page.evaluate(()=>document.documentElement.style.removeProperty('--safe-top'));await page.waitForTimeout(50);
+  await page.mouse.wheel(150,300);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:375,y:500,id:1}]});
+  for(let i=1;i<=8;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:375,y:500-i*25,id:1}]});await page.waitForTimeout(16)}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  assert.deepEqual(await page.evaluate(()=>({window:[scrollX,scrollY],screen:[document.querySelector('#screen')!.scrollLeft,document.querySelector('#screen')!.scrollTop]})),{window:[0,0],screen:[0,0]},'wheel and touch never pan the native page');
+
+  // Touch the visible long-hand grip inside Shadow DOM; the fixed page must still permit needle motion.
+  const nativePoints=await page.locator('#ephemerisHost').evaluate(host=>{
+   const shadow=host.shadowRoot!,hand=shadow.querySelector('#eventHand') as SVGGraphicsElement,svg=shadow.querySelector('#traceDial') as SVGSVGElement;
+   const from=new DOMPoint(332,0).matrixTransform(hand.getScreenCTM()!);
+   const to=new DOMPoint(58+332*Math.cos(.35),470+332*Math.sin(.35)).matrixTransform(svg.getScreenCTM()!);
+   return {from:{x:from.x,y:from.y},to:{x:to.x,y:to.y}};
+  });
+  const fixedMonth=await page.locator('#ephemerisHost #monthHand').getAttribute('aria-valuenow');
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...nativePoints.from,id:1}]});
+  assert.equal(await page.locator('#ephemerisHost #dialStage').getAttribute('data-active-hand'),'event');
+  for(let i=1;i<=12;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:nativePoints.from.x+(nativePoints.to.x-nativePoints.from.x)*i/12,y:nativePoints.from.y+(nativePoints.to.y-nativePoints.from.y)*i/12,id:1}]});await page.waitForTimeout(16)}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(800);
+  assert.equal(await page.locator('#ephemerisHost #monthHand').getAttribute('aria-valuenow'),fixedMonth);
+  assert.ok(Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'))>850,'real long-hand touch drag works on the fixed transparent page');
   await page.locator('#ephemerisHost #eventHand').press('Shift+ArrowRight');
   await page.locator('#dock a[data-nav=today]').click();
   await page.locator('.today-brief').waitFor();

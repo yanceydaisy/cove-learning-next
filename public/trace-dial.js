@@ -154,14 +154,45 @@ function drawAtlasDecor(width,height){
 
 function layoutDial(){
  const width=stage.getBoundingClientRect().width;
- // The visible semicircle radius occupies 75% of the viewport width.
- const axisX=0,scale=Math.min(width*.75/416,width>=640?1.1:Infinity);
- const outerRadius=428*scale,height=outerRadius*2+152;
- stage.style.height=`${height}px`;
- const axisY=outerRadius+12;
- Object.assign(svg.style,{width:`${760*scale}px`,height:`${940*scale}px`,
-  insetInlineStart:`${axisX-cx*scale}px`,insetBlockStart:`${axisY-cy*scale}px`});
- drawAtlasDecor(width,height);drawFeedback();
+ if(embedded)stage.style.removeProperty('height');
+ const availableHeight=embedded?stage.getBoundingClientRect().height:Infinity;
+ // Keep the approved 75% radius wherever the fixed viewport allows it.
+ const scale=Math.min(width*.75/416,width>=640?1.1:Infinity,embedded?Math.max(.1,(availableHeight-60)/856):Infinity);
+ const outerRadius=428*scale,height=embedded?availableHeight:outerRadius*2+152;
+ if(!embedded)stage.style.height=height+'px';
+ const axisY=outerRadius+10;
+ Object.assign(svg.style,{width:760*scale+'px',height:940*scale+'px',
+  insetInlineStart:-cx*scale+'px',insetBlockStart:axisY-cy*scale+'px'});
+ drawAtlasDecor(width,height);
+ if(embedded&&expanded&&currentEvent())renderRecordDetails(currentEvent());
+ drawFeedback();
+}
+
+function applyTransparency(){
+ if(!embedded)return;
+ const defs=svg.querySelector('defs');
+ for(const [kind,hand] of Object.entries(hands)){
+  const art=hand.querySelector('.hand-art'),id='ephemeris-cutout-'+kind;
+  const mask=el('mask',{id,maskUnits:'userSpaceOnUse',maskContentUnits:'userSpaceOnUse',x:-64,y:-80,width:540,height:160});
+  mask.append(el('rect',{x:-64,y:-80,width:540,height:160,fill:'white'}));
+  const scaleX=art.transform.baseVal.consolidate().matrix.a;
+  mask.append(el('ellipse',{cx:0,cy:0,rx:37/scaleX,ry:37,fill:'black'}));
+  for(const ring of art.querySelectorAll('.hand-grip,.day-hole')){
+   mask.append(el('circle',{cx:ring.getAttribute('cx'),cy:ring.getAttribute('cy'),r:Math.max(1,Number(ring.getAttribute('r'))-1.7),fill:'black'}));
+  }
+  if(kind==='event'){
+   for(const detail of art.querySelectorAll('.month-filigree,.month-window,.hand-sigil')){
+    const cut=detail.cloneNode(true);cut.removeAttribute('class');
+    cut.setAttribute('fill',detail.classList.contains('hand-sigil')?'black':'none');
+    cut.setAttribute('stroke','black');cut.setAttribute('stroke-width','1.25');mask.append(cut);
+   }
+  }
+  defs.append(mask);
+  for(const shape of art.children)if(!shape.classList.contains('hand-hit'))shape.setAttribute('mask','url(#'+id+')');
+ }
+ const center=el('mask',{id:'ephemeris-hub-cutout',maskUnits:'userSpaceOnUse',x:cx-25,y:cy-25,width:50,height:50});
+ center.append(el('rect',{x:cx-25,y:cy-25,width:50,height:50,fill:'white'}),el('circle',{cx,cy,r:6,fill:'black'}));
+ defs.append(center);hub.querySelector('.hub-rose').setAttribute('mask','url(#ephemeris-hub-cutout)');
 }
 
 function drawOrbits(){
@@ -592,16 +623,51 @@ for(const button of scope.querySelectorAll('[data-year-step]'))listen(button,'cl
 });
 listen(window,'blur',cancelAllDrags);
 
+let detailPages=[],detailPage=0,detailEventId=null;
 function clearRecordDetails(){
  for(const node of scope.querySelectorAll('[data-record-detail]')){node.textContent='';node.hidden=true}
+ const pager=scope.querySelector('#detailPager');if(pager)pager.hidden=true;
+}
+function showDetailPage(){
+ for(const node of scope.querySelectorAll('[data-record-detail]'))node.hidden=true;
+ const page=detailPages[detailPage],pager=scope.querySelector('#detailPager');
+ if(page){const node=scope.querySelector('[data-record-detail="'+page.kind+'"]');node.textContent=page.text;node.hidden=false}
+ if(pager){
+  pager.hidden=detailPages.length<=1;
+  scope.querySelector('#detailPageCount').textContent=(detailPage+1)+' / '+detailPages.length;
+  for(const button of pager.querySelectorAll('[data-detail-step]'))button.disabled=detailPage+Number(button.dataset.detailStep)<0||detailPage+Number(button.dataset.detailStep)>=detailPages.length;
+ }
 }
 function renderRecordDetails(event){
  clearRecordDetails();
  const values={summary:event.summary,note:event.note,next:event.next_action?'下一步 · '+event.next_action:'',tags:(event.tags||[]).map(tag=>'#'+tag).join(' '),task:event.taskTitle&&event.taskTitle!==event.title?'关联任务 · '+event.taskTitle:''};
+ if(embedded){
+  if(detailEventId!==event.id)detailPage=0;detailEventId=event.id;detailPages=[];
+  const width=scope.querySelector('.editorial-bottom').getBoundingClientRect().width;
+  const columns=Math.max(8,Math.floor(width/10));
+  for(const [kind,value] of Object.entries(values))if(value){
+   let text='',line=0,column=0;
+   const finish=()=>{if(text)detailPages.push({kind,text});text='';line=0;column=0};
+   for(const character of Array.from(value)){
+    if(character==='\n'){
+     if(line===2)finish();else{text+='\n';line++;column=0}
+     continue;
+    }
+    if(column===columns){if(line===2)finish();else{text+='\n';line++;column=0}}
+    text+=character;column++;
+   }
+   finish();
+  }
+  detailPage=clamp(detailPage,0,Math.max(0,detailPages.length-1));showDetailPage();return;
+ }
  for(const [kind,value] of Object.entries(values)){
   const node=scope.querySelector('[data-record-detail="'+kind+'"]');if(node&&value){node.textContent=value;node.hidden=false}
  }
 }
+for(const button of scope.querySelectorAll('[data-detail-step]'))listen(button,'click',()=>{
+ detailPage=clamp(detailPage+Number(button.dataset.detailStep),0,Math.max(0,detailPages.length-1));showDetailPage();drawFeedback();
+});
+
 async function get(path,signal){
  const response=await fetch(new URL('./api'+path,import.meta.url),{cache:'no-store',signal});
  if(!response.ok)throw Error('HTTP '+response.status);return response.json();
@@ -661,7 +727,7 @@ async function load({initial=false}={}){
 }
 
 const resizeObserver=new ResizeObserver(layoutDial);resizeObserver.observe(stage);layoutDial();
-applyAppearance();setActiveHand('event');drawStaticDial();drawDayRing();drawEventRing();renderReadout();snapAll();load({initial:true});
+applyAppearance();setActiveHand('event');drawStaticDial();applyTransparency();drawDayRing();drawEventRing();renderReadout();snapAll();load({initial:true});
 return ()=>{
  disposed=true;loadController?.abort();lifetime.abort();resizeObserver.disconnect();
  if(raf)cancelAnimationFrame(raf);for(const timer of timers)window.clearTimeout(timer);timers.clear();

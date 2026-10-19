@@ -4,7 +4,7 @@ The approved half-dial is the regular Learning archive at `/#/archive`, reached 
 
 ## Frontend
 
-`mountEphemeris(scope, {embedded})` mounts the dial and returns its cleanup function. The regular view uses an open ShadowRoot for stylesheet isolation, shares the main theme/navigation, and disposes listeners, fetches, animation frames, resize observation and pending timers on navigation. The visible radius remains 75% of the phone width.
+`mountEphemeris(scope, {embedded})` mounts the dial and returns its cleanup function. The regular view uses an open ShadowRoot for stylesheet isolation, shares the main theme/navigation, and disposes listeners, fetches, animation frames, resize observation and pending timers on navigation. The native view is a transparent drawing over Learning's existing wallpaper, without a second header or any page/inner scrolling. The visible radius remains 75% of the phone width when available height permits, and shrinks only to fit shorter screens. Needle/hub negative space uses SVG masks. Long record details are fully reachable through tap-to-page controls. The regular topbar is compact and sits closer to the safe-area edge.
 
 Month/day/time selection remains independent of drawing motion. The per-frame underdamped spring may overshoot visually, while selected values stay fixed. Month loading never restarts an in-flight spring. The middle scale stays fixed; only a month/year change can redistribute dates.
 

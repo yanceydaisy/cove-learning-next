@@ -247,3 +247,36 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 [data-record-detail]{white-space:pre-wrap}
 .editorial-bottom [data-record-detail="tags"]{font:500 .54rem/1.5 var(--font-mono);color:var(--color-muted)}
 [hidden]{display:none!important}
+
+/* Native view: transparent drawing over the existing Learning wallpaper. */
+:host,:host([data-theme="dark"]){--color-paper-solid:transparent;--color-overlay:transparent;background:transparent;height:100%;overflow:hidden}
+:host .dial-shell{height:100%;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 38px;padding-block:0;background:transparent;overflow:hidden}
+:host .dial-header{display:none}
+:host .dial-stage{height:auto;min-height:0;margin-block-start:0;overflow:hidden;touch-action:none}
+:host .dial-footer{height:38px;min-height:0;grid-template-columns:minmax(0,1fr) auto auto;gap:.3rem;padding-top:0;overflow:hidden}
+:host .dial-key{gap:.2rem}
+:host .dial-key button{min-width:2.7rem;min-height:34px;padding:.2rem .1rem;gap:.2rem}
+:host .key-index{font-size:.5rem}
+:host .key-label{font-size:.625rem}
+:host .dial-footer #resetDial{grid-column:3;grid-row:1;font-size:.5rem;min-height:34px;padding-inline:.1rem}
+:host .dial-footer p{grid-column:2;grid-row:1;margin:0;font-size:0;line-height:1}
+:host .dial-footer p span{font:500 .43rem/1.2 var(--font-mono);letter-spacing:.06em;white-space:nowrap}
+:host .editorial-top{inset-block-start:.25rem;inset-inline-end:.5rem;width:46%}
+:host .editorial-coordinate{font-size:.38rem;margin-bottom:.45rem}
+:host .editorial-date strong{font-size:clamp(1.8rem,8vw,2.8rem)}
+:host .editorial-bottom{inset-block-end:.35rem;inset-inline-end:.5rem;width:44%;max-width:none;max-height:164px;padding:0;overflow:hidden;overscroll-behavior:none;touch-action:none}
+:host .editorial-kicker{font-size:.38rem;letter-spacing:.08em;margin:0 22px .25rem 0;white-space:nowrap}
+:host .editorial-bottom h1{font-size:clamp(.7rem,3vw,.88rem);line-height:1.25;margin-bottom:.25rem;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+:host .editorial-bottom p{font-size:.625rem;line-height:1.3;margin-bottom:.25rem}
+:host #eventObject{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:host .editorial-meta{font-size:.38rem;line-height:1.3;padding-top:.25rem;gap:.15rem .3rem}
+:host .editorial-close{min-width:22px;min-height:22px;inset-block-start:-5px;writing-mode:horizontal-tb;font-size:1rem;letter-spacing:0}
+.detail-pager{display:flex;align-items:center;justify-content:space-between;margin-top:.25rem;gap:.3rem;font:500 .45rem/1 var(--font-mono)}
+.detail-pager button{min-width:24px;min-height:22px;padding:0;border:0;background:transparent;color:var(--color-ink);font:inherit}
+:host [data-record-detail]{max-height:3.9em;overflow:hidden}
+:host .month-filigree,:host .month-window,:host .hand-sigil{visibility:hidden}
+@media(max-height:650px){
+ :host .editorial-bottom{max-height:154px}
+ :host .editorial-bottom h1{-webkit-line-clamp:1}
+ :host .editorial-top>small{font-size:.38rem}
+}

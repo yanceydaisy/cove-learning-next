@@ -938,18 +938,20 @@ async function library(){
 
 async function archive(){
  const sequence=viewId;
- const response=await fetch(new URL('./trace-dial.html?v=ephemeris-formal-2',import.meta.url),{cache:'no-store'});
+ const response=await fetch(new URL('./trace-dial.html?v=ephemeris-inlay-1',import.meta.url),{cache:'no-store'});
  if(!response.ok)throw Error('刻序读取失败');
  const template=new DOMParser().parseFromString(await response.text(),'text/html');
  const component=template.querySelector('.dial-shell'),feedback=template.querySelector('#dialToast');
  if(!component||!feedback)throw Error('刻序模板不完整');
- const {mountEphemeris}=await import('./trace-dial.js?v=ephemeris-formal-2');
+ const {mountEphemeris}=await import('./trace-dial.js?v=ephemeris-inlay-1');
  if(sequence!==viewId||page()!=='archive')return;
  view('<div class="ephemeris-host" id="ephemerisHost" aria-label="刻序 / EPHEMERIS"></div>','ephemeris-view');
  const host=root.querySelector('#ephemerisHost'),shadow=host.attachShadow({mode:'open'});
- const stylesheet=document.createElement('link');stylesheet.rel='stylesheet';stylesheet.href=new URL('./trace-dial.css?v=ephemeris-formal-2',import.meta.url).href;
+ const stylesheet=document.createElement('link');stylesheet.rel='stylesheet';stylesheet.href=new URL('./trace-dial.css?v=ephemeris-inlay-1',import.meta.url).href;
  shadow.append(stylesheet,component,feedback);
- const back=shadow.querySelector('.dial-back');back.href='#/today';back.setAttribute('aria-label','返回首页');
+ shadow.querySelector('.dial-header')?.remove();
+ shadow.querySelector('.dial-footer p span').textContent='刻序 / EPHEMERIS';
+ const close=shadow.querySelector('#closeEditorial');close.textContent='×';close.setAttribute('aria-label','收起记录详情');
  const syncTheme=()=>host.dataset.theme=document.documentElement.dataset.theme||'light';syncTheme();
  const observer=new MutationObserver(syncTheme);observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
  // Wait for scoped styling before measuring the 75% radius.
