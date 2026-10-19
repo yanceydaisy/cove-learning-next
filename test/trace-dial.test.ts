@@ -58,6 +58,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   for(let i=0;i<12;i++)await page.locator('#eventHand').press('Shift+ArrowRight');
   const cdp=await context.newCDPSession(page);
   async function touchDrag(kind:string,radius:number,targetAngle:number){
+   const fixedDateScale=await page.locator('#dayTicks').innerHTML();
    const points=await page.evaluate(({kind,radius,targetAngle})=>{
     const hand=document.querySelector('#'+kind+'Hand') as SVGGraphicsElement,svg=document.querySelector('#traceDial') as SVGSVGElement;
     const from=new DOMPoint(radius,0).matrixTransform(hand.getScreenCTM()!);
@@ -70,6 +71,10 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
    for(let i=1;i<=14;i++){
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:points.from.x+(points.to.x-points.from.x)*i/14,y:points.from.y+(points.to.y-points.from.y)*i/14,id:1}]});
     await page.waitForTimeout(16);
+    if(kind==='day'){
+     assert.equal(await page.locator('#dayTicks').innerHTML(),fixedDateScale,'date scale stays fixed throughout dragging');
+     assert.equal(await page.locator('.drag-echo.day').count(),0,'no moving arc can be mistaken for date scale');
+    }
    }
    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(250);
   }

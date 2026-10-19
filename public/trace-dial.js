@@ -319,6 +319,8 @@ function pulseDetent(kind,angle){
 }
 
 function showDragEcho(kind,angle){
+ // Date markings must read as a fixed measuring scale, without nearby moving arcs.
+ if(kind==='day'){layers.feedback.querySelector('.drag-feedback')?.remove();return}
  let group=layers.feedback.querySelector('.drag-feedback');
  if(!group){group=el('g',{class:'drag-feedback'});group.append(el('path',{class:'drag-echo first'}),el('path',{class:'drag-echo second'}));layers.feedback.append(group)}
  const radius=handRadius[kind]-28;
