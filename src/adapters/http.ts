@@ -102,11 +102,11 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
     return json(res,status,result);
    }
    if(req.method!=='GET'&&req.method!=='HEAD')throw new AppError('VALIDATION_ERROR','不支持的请求方法。');
-   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/glass-lab.html':'glass-lab.html','/glass-lab.css':'glass-lab.css','/glass-lab.js':'glass-lab.js','/morning-letter.html':'morning-letter.html','/morning-letter.css':'morning-letter.css','/morning-letter.js':'morning-letter.js','/icon.svg':'icon.svg','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png'};
+   const routes:Record<string,string>={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/glass-lab.html':'glass-lab.html','/glass-lab.css':'glass-lab.css','/glass-lab.js':'glass-lab.js','/morning-letter.html':'morning-letter.html','/morning-letter.css':'morning-letter.css','/morning-letter.js':'morning-letter.js','/icon.svg':'icon.svg','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png','/assets/trace/trace-minute-dark.webp':'assets/trace/trace-minute-dark.webp','/assets/trace/trace-hour-dark.webp':'assets/trace/trace-hour-dark.webp','/assets/trace/trace-minute-light.webp':'assets/trace/trace-minute-light.webp','/assets/trace/trace-hour-light.webp':'assets/trace/trace-hour-light.webp'};
    const name=routes[path];
    if(!name)return json(res,404,{error:{code:'NOT_FOUND',message:'页面不存在。'}});
    const content=await readFile(join(publicDir,name));
-   const contentType=name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.webmanifest')?'application/manifest+json':name.endsWith('.svg')?'image/svg+xml':name.endsWith('.png')?'image/png':name.endsWith('.js')?'text/javascript; charset=utf-8':'application/octet-stream';
+   const contentType=name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.webmanifest')?'application/manifest+json':name.endsWith('.svg')?'image/svg+xml':name.endsWith('.png')?'image/png':name.endsWith('.webp')?'image/webp':name.endsWith('.js')?'text/javascript; charset=utf-8':'application/octet-stream';
    res.writeHead(200,{'content-type':contentType,'cache-control':'no-store'});
    res.end(req.method==='HEAD'?undefined:content);
   }catch(error){
