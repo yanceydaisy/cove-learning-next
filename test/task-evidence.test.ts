@@ -83,11 +83,9 @@ test('tasks explicitly link only to confirmed evidence from their own course',()
 
   const again=new LearningApplication(f.dir);
   try{
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,7);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,9);
    assert.equal(again.taskEvidence.list(task.id).links.length,1);
    assert.equal(again.taskEvidence.list(task.id).importance_input?.contribution,'high');
   }finally{again.close();}
  }finally{f.end();}
 });
-
-[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
