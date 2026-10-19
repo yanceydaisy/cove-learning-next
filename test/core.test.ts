@@ -1,4 +1,3 @@
-
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
@@ -36,6 +35,25 @@ test('cross-module: object → task → focus → real Today read model',()=>{
   assert.equal(f.app.today.snapshot().recentSessions.length,1);
  }finally{f.end();}
 });
+
+test('learning records keep truthful time, focus, summary and associations',()=>{
+ const f=fixture();
+ try{
+  const course=f.app.catalog.create({kind:'course',title:'计算机网络'}) as {id:string};
+  const other=f.app.catalog.create({kind:'course',title:'操作系统'}) as {id:string};
+  const task=f.app.planning.create({title:'第三章作业',object_id:course.id}) as {id:string};
+  const item=f.app.records.create({
+   local_date:'2026-10-09',started_at:'2026-10-09T15:00:00+08:00',ended_at:'2026-10-09T16:10:00+08:00',focused_minutes:55,
+   title:'第三章复习',summary:'复习了拥塞控制和滑动窗口。',activity_type:'review',task_id:task.id,next_action:'完成第三章作业',tags:['计网',' 复习 ','计网']
+  }) as any;
+  assert.equal(item.elapsed_minutes,70);assert.equal(item.focused_minutes,55);assert.equal(item.object_id,course.id);assert.equal(item.task_id,task.id);
+  assert.equal(item.summary,'复习了拥塞控制和滑动窗口。');assert.deepEqual(item.tags,['计网','复习']);assert.equal(item.source,'manual');
+  assert.equal((f.app.records.list({local_date:'2026-10-09'}) as any[])[0].id,item.id);
+  assert.throws(()=>f.app.records.create({local_date:'2026-10-09',started_at:'2026-10-09T15:00:00+08:00',ended_at:'2026-10-09T16:00:00+08:00',focused_minutes:61,title:'bad'}),e=>e instanceof AppError&&e.code==='VALIDATION_ERROR');
+  assert.throws(()=>f.app.records.create({local_date:'2026-10-09',started_at:'2026-10-09T15:00:00+08:00',ended_at:'2026-10-09T16:00:00+08:00',title:'bad link',object_id:other.id,task_id:task.id}),e=>e instanceof AppError&&e.code==='VALIDATION_ERROR');
+ }finally{f.end();}
+});
+
 test('project metadata supports idea → active progress and next actions',()=>{
  const f=fixture();
  try{
@@ -102,7 +120,7 @@ test('transaction rolls back and migration metadata stays stable',()=>{
  const f=fixture();
  try{
   const before=f.app.database.raw.prepare('SELECT * FROM schema_migrations').all();
-  assert.equal(before.length,8);
+  assert.equal(before.length,9);
   assert.throws(()=>f.app.database.transaction(()=>{
    f.app.catalog.create({kind:'track',title:'中途回滚'});
    throw new Error('abort');
