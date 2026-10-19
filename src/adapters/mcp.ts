@@ -189,10 +189,37 @@ export function createLearningMcpServer(app:LearningApplication){
    task_id:z.string().uuid().optional(),
    next_action:z.string().max(1200).optional(),
    note:z.string().max(4000).optional(),
-   tags:z.array(z.string().min(1).max(40)).max(20).optional()
+   tags:z.array(z.string().min(1).max(40)).max(20).optional(),
+   focus_session_id:z.string().uuid().optional(),
+   time_zone:z.string().min(1).max(80).optional(),
+   idempotency_key:z.string().min(1).max(120).optional()
   },
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
  },async args=>safe(()=>app.records.create({...clean(args),source:'mcp'})));
+
+ server.registerTool('learning_get_trace',{
+  title:'Read Ephemeris Learning Trace',
+  description:'Read one month (at most 32 days) of factual learning records, completed tasks and focus intervals. Includes summaries, associations, actual elapsed/focused time, and explicit legacy time precision. from/to are ISO instants with offsets; omit both for the current UTC month.',
+  inputSchema:{from:z.string().max(80).optional(),to:z.string().max(80).optional()},
+  annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async args=>safe(()=>app.trace.list(clean(args))));
+
+ server.registerTool('learning_update_record',{
+  title:'Update Learning Record',
+  description:'Correct an existing factual learning record by id. Omitted fields stay unchanged. Preserve true time and associations; an explicitly linked finished focus session is deduplicated in Ephemeris.',
+  inputSchema:{
+   record_id:z.string().uuid(),title:z.string().min(1).max(160).optional(),
+   local_date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+   started_at:z.string().max(80).optional(),ended_at:z.string().max(80).optional(),
+   focused_minutes:z.number().int().min(0).max(1440).optional(),
+   summary:z.string().max(4000).optional(),note:z.string().max(4000).optional(),
+   next_action:z.string().max(1200).optional(),tags:z.array(z.string().min(1).max(40)).max(20).optional(),
+   activity_type:z.enum(['study','review','practice','reading','project','other']).optional(),
+   object_id:z.string().uuid().nullable().optional(),task_id:z.string().uuid().nullable().optional(),
+   focus_session_id:z.string().uuid().nullable().optional(),time_zone:z.string().max(80).nullable().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({record_id,...patch})=>safe(()=>app.records.update(record_id,clean(patch))));
 
  server.registerTool('learning_focus',{
   title:'Learning Focus Session',

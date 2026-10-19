@@ -9,7 +9,9 @@ import {LearningApplication} from '../src/core/application.js';
 import {createHttp} from '../src/adapters/http.js';
 
 test('Ephemeris: calendar, proportional intervals, and touch gestures do not switch needles',async()=>{
- const dir=mkdtempSync(join(tmpdir(),'ephemeris-')),app=new LearningApplication(dir);
+ const dir=mkdtempSync(join(tmpdir(),'ephemeris-'));
+ let clock=new Date('2024-02-29T10:30:00+08:00');
+ const app=new LearningApplication(dir,false,()=>clock);
  const server=createHttp(app,resolve(fileURLToPath(new URL('../public',import.meta.url))));
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  const address=server.address();if(!address||typeof address==='string')throw Error('No port');
@@ -22,14 +24,15 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   page.on('pageerror',e=>errors.push(e.message));
   const iso=(day:string,time:string)=>day+'T'+time+':00+08:00';
   const records=[
-   {id:'a',title:'一小时记录',started_at:iso('2024-02-29','09:00'),ended_at:iso('2024-02-29','10:00'),focused_minutes:45,activity_type:'study'},
+   {id:'a',title:'一小时记录',summary:'复习状态空间模型。',next_action:'整理一道例题',note:'检查单位',tags:['复习'],started_at:iso('2024-02-29','09:00'),ended_at:iso('2024-02-29','10:00'),focused_minutes:45,activity_type:'study'},
    {id:'b',title:'两小时记录',started_at:iso('2024-02-29','12:00'),ended_at:iso('2024-02-29','14:00'),focused_minutes:100,activity_type:'study'},
    {id:'c',title:'跨午夜记录',started_at:iso('2024-02-29','23:30'),ended_at:iso('2024-03-01','00:30'),focused_minutes:60,activity_type:'reading'}
   ];
-  await page.route('**/api/tasks',r=>r.fulfill({json:[{id:'t',status:'done',title:'完成节点',updated_at:iso('2024-02-29','15:00')}]}));
-  await page.route('**/api/focus/history',r=>r.fulfill({json:{sessions:[{id:'f',started_at:iso('2024-02-29','10:30'),ended_at:'2024-02-29T10:30:30+08:00',accumulated_ms:30000,state:'finished'}]}}));
-  await page.route('**/api/objects',r=>r.fulfill({json:[]}));
-  await page.route('**/api/learning-records',r=>r.fulfill({json:records}));
+  for(const item of records)app.records.create({...item,local_date:'2024-02-29',time_zone:'Asia/Shanghai'});
+  const task=app.planning.create({title:'完成节点'}) as any;
+  clock=new Date('2024-02-29T15:00:00+08:00');app.planning.complete(task.id);
+  clock=new Date('2024-02-29T10:30:00+08:00');const focus=app.activity.start({}) as any;
+  clock=new Date('2024-02-29T10:30:30+08:00');app.activity.finish(focus.id);
   await page.goto('http://127.0.0.1:'+address.port+'/trace-dial',{waitUntil:'networkidle'});
   assert.match(await page.title(),/刻序 \/ EPHEMERIS/);
   assert.equal(await page.locator('#dayHand').getAttribute('aria-valuemax'),'29');
@@ -43,6 +46,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'540');
   assert.match(await page.locator('#eventHand').getAttribute('transform')||'',/rotate\(-22.5\)/,'9am has fixed position independent of record count');
   await page.locator('.month-label-group[data-month="3"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.locator('#dialStage[data-load-state=ready]').waitFor();
   await page.locator('#dayHand').press('Home');
   assert.equal(await page.locator('#dayHand').getAttribute('aria-valuemax'),'31');
   assert.deepEqual(await page.locator('.event-duration').evaluateAll(nodes=>nodes.map(n=>[(n as SVGElement).dataset.startMinute,(n as SVGElement).dataset.endMinute])),[['0','30']],'midnight continuation appears on the next day');
@@ -54,6 +58,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
 
   // Put all three hands on the same angle; screen-space radius must disambiguate.
   await page.locator('.month-label-group[data-month="6"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  await page.locator('#dialStage[data-load-state=ready]').waitFor();
   await page.locator('#dayHand').press('Home');
   for(let i=1;i<16;i++)await page.locator('#dayHand').press('ArrowRight');
   await page.locator('#eventHand').press('Home');
@@ -147,6 +152,33 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   for(let i=1;i<=8;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:375,y:560-i*28,id:1}]});await page.waitForTimeout(16)}
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   assert.ok(await page.evaluate(()=>scrollY)>20,'blank area preserves page scrolling');
+  // The real Learning route mounts the same dial without a frame or duplicate listeners.
+  await page.goto('http://127.0.0.1:'+address.port+'/#/archive',{waitUntil:'networkidle'});
+  await page.locator('#ephemerisHost #dialStage[data-load-state=ready]').waitFor();
+  assert.equal(await page.locator('iframe').count(),0);
+  assert.equal(await page.locator('#dock a').count(),4);
+  await page.locator('#ephemerisHost .event-node[data-minute="540"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录');
+  assert.equal(await page.locator('#ephemerisHost [data-record-detail=summary]').innerText(),'复习状态空间模型。');
+  assert.match(await page.locator('#ephemerisHost [data-record-detail=next]').innerText(),/整理一道例题/);
+  assert.match(await page.locator('#ephemerisHost [data-record-detail=tags]').innerText(),/#复习/);
+  for(let i=0;i<3&&await page.locator('#ephemerisHost').getAttribute('data-theme')!=='dark';i++)await page.locator('#appearance').click();
+  assert.equal(await page.locator('#ephemerisHost').getAttribute('data-theme'),'dark');
+  const embeddedLayout=await page.locator('#ephemerisHost').evaluate(host=>{
+   const svg=host.shadowRoot!.querySelector('#traceDial') as SVGSVGElement,m=svg.getScreenCTM()!;
+   return 416*Math.hypot(m.a,m.b)/innerWidth;
+  });
+  assert.ok(Math.abs(embeddedLayout-.75)<.002);
+  await page.locator('#ephemerisHost #eventHand').press('Shift+ArrowRight');
+  await page.locator('#dock a[data-nav=today]').click();
+  await page.locator('.today-brief').waitFor();
+  assert.equal(await page.locator('#ephemerisHost').count(),0);
+  assert.equal(await page.locator('html').getAttribute('data-page'),'today');
+  await page.locator('.today-review-trace').click();
+  await page.locator('#ephemerisHost #dialStage[data-load-state=ready]').waitFor();
+  const beforeMinute=Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'));
+  await page.locator('#ephemerisHost #eventHand').press('ArrowRight');
+  assert.equal(Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow')),Math.min(1440,beforeMinute+5),'remount installs exactly one keyboard listener');
   assert.deepEqual(errors,[]);
   await context.close();
  }finally{await browser.close();await new Promise<void>(r=>server.close(()=>r()));app.close();rmSync(dir,{recursive:true,force:true})}

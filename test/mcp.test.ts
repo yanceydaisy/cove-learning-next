@@ -137,6 +137,11 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
     title:'状态空间复习记录',summary:'复习状态转移矩阵与能控性。',activity_type:'review',object_id:course.id,task_id:task.id,next_action:'整理错题',tags:['控制','复习']
    }}));
    assert.equal(learningRecord.elapsed_minutes,45);assert.equal(learningRecord.focused_minutes,38);assert.equal(learningRecord.source,'mcp');assert.equal(learningRecord.task_id,task.id);
+   const revised=toolJson(await client.callTool({name:'learning_update_record',arguments:{record_id:learningRecord.id,summary:'修正后的学习总结'}}));
+   assert.equal(revised.summary,'修正后的学习总结');
+   const ephemeris=toolJson(await client.callTool({name:'learning_get_trace',arguments:{from:'2026-09-30T16:00:00Z',to:'2026-10-31T16:00:00Z'}}));
+   assert.ok(ephemeris.events.some((event:any)=>event.record_id===learningRecord.id&&event.summary==='修正后的学习总结'));
+
 
    const started=toolJson(await client.callTool({name:'learning_focus',arguments:{action:'start',object_id:course.id}}));
    assert.equal(started.state,'running');

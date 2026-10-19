@@ -90,8 +90,11 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
      res.writeHead(200,{'content-type':'application/octet-stream','content-disposition':'attachment; filename="learning-original"','cache-control':'no-store','content-length':content.bytes.length});
      res.end(content.bytes);return;
     }
-    else if(path==='/api/learning-records'&&method==='GET')result=app.records.list({local_date:url.searchParams.get('local_date')??undefined,object_id:url.searchParams.get('object_id')??undefined,task_id:url.searchParams.get('task_id')??undefined});
+    else if(path==='/api/trace'&&method==='GET')result=app.trace.list({from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined});
+    else if(path==='/api/learning-records'&&method==='GET')result=app.records.list({local_date:url.searchParams.get('local_date')??undefined,object_id:url.searchParams.get('object_id')??undefined,task_id:url.searchParams.get('task_id')??undefined,limit:url.searchParams.has('limit')?Number(url.searchParams.get('limit')):undefined,offset:url.searchParams.has('offset')?Number(url.searchParams.get('offset')):undefined});
     else if(path==='/api/learning-records'&&method==='POST'){result=app.records.create(await parseBody(req));status=201;}
+    else if(parts.length===3&&parts[1]==='learning-records'&&method==='GET')result=app.records.get(parts[2]!);
+    else if(parts.length===3&&parts[1]==='learning-records'&&method==='POST')result=app.records.update(parts[2]!,await parseBody(req));
     else if(path==='/api/focus/active'&&method==='GET')result=app.activity.active();
     else if(path==='/api/focus/recent'&&method==='GET')result=app.activity.recent();
     else if(path==='/api/focus/history'&&method==='GET')result=app.activity.history();

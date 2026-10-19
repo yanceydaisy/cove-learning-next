@@ -1007,3 +1007,10 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
  .plan-event-main{display:block}.plan-event-main small{display:block;margin-top:2px}
  .plan-event-actions .button{min-height:29px;padding-inline:9px}
 }
+
+/* Ephemeris uses its own monochrome atlas inside the regular Learning shell. */
+:root[data-page="archive"] .shell{padding-inline:0}
+:root[data-page="archive"] .topbar,:root[data-page="archive"] .dock{margin-inline:clamp(14px,3vw,34px)}
+:root[data-page="archive"] .screen{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.ephemeris-view{height:auto;min-height:100%;display:block;animation:none}
+.ephemeris-host{display:block;width:100%;min-width:0}

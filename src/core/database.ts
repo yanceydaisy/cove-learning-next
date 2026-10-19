@@ -143,6 +143,17 @@ CREATE INDEX idx_learning_records_date ON learning_records(local_date,started_at
 CREATE INDEX idx_learning_records_object ON learning_records(object_id,local_date);
 CREATE INDEX idx_learning_records_task ON learning_records(task_id,local_date);
 `}
+ ,{version:10,name:'ephemeris_record_identity_and_completion_time',sql:`
+ALTER TABLE tasks ADD COLUMN completed_at TEXT;
+ALTER TABLE learning_records ADD COLUMN focus_session_id TEXT REFERENCES focus_sessions(id) ON DELETE SET NULL;
+ALTER TABLE learning_records ADD COLUMN time_zone TEXT;
+ALTER TABLE learning_records ADD COLUMN idempotency_key TEXT;
+CREATE UNIQUE INDEX idx_record_focus_session ON learning_records(focus_session_id) WHERE focus_session_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_record_idempotency ON learning_records(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX idx_records_interval ON learning_records(started_at,ended_at);
+CREATE INDEX idx_task_completed_at ON tasks(completed_at) WHERE status='done';
+`}
+
 ] as const;
 
 export class Database {

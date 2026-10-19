@@ -51,7 +51,7 @@ test('course context stores confirmed objectives and assessment evidence without
    const restored=again.courseContext.list(course.id);
    assert.equal(restored.items.length,1);
    assert.equal(restored.evidence.confirmedObjectives,1);
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,9);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,10);
   }finally{again.close();}
  }finally{f.end();}
 });

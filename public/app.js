@@ -9,6 +9,7 @@ const time = v => v ? new Date(v).toLocaleTimeString('zh-CN',{hour:'2-digit',min
 const minutes = ms => Math.floor(Math.max(0,Number(ms)||0)/60000);
 let viewId = 0;
 let timer = null;
+let disposeArchive=null;
 function notify(message){
  toast.textContent = message;
  toast.classList.add('on');
@@ -935,51 +936,27 @@ async function library(){
  })));
 }
 
-function archiveDateLabel(day){
- const d=dayDate(day);
- return {date:d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'}),weekday:d.toLocaleDateString('zh-CN',{weekday:'short'})};
-}
-function archiveTimeLabel(iso){return iso?new Date(iso).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}):'';}
-function archiveTimeline(tasks,history,objects){
- const objectMap=new Map(objects.map(o=>[o.id,o]));
- const events=[];
- for(const task of tasks.filter(t=>t.status==='done')){
-  const at=task.updated_at||task.created_at;
-  if(!at)continue;
-  events.push({kind:'task',at,title:task.title,object:objectMap.get(task.object_id)?.title||''});
- }
- for(const session of history.sessions||[]){
-  const ms=Number(session.accumulated_ms)||0;
-  if(ms<=0)continue;
-  const at=session.ended_at||session.updated_at||session.started_at;
-  if(!at)continue;
-  events.push({kind:'focus',at,ms,started_at:session.started_at,ended_at:session.ended_at,object:objectMap.get(session.object_id)?.title||''});
- }
- events.sort((a,b)=>Date.parse(b.at)-Date.parse(a.at));
- const groups=new Map();
- for(const event of events){
-  const day=localDateFromIso(event.at);
-  if(!groups.has(day))groups.set(day,[]);
-  groups.get(day).push(event);
- }
- if(!groups.size)return '<div class="archive-empty"><span>—</span><p>还没有可以放进轨迹的记录。</p></div>';
- return '<div class="archive-timeline"><div class="archive-hands" aria-hidden="true"><img class="archive-hand-image minute dark" src="./assets/trace/trace-minute-dark.webp" alt=""><img class="archive-hand-image hour dark" src="./assets/trace/trace-hour-dark.webp" alt=""><img class="archive-hand-image minute light" src="./assets/trace/trace-minute-light.webp" alt=""><img class="archive-hand-image hour light" src="./assets/trace/trace-hour-light.webp" alt=""></div>'+[...groups.entries()].map(([day,items])=>{
-  const label=archiveDateLabel(day);
-  return '<section class="archive-day"><div class="archive-date"><strong>'+esc(label.date)+'</strong><span>'+esc(label.weekday)+'</span></div>'+items.map(item=>{
-   if(item.kind==='task')return '<div class="archive-event task"><div class="archive-side left"><article class="archive-card task-card"><span>DONE</span><strong>'+esc(item.title)+'</strong>'+(item.object?'<small>'+esc(item.object)+'</small>':'')+'<time>'+esc(archiveTimeLabel(item.at))+'</time></article></div><i class="archive-dot"></i><div class="archive-side right"></div></div>';
-   const start=archiveTimeLabel(item.started_at),end=archiveTimeLabel(item.ended_at);
-   return '<div class="archive-event focus"><div class="archive-side left"></div><i class="archive-dot"></i><div class="archive-side right"><article class="archive-card focus-card"><span>FOCUS</span><div class="archive-duration"><strong>'+minutes(item.ms)+'</strong><small>min</small></div>'+(item.object?'<b>'+esc(item.object)+'</b>':'')+'<time>'+esc(start+(end?' — '+end:''))+'</time></article></div></div>';
-  }).join('')+'</section>';
- }).join('')+'</div>';
-}
 async function archive(){
- if(timer){clearInterval(timer);timer=null;}
- const [history,tasks,objects]=await Promise.all([api('/focus/history'),api('/tasks'),api('/objects')]);
- view(
-  '<header class="archive-top-row"><div><a class="archive-back" href="#/today">‹ Today</a><h1>轨迹</h1></div><span>LEARNING / TRACE</span></header>'+
-  '<div class="workarea archive-flow"><div class="archive-columns-head"><span>完成任务</span><i></i><span>专注记录</span></div>'+archiveTimeline(tasks,history,objects)+'</div>',
-  'archive-view'
- );
+ const sequence=viewId;
+ const response=await fetch(new URL('./trace-dial.html?v=ephemeris-formal-2',import.meta.url),{cache:'no-store'});
+ if(!response.ok)throw Error('刻序读取失败');
+ const template=new DOMParser().parseFromString(await response.text(),'text/html');
+ const component=template.querySelector('.dial-shell'),feedback=template.querySelector('#dialToast');
+ if(!component||!feedback)throw Error('刻序模板不完整');
+ const {mountEphemeris}=await import('./trace-dial.js?v=ephemeris-formal-2');
+ if(sequence!==viewId||page()!=='archive')return;
+ view('<div class="ephemeris-host" id="ephemerisHost" aria-label="刻序 / EPHEMERIS"></div>','ephemeris-view');
+ const host=root.querySelector('#ephemerisHost'),shadow=host.attachShadow({mode:'open'});
+ const stylesheet=document.createElement('link');stylesheet.rel='stylesheet';stylesheet.href=new URL('./trace-dial.css?v=ephemeris-formal-2',import.meta.url).href;
+ shadow.append(stylesheet,component,feedback);
+ const back=shadow.querySelector('.dial-back');back.href='#/today';back.setAttribute('aria-label','返回首页');
+ const syncTheme=()=>host.dataset.theme=document.documentElement.dataset.theme||'light';syncTheme();
+ const observer=new MutationObserver(syncTheme);observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+ // Wait for scoped styling before measuring the 75% radius.
+ await new Promise((resolve,reject)=>{if(stylesheet.sheet)resolve();else{stylesheet.onload=resolve;stylesheet.onerror=()=>reject(Error('刻序样式读取失败'))}});
+ if(sequence!==viewId||page()!=='archive'){observer.disconnect();return}
+ const unmount=mountEphemeris(shadow,{embedded:true});
+ disposeArchive=()=>{unmount();observer.disconnect();};
 }
 
 async function perform(action){
@@ -987,6 +964,7 @@ async function perform(action){
 }
 async function render(){
  currentNav();const name=page();const seq=++viewId;
+ disposeArchive?.();disposeArchive=null;document.documentElement.dataset.page=name;
  if(timer){clearInterval(timer);timer=null;}
  try{
   root.innerHTML='<div class="view"><div class="kicker">LEARNING</div><div class="quiet">正在载入…</div></div>';

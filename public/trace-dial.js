@@ -1,25 +1,31 @@
-const svg=document.querySelector('#traceDial');
-const stage=document.querySelector('#dialStage');
+export function mountEphemeris(scope=document,{embedded=false}={}){
+let disposed=false;
+const lifetime=new AbortController(),timers=new Set();
+const listen=(target,type,callback,options={})=>target.addEventListener(type,callback,{...(typeof options==='boolean'?{capture:options}:options),signal:lifetime.signal});
+const setTimeout=(callback,delay)=>{const id=window.setTimeout(()=>{timers.delete(id);if(!disposed)callback()},delay);timers.add(id);return id};
+const clearTimeout=id=>{window.clearTimeout(id);timers.delete(id)};
+const svg=scope.querySelector('#traceDial');
+const stage=scope.querySelector('#dialStage');
 const NS='http://www.w3.org/2000/svg';
 const cx=58,cy=470;
 const layers={
- orbit:document.querySelector('#orbitLayer'),
- lace:document.querySelector('#laceLayer'),
- ornament:document.querySelector('#ornamentLayer'),
- monthTicks:document.querySelector('#monthTicks'),
- monthLabels:document.querySelector('#monthLabels'),
- dayTicks:document.querySelector('#dayTicks'),
- eventNodes:document.querySelector('#eventNodes'),
- feedback:document.querySelector('#feedbackLayer')
+ orbit:scope.querySelector('#orbitLayer'),
+ lace:scope.querySelector('#laceLayer'),
+ ornament:scope.querySelector('#ornamentLayer'),
+ monthTicks:scope.querySelector('#monthTicks'),
+ monthLabels:scope.querySelector('#monthLabels'),
+ dayTicks:scope.querySelector('#dayTicks'),
+ eventNodes:scope.querySelector('#eventNodes'),
+ feedback:scope.querySelector('#feedbackLayer')
 };
-const hands={month:document.querySelector('#monthHand'),day:document.querySelector('#dayHand'),event:document.querySelector('#eventHand')};
-const hub=document.querySelector('.dial-hub');
-const editorial=document.querySelector('#eventEditorial');
+const hands={month:scope.querySelector('#monthHand'),day:scope.querySelector('#dayHand'),event:scope.querySelector('#eventHand')};
+const hub=scope.querySelector('.dial-hub');
+const editorial=scope.querySelector('#eventEditorial');
 const ui={
- year:document.querySelector('#readoutYear'),month:document.querySelector('#readoutMonth'),day:document.querySelector('#readoutDay'),
- weekday:document.querySelector('#readoutWeekday'),kind:document.querySelector('#eventKind'),title:document.querySelector('#eventTitle'),
- object:document.querySelector('#eventObject'),time:document.querySelector('#detailTime'),type:document.querySelector('#detailType'),
- close:document.querySelector('#closeEditorial'),toast:document.querySelector('#dialToast')
+ year:scope.querySelector('#readoutYear'),month:scope.querySelector('#readoutMonth'),day:scope.querySelector('#readoutDay'),
+ weekday:scope.querySelector('#readoutWeekday'),kind:scope.querySelector('#eventKind'),title:scope.querySelector('#eventTitle'),
+ object:scope.querySelector('#eventObject'),time:scope.querySelector('#detailTime'),type:scope.querySelector('#detailType'),
+ close:scope.querySelector('#closeEditorial'),toast:scope.querySelector('#dialToast')
 };
 const reduceMotion=matchMedia('(prefers-reduced-motion:reduce)');
 const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
@@ -64,7 +70,7 @@ function clockTime(minute){const value=clamp(Math.round(minute),0,1440);return S
 function eventAtMinute(minute){
  let best=-1,distance=Infinity;
  dayEvents().forEach((event,index)=>{
-  const inside=event.endMinute>event.startMinute&&minute>=event.startMinute&&minute<=event.endMinute;
+  const inside=(event.segments||[]).some(segment=>minute>=segment.startMinute&&minute<=segment.endMinute);
   const delta=inside?0:Math.abs(minute-event.startMinute);
   if((inside||delta<=8)&&(delta<distance||delta===distance&&index===selected.event)){best=index;distance=delta}
  });
@@ -79,14 +85,15 @@ function arcPath(radius,start,end){
 function toast(message){ui.toast.textContent=message;ui.toast.classList.add('on');clearTimeout(toast.timer);toast.timer=setTimeout(()=>ui.toast.classList.remove('on'),1400)}
 
 function applyAppearance(){
+ if(embedded)return;
  const mode=localStorage.getItem('cove.home.themeMode')||'system';
  const prefers=matchMedia('(prefers-color-scheme:dark)').matches;
  const dark=mode==='dark'||mode==='system'&&prefers;
  document.documentElement.dataset.theme=dark?'dark':'light';
  const background=localStorage.getItem('cove.home.background')||'';
- const layer=document.querySelector('#wallpaper');
+ const layer=scope.querySelector('#wallpaper');
  if(background&&/^(data:image\/|blob:)/.test(background)){layer.style.backgroundImage='url('+JSON.stringify(background)+')';layer.classList.add('custom')}
- const meta=document.querySelector('meta[name="theme-color"]');
+ const meta=scope.querySelector('meta[name="theme-color"]');
  if(meta)meta.content=dark?'#070707':'#f5f5f5';
 }
 
@@ -110,7 +117,7 @@ function drawHub(){
 }
 
 function drawAtlasDecor(width,height){
- const decor=document.querySelector('#atlasDecor');decor.setAttribute('viewBox',`0 0 ${width} ${height}`);decor.replaceChildren();
+ const decor=scope.querySelector('#atlasDecor');decor.setAttribute('viewBox',`0 0 ${width} ${height}`);decor.replaceChildren();
  // Nested contour loops describe the empty corners, away from the numeral ring.
  const contour=(x,y,rx,ry,angle,count)=>{
   const group=el('g',{transform:`translate(${x} ${y}) rotate(${angle})`});
@@ -221,19 +228,19 @@ function drawStaticDial(){
   const station=el('g',{class:'month-station','data-month':index+1,'data-angle':angle,
    transform:`translate(${stationPoint.x} ${stationPoint.y})`,role:'button',tabindex:'0','aria-label':`${index+1}月`});
   station.append(el('circle',{r:28,class:'month-hit'}),el('path',{d:'M-5 0H5M0 -5V5',class:'month-station-cross'}),el('circle',{r:3,class:'month-station-dot'}));
-  station.addEventListener('click',()=>selectMonth(index));station.addEventListener('keydown',event=>monthKey(index,event));
+  listen(station,'click',()=>selectMonth(index));listen(station,'keydown',event=>monthKey(index,event));
   layers.monthTicks.append(station);
   const group=el('g',{class:'month-label-group','data-month':index+1,'data-angle':angle,
    transform:`translate(${point.x} ${point.y}) rotate(${angle+90})`,role:'button',tabindex:'0','aria-label':`${index+1}月`});
   group.append(el('rect',{x:-42,y:-35,width:84,height:70,class:'month-hit'}));
   const text=el('text',{x:0,y:0,class:'month-label',transform:'scale(.62 1)'});text.textContent=label;group.append(text);
-  group.addEventListener('click',()=>selectMonth(index));group.addEventListener('keydown',event=>monthKey(index,event));
+  listen(group,'click',()=>selectMonth(index));listen(group,'keydown',event=>monthKey(index,event));
   layers.monthLabels.append(group);
  });
  updateMonthScale();
 }
 function updateMonthScale(){
- for(const node of document.querySelectorAll('.month-station,.month-label-group')){
+ for(const node of scope.querySelectorAll('.month-station,.month-label-group')){
   const active=Number(node.dataset.month)===selected.month;
   node.classList.toggle('is-active',active);node.setAttribute('aria-pressed',String(active));
  }
@@ -266,14 +273,17 @@ function drawEventRing(){
  const list=dayEvents(),lanes=[];
  // Separate overlapping intervals on narrow tracks within the outer rail.
  list.forEach((event,index)=>{
-  if(event.endMinute<=event.startMinute)return;
-  let lane=lanes.findIndex(end=>end<=event.startMinute);if(lane<0)lane=lanes.length;lanes[lane]=event.endMinute;
+  for(const segment of event.segments||[]){
+  const {startMinute,endMinute}=segment;
+  if(endMinute<=startMinute)continue;
+  let lane=lanes.findIndex(end=>end<=startMinute);if(lane<0)lane=lanes.length;lanes[lane]=endMinute;
   const radius=398+(lane%4)*4;
-  const arc=el('path',{d:arcPath(radius,event.startMinute,event.endMinute),class:'event-duration'+(index===selected.event?' is-active':''),tabindex:'0',role:'button',
-   'data-event-index':index,'data-start-minute':event.startMinute,'data-end-minute':event.endMinute,'data-angle-span':(event.endMinute-event.startMinute)/8,'aria-label':event.title+' '+clockTime(event.startMinute)+'至'+clockTime(event.endMinute)});
-  const open=()=>openEvent(index,true);arc.addEventListener('click',open);
-  arc.addEventListener('keydown',key=>{if(key.key==='Enter'||key.key===' '){key.preventDefault();open()}});
+  const arc=el('path',{d:arcPath(radius,startMinute,endMinute),class:'event-duration'+(index===selected.event?' is-active':''),tabindex:'0',role:'button',
+   'data-event-index':index,'data-start-minute':startMinute,'data-end-minute':endMinute,'data-angle-span':(endMinute-startMinute)/8,'aria-label':event.title+' '+clockTime(event.startMinute)+'至'+clockTime(event.endMinute)});
+  const open=()=>openEvent(index,true);listen(arc,'click',open);
+  listen(arc,'keydown',key=>{if(key.key==='Enter'||key.key===' '){key.preventDefault();open()}});
   layers.eventNodes.append(arc);
+  }
  });
  list.forEach((event,index)=>{
   const angle=timeAngle(event.startMinute),point=polar(handRadius.event,angle);
@@ -281,8 +291,8 @@ function drawEventRing(){
   group.append(el('circle',{cx:0,cy:0,r:18,class:'node-hit'}),el('circle',{cx:0,cy:0,r:7,class:'node-orbit'}),nodeSymbol(event.kind));
   group.append(el('path',{d:'M0 -15 V-10 M0 10 V15 M-15 0 H-10 M10 0 H15',class:'node-crosshair'}));
   const ordinal=el('text',{x:12,y:-10,class:'node-index'});ordinal.textContent=String(index+1).padStart(2,'0');group.append(ordinal);
-  group.addEventListener('click',()=>openEvent(index,true));
-  group.addEventListener('keydown',key=>{if(key.key==='Enter'||key.key===' '){key.preventDefault();openEvent(index,true)}});
+  listen(group,'click',()=>openEvent(index,true));
+  listen(group,'keydown',key=>{if(key.key==='Enter'||key.key===' '){key.preventDefault();openEvent(index,true)}});
   layers.eventNodes.append(group);
  });drawFeedback();
 }
@@ -302,7 +312,7 @@ function drawFeedback(){
  if(!expanded||!currentEvent())return;
  const angle=timeAngle(currentEvent().startMinute),point=polar(handRadius.event,angle);
  const group=el('g',{class:'selection-feedback'});
- const caption=document.querySelector('.editorial-bottom').getBoundingClientRect(),matrix=svg.getScreenCTM();
+ const caption=scope.querySelector('.editorial-bottom').getBoundingClientRect(),matrix=svg.getScreenCTM();
  if(!matrix)return;
  const anchor=svg.createSVGPoint();anchor.x=caption.left-7;anchor.y=caption.top+5;
  const end=anchor.matrixTransform(matrix.inverse());
@@ -336,7 +346,7 @@ function handAngles(){return{month:rangeAngle(selected.month-1,12),day:rangeAngl
 
 function setActiveHand(kind){
  activeHand=kind;stage.dataset.activeHand=kind;
- for(const button of document.querySelectorAll('[data-focus-hand]'))button.setAttribute('aria-pressed',String(button.dataset.focusHand===kind));
+ for(const button of scope.querySelectorAll('[data-focus-hand]'))button.setAttribute('aria-pressed',String(button.dataset.focusHand===kind));
 }
 
 function setHandAngle(kind,angle){
@@ -355,19 +365,26 @@ function snapAll(){
 }
 
 function collapsedCopy(){
+ clearRecordDetails();
  const count=dayEvents().length;ui.kind.textContent='EPHEMERIS / '+clockTime(selected.minute);
  ui.title.textContent=count?'拨动长针，沿时间读取事件':'这一天还没有轨迹记录';
  ui.object.textContent=count?'点按事件节点或弧线，也可展开记录。':'拨动中针选择日期，短针选择月份。';
  ui.time.textContent=dateKey(selected.year,selected.month,selected.day)+' · '+clockTime(selected.minute);
- ui.type.textContent=count?count+' EVENTS':'EMPTY DAY';ui.close.hidden=true;editorial.classList.add('collapsed');
+ ui.type.textContent=count?count+' EVENTS':'EMPTY DAY';if(stage.dataset.loadState==='error'){
+  ui.title.textContent='记录暂时没有读取成功';ui.object.textContent='点按 RESET 重新读取。';ui.type.textContent='RETRY';
+ }else if(stage.dataset.loadState==='loading'){
+  ui.title.textContent='正在读取这段时间的记录';ui.object.textContent='';ui.type.textContent='LOADING';
+ }
+ ui.close.hidden=true;editorial.classList.add('collapsed');
 }
 
 function renderReadout(){
  ui.year.textContent=selected.year;ui.month.textContent=String(selected.month).padStart(2,'0');ui.day.textContent=String(selected.day).padStart(2,'0');ui.weekday.textContent=weekday(selected.year,selected.month,selected.day);
  const event=currentEvent();if(!expanded||!event){collapsedCopy();return}
+ renderRecordDetails(event);
  editorial.classList.remove('collapsed');ui.kind.textContent=event.kind==='task'?'EPHEMERIS / DONE':event.kind==='focus'?'EPHEMERIS / FOCUS':'EPHEMERIS / EVENT';
  ui.title.textContent=event.title;ui.object.textContent=event.object||'Cove Learning';ui.time.textContent=dateKey(selected.year,selected.month,selected.day)+' · '+(event.endMinute>event.startMinute?clockTime(event.startMinute)+'—'+clockTime(event.endMinute):clockTime(event.startMinute));
- ui.type.textContent=event.kind==='task'?'DONE TASK':event.kind==='focus'?event.duration+' MIN FOCUS':(event.duration?event.duration+' MIN · '+event.kind.toUpperCase():event.kind.toUpperCase());ui.close.hidden=false;
+ ui.type.textContent=event.kind==='task'?'DONE TASK':event.kind==='focus'?event.duration+' MIN FOCUS':(event.duration?event.duration+' MIN · '+event.kind.toUpperCase():event.kind.toUpperCase());ui.type.textContent=event.time_source==='legacy_updated_at'?'旧记录 · 完成时刻待补':event.kind==='task'?'完成任务':'专注 '+Math.floor((event.focused_ms||0)/60000)+' min · 经过 '+Math.round((event.elapsed_ms||0)/60000)+' min';if(event.time_source==='legacy_updated_at')ui.time.textContent=dateKey(selected.year,selected.month,selected.day)+' · 完成时刻未记录';ui.close.hidden=false;
 }
 
 function retargetOthers(exceptKind,animate=true){
@@ -382,7 +399,9 @@ function retargetOthers(exceptKind,animate=true){
 function commitSelection(kind,index,{preview=false,animateOthers=true}={}){
  if(kind==='month'){
   const next=clamp(index+1,1,12);if(next===selected.month&&preview)return;
+  const changed=next!==selected.month;
   selected.month=next;selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));syncTimeSelection();expanded=false;drawDayRing();drawEventRing();
+  if(changed)load();
  }else if(kind==='day'){
   const next=clamp(index+1,1,daysInMonth(selected.year,selected.month));if(next===selected.day&&preview)return;
   selected.day=next;syncTimeSelection();expanded=false;drawEventRing();
@@ -390,7 +409,7 @@ function commitSelection(kind,index,{preview=false,animateOthers=true}={}){
   const next=clamp(Math.round(index),0,1440);if(next===selected.minute&&preview)return;
   selected.minute=next;syncTimeSelection();expanded=false;updateEventNodeClasses();
  }
- renderReadout();retargetOthers(kind,animateOthers);drawFeedback();
+ renderReadout();setHandAngle(kind,motion[kind].angle);retargetOthers(kind,animateOthers);drawFeedback();
 }
 
 function indexForAngle(kind,angle){
@@ -531,19 +550,19 @@ function cancelAllDrags(){
  if(gesture)endDrag(gesture.kind,{pointerId:gesture.pointerId},true);
  hideDragEcho();
 }
-svg.addEventListener('pointerdown',event=>{
+listen(svg,'pointerdown',event=>{
  suppressClickUntil=0;
  const kind=pickHand(event);if(!kind)return;
  beginDrag(kind,event);event.stopPropagation();
 },{capture:true});
-svg.addEventListener('pointermove',event=>{if(gesture)moveDrag(gesture.kind,event)});
-svg.addEventListener('pointerup',event=>{if(gesture)endDrag(gesture.kind,event)});
-svg.addEventListener('pointercancel',event=>{if(gesture)endDrag(gesture.kind,event,true)});
-svg.addEventListener('lostpointercapture',event=>{if(gesture?.pointerId===event.pointerId)endDrag(gesture.kind,event,true)});
-svg.addEventListener('click',event=>{if(performance.now()<suppressClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
+listen(svg,'pointermove',event=>{if(gesture)moveDrag(gesture.kind,event)});
+listen(svg,'pointerup',event=>{if(gesture)endDrag(gesture.kind,event)});
+listen(svg,'pointercancel',event=>{if(gesture)endDrag(gesture.kind,event,true)});
+listen(svg,'lostpointercapture',event=>{if(gesture?.pointerId===event.pointerId)endDrag(gesture.kind,event,true)});
+listen(svg,'click',event=>{if(performance.now()<suppressClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 
 for(const [kind,hand] of Object.entries(hands)){
- hand.addEventListener('keydown',event=>{
+ listen(hand,'keydown',event=>{
   if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Home','End'].includes(event.key))return;
   setActiveHand(kind);event.preventDefault();
   if(event.key==='Enter'){if(kind==='event'&&currentEvent()){expanded=true;renderReadout();drawFeedback()}return}
@@ -561,58 +580,91 @@ function openEvent(index,animate=true){
  updateEventNodeClasses(index);renderReadout();drawFeedback();
  const target=timeAngle(selected.minute);if(animate)springTo('event',target);else{motion.event.angle=target;setHandAngle('event',target)}
 }
-for(const button of document.querySelectorAll('[data-focus-hand]'))button.addEventListener('click',()=>{
+for(const button of scope.querySelectorAll('[data-focus-hand]'))listen(button,'click',()=>{
  preferredHand=button.dataset.focusHand;setActiveHand(preferredHand);
 });
-ui.close.addEventListener('click',()=>{expanded=false;renderReadout();drawFeedback()});
-document.querySelector('#resetDial').addEventListener('click',()=>{
- const latest=events[0];if(latest){Object.assign(selected,localDay(latest.at),{minute:Math.round(minuteOfDay(latest.at))});syncTimeSelection()}
- expanded=false;drawDayRing();drawEventRing();renderReadout();retargetOthers('',true);toast('已回到最近一条轨迹');
+listen(ui.close,'click',()=>{expanded=false;renderReadout();drawFeedback()});
+listen(scope.querySelector('#resetDial'),'click',()=>{load({initial:true});toast('已回到最近一条轨迹')});
+for(const button of scope.querySelectorAll('[data-year-step]'))listen(button,'click',()=>{
+ selected.year=clamp(selected.year+Number(button.dataset.yearStep),1970,9999);
+ selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));expanded=false;
+ drawDayRing();renderReadout();retargetOthers('',true);load();
 });
-window.addEventListener('blur',cancelAllDrags);
+listen(window,'blur',cancelAllDrags);
 
-async function get(path){const response=await fetch('./api'+path,{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);return response.json()}
+function clearRecordDetails(){
+ for(const node of scope.querySelectorAll('[data-record-detail]')){node.textContent='';node.hidden=true}
+}
+function renderRecordDetails(event){
+ clearRecordDetails();
+ const values={summary:event.summary,note:event.note,next:event.next_action?'下一步 · '+event.next_action:'',tags:(event.tags||[]).map(tag=>'#'+tag).join(' '),task:event.taskTitle&&event.taskTitle!==event.title?'关联任务 · '+event.taskTitle:''};
+ for(const [kind,value] of Object.entries(values)){
+  const node=scope.querySelector('[data-record-detail="'+kind+'"]');if(node&&value){node.textContent=value;node.hidden=false}
+ }
+}
+async function get(path,signal){
+ const response=await fetch(new URL('./api'+path,import.meta.url),{cache:'no-store',signal});
+ if(!response.ok)throw Error('HTTP '+response.status);return response.json();
+}
 function indexEvents(){
  eventsByDay=new Map();
- const push=(day,event,startMinute,endMinute)=>{
+ const push=(day,event,startMinute,endMinute,interval)=>{
   const key=dateKey(day.getFullYear(),day.getMonth()+1,day.getDate()),list=eventsByDay.get(key)||[];
-  list.push({...event,startMinute,endMinute});eventsByDay.set(key,list);
+  let entry=list.find(item=>item.id===event.id);
+  if(!entry){entry={...event,startMinute,endMinute,segments:[]};list.push(entry)}
+  entry.startMinute=Math.min(entry.startMinute,startMinute);entry.endMinute=Math.max(entry.endMinute,endMinute);
+  if(interval)entry.segments.push({startMinute,endMinute});
+  eventsByDay.set(key,list);
  };
  for(const event of events){
-  const start=new Date(event.start||event.at),end=new Date(event.end||event.at);
-  if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))continue;
-  if(end<=start){push(start,event,minuteOfDay(start),minuteOfDay(start));continue}
-  let cursor=new Date(start.getFullYear(),start.getMonth(),start.getDate());
-  while(cursor<end){
-   const next=new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate()+1);
-   const from=Math.max(start.getTime(),cursor.getTime()),to=Math.min(end.getTime(),next.getTime());
-   if(to>from)push(cursor,event,from===cursor.getTime()?0:minuteOfDay(from),to===next.getTime()?1440:minuteOfDay(to));
-   cursor=next;
+  const periods=event.intervals||[];
+  if(!periods.length){const at=new Date(event.at);if(Number.isFinite(at.getTime()))push(at,event,minuteOfDay(at),minuteOfDay(at),false);continue}
+  for(const period of periods){
+   const start=new Date(period.started_at),end=new Date(period.ended_at);
+   if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start)continue;
+   let cursor=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+   while(cursor<end){
+    const next=new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate()+1);
+    const from=Math.max(start.getTime(),cursor.getTime()),to=Math.min(end.getTime(),next.getTime());
+    if(to>from)push(cursor,event,from===cursor.getTime()?0:minuteOfDay(from),to===next.getTime()?1440:minuteOfDay(to),true);
+    cursor=next;
+   }
   }
  }
  for(const list of eventsByDay.values())list.sort((a,b)=>a.startMinute-b.startMinute||a.endMinute-b.endMinute);
 }
-
-async function load(){
+let loadSequence=0,loadController=null;
+async function load({initial=false}={}){
+ const sequence=++loadSequence;loadController?.abort();loadController=new AbortController();
+ stage.dataset.loadState='loading';renderReadout();
+ const from=new Date(selected.year,selected.month-1,1).toISOString(),to=new Date(selected.year,selected.month,1).toISOString();
  try{
-  const [tasks,history,objectList,records]=await Promise.all([get('/tasks'),get('/focus/history'),get('/objects'),get('/learning-records')]);
-  objects=new Map(objectList.map(object=>[object.id,object]));
-  const taskEvents=tasks.filter(task=>task.status==='done'&&(task.updated_at||task.created_at)).map(task=>({id:'task:'+task.id,kind:'task',at:task.updated_at||task.created_at,title:task.title,object:objects.get(task.object_id)?.title||''}));
-  const recordEvents=records.map(record=>({id:'record:'+record.id,kind:record.activity_type||'study',at:record.started_at,start:record.started_at,end:record.ended_at,title:record.title,object:objects.get(record.object_id)?.title||'',duration:record.focused_minutes,objectId:record.object_id,source:record.source}));
-  const focusEvents=(history.sessions||[]).flatMap(session=>{
-   const running=session.state==='running'&&session.current_started_at?Math.max(0,Date.now()-Date.parse(session.current_started_at)):0;
-   const accumulated=Math.max(0,Number(session.accumulated_ms)||0)+running;
-   if(accumulated<=0||!session.started_at)return [];
-   const minutes=Math.max(1,Math.floor(accumulated/60000));
-   const end=session.ended_at||(session.state==='running'?new Date().toISOString():session.updated_at);
-   if(!end||recordEvents.some(record=>record.source==='focus'&&record.objectId===session.object_id&&Date.parse(record.start)===Date.parse(session.started_at)&&Date.parse(record.end)===Date.parse(end)))return [];
-   return [{id:'focus:'+session.id,kind:'focus',at:session.started_at,start:session.started_at,end,title:'专注 '+minutes+' 分钟',object:objects.get(session.object_id)?.title||'',duration:minutes}];
-  });
-  events=[...taskEvents,...focusEvents,...recordEvents].sort((a,b)=>Date.parse(b.at)-Date.parse(a.at));indexEvents();
-  if(events.length){Object.assign(selected,localDay(events[0].at),{minute:Math.round(minuteOfDay(events[0].at))});syncTimeSelection()}
-  drawDayRing();drawEventRing();renderReadout();snapAll();
- }catch(error){console.error(error);drawDayRing();drawEventRing();renderReadout();snapAll();toast('数据读取失败，请刷新重试')}
+  const response=await get('/trace?'+new URLSearchParams({from,to}),loadController.signal);
+  if(disposed||sequence!==loadSequence)return;
+  if(initial&&response.latest_at){
+   const latest=localDay(response.latest_at),changed=latest.year!==selected.year||latest.month!==selected.month;
+   Object.assign(selected,latest,{minute:Math.round(minuteOfDay(response.latest_at))});
+   if(changed){load();return}
+  }
+  events=response.events.map(event=>({...event,kind:event.kind==='record'?event.activity_type:event.kind,at:event.occurred_at,
+   object:event.object?.title||'',taskTitle:event.task?.title||'',duration:Math.floor((event.focused_ms||0)/60000)})).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at));
+  indexEvents();syncTimeSelection();expanded=false;stage.dataset.loadState='ready';
+  drawDayRing();drawEventRing();renderReadout();
+  // Fresh data may update details, but must not cancel a spring already in flight.
+  if(initial&&!gesture)snapAll();else retargetOthers('',true);
+  stage.dataset.loadState='ready';
+ }catch(error){
+  if(disposed||sequence!==loadSequence||error.name==='AbortError')return;
+  events=[];eventsByDay=new Map();expanded=false;stage.dataset.loadState='error';drawDayRing();drawEventRing();renderReadout();
+  toast('记录读取失败，点 RESET 重试');
+ }
 }
 
-new ResizeObserver(layoutDial).observe(stage);layoutDial();
-applyAppearance();setActiveHand('event');drawStaticDial();drawDayRing();drawEventRing();renderReadout();snapAll();load();
+const resizeObserver=new ResizeObserver(layoutDial);resizeObserver.observe(stage);layoutDial();
+applyAppearance();setActiveHand('event');drawStaticDial();drawDayRing();drawEventRing();renderReadout();snapAll();load({initial:true});
+return ()=>{
+ disposed=true;loadController?.abort();lifetime.abort();resizeObserver.disconnect();
+ if(raf)cancelAnimationFrame(raf);for(const timer of timers)window.clearTimeout(timer);timers.clear();
+};
+}
+if(document.querySelector('#dialStage'))mountEphemeris(document);

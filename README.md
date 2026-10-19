@@ -1,5 +1,9 @@
 # Cove Learning · standalone horizontal test build
 
+## 刻序 / EPHEMERIS · regular archive (2026-10-19)
+
+Today → 轨迹 now opens the approved half-dial inside the normal Learning shell. It shares its component with the standalone dial and reads the unified, factual trace API: actual record intervals, observed focus segments, and task completion points. Record corrections, focus links, time zones and retry keys are supported through HTTP/MCP. Contract and validation: [EPHEMERIS](docs/EPHEMERIS.md).
+
 ## Liquid Glass V5 · default Learning UI (2026-10-11)
 
 After the user approved the glass design, **Liquid Glass V5 became the default UI** at `https://learning-next.43.133.238.9.sslip.io/`. Today / Plan / Learn / Library use the original APIs and data, now with the same full-surface refraction as Home V5. The UI now supports **日间 / 夜间 / 跟随系统** through the shared `cove.home.themeMode` preference; both the wallpaper canvas and WebGL glass material respond to the resolved theme. The **换背景** button remains in the header: images are local-only, never uploaded, and are persisted in browser IndexedDB across app restarts. One WebGL focal surface per page preserves mobile performance. The former `?ui=glass` URL remains compatible; `?ui=classic` is reserved as an emergency appearance fallback, not a separate user-facing preview. The PWA shell cache was bumped for the rollout. See `docs/LEARNING_LIQUID_UI_V5.md`.
