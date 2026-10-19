@@ -219,3 +219,18 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 @media (prefers-reduced-motion:reduce){
  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+
+/* Ephemeris: screen-space gesture arbitration and a proportional 24h rail. */
+.hand-hit{stroke-width:44;vector-effect:non-scaling-stroke}
+.event-hit{stroke-width:28;vector-effect:non-scaling-stroke}
+.month-label-group,.month-station,.event-node,.event-duration{touch-action:none}
+.hour-label{font:500 8px/1 var(--font-mono);fill:var(--color-muted);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.event-duration{fill:none;stroke:var(--color-ink-2);stroke-width:2.5;opacity:.55;cursor:pointer;outline:none;pointer-events:stroke}
+.event-duration.is-active{stroke:var(--color-ink);stroke-width:4;opacity:1}
+.event-duration:focus-visible{stroke:var(--color-focus);stroke-width:5}
+.dial-stage:has(.is-dragging){user-select:none;-webkit-user-select:none}
+
+/* SVG groups do not reliably establish touch-action in mobile Chromium/WebKit.
+   The SVG owns needle gestures; unpainted space passes through for page scrolling. */
+.trace-dial{touch-action:none;pointer-events:none}
+.dial-hand,.month-label-group,.month-station,.event-node{pointer-events:all}
