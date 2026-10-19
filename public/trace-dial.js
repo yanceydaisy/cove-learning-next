@@ -130,8 +130,8 @@ function drawAtlasDecor(width,height){
 
 function layoutDial(){
  const width=stage.getBoundingClientRect().width;
- // The visible semicircle radius occupies 60% of the viewport width.
- const axisX=0,scale=Math.min(width*.6/416,width>=640?1.1:Infinity);
+ // The visible semicircle radius occupies 75% of the viewport width.
+ const axisX=0,scale=Math.min(width*.75/416,width>=640?1.1:Infinity);
  const outerRadius=428*scale,height=outerRadius*2+152;
  stage.style.height=`${height}px`;
  const axisY=outerRadius+12;
