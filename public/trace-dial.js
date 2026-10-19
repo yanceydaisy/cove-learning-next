@@ -23,8 +23,8 @@ const ui={
 };
 const reduceMotion=matchMedia('(prefers-reduced-motion:reduce)');
 const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
-const handRange={month:[-70,70],day:[-76,76],event:[-76,76]};
-const handRadius={month:368,day:307,event:246};
+const handRange={month:[-90,90],day:[-90,90],event:[-90,90]};
+const handRadius={month:246,day:307,event:398};
 const physics={
  month:{tau:.03,wn:18,zeta:.76,projection:.1,maxSteps:2},
  day:{tau:.023,wn:21,zeta:.72,projection:.12,maxSteps:3},
@@ -49,7 +49,8 @@ function el(name,attrs={}){
 }
 function polar(radius,angle){const radians=angle*Math.PI/180;return{x:cx+Math.cos(radians)*radius,y:cy+Math.sin(radians)*radius}}
 function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
-function rangeAngle(index,count,min=-90,max=90){return count<=1?(min+max)/2:min+(index/(count-1))*(max-min)}
+// Each value owns an equal sector; station and label sit at its centre.
+function rangeAngle(index,count,min=-90,max=90){return count<=1?(min+max)/2:min+((index+.5)/count)*(max-min)}
 function localDay(iso){const date=new Date(iso);return{year:date.getFullYear(),month:date.getMonth()+1,day:date.getDate()}}
 function sameDay(a,b){return a.year===b.year&&a.month===b.month&&a.day===b.day}
 function daysInMonth(year,month){return new Date(year,month,0).getDate()}
@@ -177,23 +178,48 @@ function drawOrnaments(){
  for(const [radius,angle,size] of [[320,-18,.8],[352,22,.55],[274,66,.7]]){const point=polar(radius,angle);layers.ornament.append(el('use',{href:'#tinyCross',transform:`translate(${point.x} ${point.y}) scale(${size})`,class:'ornament-cross'}))}
 }
 
+
+function selectMonth(index){
+ setActiveHand('month');commitSelection('month',index,{animateOthers:true});
+ springTo('month',angleForKindIndex('month',index));
+}
+function monthKey(index,event){
+ if(event.key==='Enter'||event.key===' '){event.preventDefault();selectMonth(index)}
+}
 function drawStaticDial(){
  layers.monthTicks.replaceChildren();layers.monthLabels.replaceChildren();drawOrnaments();drawHub();
- for(let index=0;index<=144;index++){
-  const angle=-90+index/144*180;
-  const major=index%12===0,mid=!major&&index%6===0;
-  const outer=major?416:mid?412:408,inner=major?389:mid?395:400;
-  const a=polar(outer,angle),b=polar(inner,angle);
-  layers.monthTicks.append(el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'tick '+(major?'major':mid?'mid':'minor')}));
+ // 12 sectors, 15 degrees each. Boundary marks are deliberately thin.
+ for(let index=0;index<=12;index++){
+  const angle=-90+index*15,a=polar(416,angle),b=polar(407,angle);
+  layers.monthTicks.append(el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'tick minor month-boundary','aria-hidden':'true'}));
  }
  roman.forEach((label,index)=>{
-  // Align every label with its month detent; glyph feet always face the axis.
   const angle=rangeAngle(index,12,...handRange.month),point=polar(357,angle);
-  const text=el('text',{x:0,y:0,class:'month-label',
-   transform:`translate(${point.x} ${point.y}) rotate(${angle+90}) scale(.62 1)`,
-   'data-month':index+1,'data-angle':angle,'aria-label':`${index+1}月`});
-  text.textContent=label;layers.monthLabels.append(text);
+  const a=polar(416,angle),b=polar(390,angle);
+  layers.monthTicks.append(el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'tick major month-major','data-month':index+1,'data-angle':angle}));
+  const stationPoint=polar(handRadius.month,angle);
+  const station=el('g',{class:'month-station','data-month':index+1,'data-angle':angle,
+   transform:`translate(${stationPoint.x} ${stationPoint.y})`,role:'button',tabindex:'0','aria-label':`${index+1}月`});
+  station.append(el('circle',{r:28,class:'month-hit'}),el('path',{d:'M-5 0H5M0 -5V5',class:'month-station-cross'}),el('circle',{r:3,class:'month-station-dot'}));
+  station.addEventListener('click',()=>selectMonth(index));station.addEventListener('keydown',event=>monthKey(index,event));
+  layers.monthTicks.append(station);
+  const group=el('g',{class:'month-label-group','data-month':index+1,'data-angle':angle,
+   transform:`translate(${point.x} ${point.y}) rotate(${angle+90})`,role:'button',tabindex:'0','aria-label':`${index+1}月`});
+  group.append(el('rect',{x:-42,y:-35,width:84,height:70,class:'month-hit'}));
+  const text=el('text',{x:0,y:0,class:'month-label',transform:'scale(.62 1)'});text.textContent=label;group.append(text);
+  group.addEventListener('click',()=>selectMonth(index));group.addEventListener('keydown',event=>monthKey(index,event));
+  layers.monthLabels.append(group);
  });
+ updateMonthScale();
+}
+function updateMonthScale(){
+ for(const node of document.querySelectorAll('.month-station,.month-label-group')){
+  const active=Number(node.dataset.month)===selected.month;
+  node.classList.toggle('is-active',active);node.setAttribute('aria-pressed',String(active));
+ }
+ layers.feedback.querySelector('.month-projection')?.remove();
+ const angle=rangeAngle(selected.month-1,12,...handRange.month),a=polar(handRadius.month+7,angle),b=polar(330,angle);
+ layers.feedback.prepend(el('path',{d:`M${a.x} ${a.y}L${b.x} ${b.y}`,class:'month-projection'}));
 }
 
 function drawDayRing(){
@@ -220,7 +246,7 @@ function drawEventRing(){
  const list=dayEvents();
  if(!list.length){drawFeedback();return}
  list.forEach((event,index)=>{
-  const angle=rangeAngle(index,list.length,...handRange.event),point=polar(246,angle);
+  const angle=rangeAngle(index,list.length,...handRange.event),point=polar(handRadius.event,angle);
   const group=el('g',{class:'event-node'+(index===selected.event?' is-active':''),tabindex:'0',role:'button','data-event-index':index,'data-event-kind':event.kind,'aria-label':event.title,transform:`translate(${point.x} ${point.y})`});
   group.append(el('circle',{cx:0,cy:0,r:28,class:'node-hit'}));
   group.append(el('circle',{cx:0,cy:0,r:9,class:'node-orbit'}));
@@ -244,9 +270,10 @@ function updateEventNodeClasses(tickedIndex=null){
 }
 
 function drawFeedback(){
+ updateMonthScale();
  for(const child of [...layers.feedback.children])if(child.classList.contains('selection-feedback'))child.remove();
  if(!expanded||!currentEvent())return;
- const list=dayEvents(),angle=rangeAngle(selected.event,list.length,...handRange.event),point=polar(246,angle);
+ const list=dayEvents(),angle=rangeAngle(selected.event,list.length,...handRange.event),point=polar(handRadius.event,angle);
  const group=el('g',{class:'selection-feedback'});
  const caption=document.querySelector('.editorial-bottom').getBoundingClientRect(),matrix=svg.getScreenCTM();
  if(!matrix)return;
@@ -297,7 +324,11 @@ function setHandAngle(kind,angle){
  hands[kind].setAttribute('aria-valuenow',String(values[kind]));
  hands[kind].setAttribute('aria-valuetext',kind==='month'?selected.month+'月':kind==='day'?selected.day+'日':list.length?`${values.event}/${list.length} ${currentEvent()?.title||''}`:'无事件');
  if(kind==='day')hands[kind].setAttribute('aria-valuemax',String(daysInMonth(selected.year,selected.month)));
- if(kind==='event')hands[kind].setAttribute('aria-valuemax',String(Math.max(1,list.length)));
+ if(kind==='event'){
+  hands[kind].setAttribute('aria-valuemin',list.length?'1':'0');
+  hands[kind].setAttribute('aria-valuemax',String(list.length));
+  hands[kind].setAttribute('aria-disabled',String(list.length===0));
+ }
 }
 
 function snapAll(){
@@ -308,7 +339,7 @@ function snapAll(){
 function collapsedCopy(){
  const count=dayEvents().length;
  ui.kind.textContent='TRACE / SELECT';
- ui.title.textContent=count?'点按内圈的事件标记':'这一天还没有轨迹记录';
+ ui.title.textContent=count?'点按外圈的事件标记':'这一天还没有轨迹记录';
  ui.object.textContent=count?'选择一个节点后，在这里展开事件。':'继续拨动日期指针寻找记录。';
  ui.time.textContent=dateKey(selected.year,selected.month,selected.day);
  ui.type.textContent=count?count+' EVENTS':'EMPTY TRACE';
@@ -354,7 +385,7 @@ function commitSelection(kind,index,{preview=false,animateOthers=true}={}){
 function indexForAngle(kind,angle){
  const [min,max]=handRange[kind];
  const count=kind==='month'?12:kind==='day'?daysInMonth(selected.year,selected.month):Math.max(1,dayEvents().length);
- return clamp(Math.round((clamp(angle,min,max)-min)/(max-min)*(count-1)),0,count-1);
+ return clamp(Math.floor((clamp(angle,min,max)-min)/(max-min)*count),0,count-1);
 }
 function angleForKindIndex(kind,index){
  const count=kind==='month'?12:kind==='day'?daysInMonth(selected.year,selected.month):Math.max(1,dayEvents().length);
@@ -412,7 +443,7 @@ function rubberAngle(value,kind){
 }
 
 function beginDrag(kind,event){
- if(!event.isPrimary)return;const angle=rawPointerAngle(event);if(angle===null)return;
+ if(!event.isPrimary||hands[kind].getAttribute('aria-disabled')==='true')return;const angle=rawPointerAngle(event);if(angle===null)return;
  const state=motion[kind];setActiveHand(kind);state.mode='drag';state.pointerId=event.pointerId;state.dragOffset=angle-state.angle;state.lastPointerAngle=state.angle;state.lastPointerTime=event.timeStamp;state.velocity=0;state.preview=indexForAngle(kind,state.angle);
  hands[kind].classList.add('is-dragging');hands[kind].setPointerCapture?.(event.pointerId);event.preventDefault();ensureFrame();
 }
@@ -442,9 +473,10 @@ for(const [kind,hand] of Object.entries(hands)){
  hand.addEventListener('pointercancel',event=>endDrag(kind,event,true));
  hand.addEventListener('lostpointercapture',event=>{if(motion[kind].pointerId===event.pointerId)endDrag(kind,event,true)});
  hand.addEventListener('keydown',event=>{
+  if(hand.getAttribute('aria-disabled')==='true')return;
   if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(event.key))return;
   setActiveHand(kind);
-  if(event.key==='Enter'&&kind==='event'){expanded=true;renderReadout();drawFeedback();return}
+  if(event.key==='Enter'){event.preventDefault();if(kind==='event'){expanded=true;renderReadout();drawFeedback()}return}
   const direction=event.key==='ArrowDown'||event.key==='ArrowRight'?1:-1;event.preventDefault();
   const current=kind==='month'?selected.month-1:kind==='day'?selected.day-1:selected.event;
   const next=indexForAngle(kind,angleForKindIndex(kind,current+direction));commitSelection(kind,next,{animateOthers:true});springTo(kind,angleForKindIndex(kind,next));

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f5">
 <title>Cove Learning · Trace Dial Lab</title>
-<link rel="stylesheet" href="./trace-dial.css?v=atlas-hub-5">
+<link rel="stylesheet" href="./trace-dial.css?v=scale-map-1">
 </head>
 <body>
 <div class="dial-wallpaper" id="wallpaper"></div>
@@ -13,14 +13,14 @@
   <header class="dial-header">
     <a class="dial-back" href="./#/archive" aria-label="返回轨迹">‹</a>
     <div class="dial-brand">COVE <span>/</span> LEARNING</div>
-    <div class="dial-title">TRACE DIAL <small>· LAB 05.4</small></div>
+    <div class="dial-title">TRACE DIAL <small>· LAB 06</small></div>
   </header>
 
   <section class="dial-stage" id="dialStage" aria-label="竖向轨迹轮盘" data-active-hand="event">
     <svg id="atlasDecor" class="atlas-decor" aria-hidden="true" focusable="false"></svg>
     <svg id="traceDial" class="trace-dial" viewBox="0 0 760 940" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="dialSvgTitle dialSvgDesc">
       <title id="dialSvgTitle">Cove Learning 竖向时间轮盘</title>
-      <desc id="dialSvgDesc">三根可拖动的平面花体指针分别选择月份、日期和当天事件；轮盘节点可点击展开。</desc>
+      <desc id="dialSvgDesc">短针选择月份，中针选择日期，长针选择当天事件；月份以十二个15度等分刻度覆盖180度半圆；轮盘节点可点击展开。</desc>
       <defs>
         <g id="fourStar"><path d="M0,-10 2.3,-2.3 10,0 2.3,2.3 0,10 -2.3,2.3 -10,0 -2.3,-2.3Z"/></g>
         <g id="tinyCross"><path d="M0,-6V6M-6,0H6"/></g>
@@ -40,7 +40,7 @@
         <path class="arc month-ghost" d="M58 146 A324 324 0 0 1 58 794"/>
         <path class="arc day-rail" d="M58 166 A304 304 0 0 1 58 774"/>
         <path class="arc day-ghost" d="M58 188 A282 282 0 0 1 58 752"/>
-        <path class="arc event-rail" d="M58 224 A246 246 0 0 1 58 716"/>
+        <path class="arc month-selector-rail" d="M58 224 A246 246 0 0 1 58 716"/>
         <path class="arc event-ghost" d="M58 244 A226 226 0 0 1 58 696"/>
         <path class="arc core-rail" d="M58 300 A170 170 0 0 1 58 640"/>
         <line class="diameter-line" x1="58" y1="86" x2="58" y2="854"/>
@@ -53,20 +53,23 @@
       <g id="monthLabels"></g>
       <g id="dayTicks"></g>
 
-      <g class="dial-index index-month" aria-hidden="true"><line x1="118" y1="108" x2="162" y2="108"/><text x="168" y="103">月</text><text class="latin" x="168" y="121">MONTH / 01</text></g>
+      <g class="dial-index index-event" aria-hidden="true"><line x1="118" y1="108" x2="162" y2="108"/><text x="168" y="103">事件</text><text class="latin" x="168" y="121">EVENT / 03</text></g>
       <g class="dial-index index-day" aria-hidden="true"><line x1="120" y1="282" x2="166" y2="282"/><text x="172" y="277">日</text><text class="latin" x="172" y="295">DAY / 02</text></g>
-      <g class="dial-index index-event" aria-hidden="true"><line x1="122" y1="410" x2="168" y2="410"/><text x="174" y="405">事件</text><text class="latin" x="174" y="423">EVENT / 03</text></g>
+      <g class="dial-index index-month" aria-hidden="true"><line x1="122" y1="410" x2="168" y2="410"/><text x="174" y="405">月</text><text class="latin" x="174" y="423">MONTH / 01</text></g>
 
-      <g id="monthHand" class="dial-hand month-hand" data-kind="month" tabindex="0" role="slider" aria-label="月份指针" aria-valuemin="1" aria-valuemax="12">
-        <line class="hand-hit" x1="298" y1="0" x2="389" y2="0"/>
-        <path class="month-silhouette hand-body" fill-rule="evenodd" d="M0 -5 L42 -5 55 -12 70 -5 106 -4 118 -17 131 -4 191 -4 205 -12 219 -4 263 -3 276 -15 289 -3 326 -3 340 -10 354 -4 379 0 354 4 340 10 326 3 289 3 276 15 263 3 219 4 205 12 191 4 131 4 118 17 106 4 70 5 55 12 42 5 0 5 Z M78 -2 L103 -2 91 2 78 2 Z M139 -2 L187 -2 175 2 139 2 Z M229 -1.6 L259 -1.6 248 1.6 229 1.6 Z"/>
-        <path class="month-filigree hand-line" d="M38 0 C65 -20 83 20 108 0 C132 -22 151 21 181 0 C208 -18 226 17 258 0 M284 0 C303 -16 318 14 340 0"/>
-        <path class="month-window hand-line" d="M112 0 Q119 -11 126 0 Q119 11 112 0Z M270 0 Q278 -9 286 0 Q278 9 270 0Z"/>
-        <use href="#fourStar" class="hand-sigil" transform="translate(345 0) scale(.72)"/>
-        <circle class="hand-grip" cx="316" cy="0" r="10"/>
+      <g id="monthHand" class="dial-hand month-hand" data-kind="month" tabindex="0" role="slider" aria-label="月份指针（短针）" aria-valuemin="1" aria-valuemax="12">
+        <g class="hand-art" transform="scale(0.9534883720930233 1)">
+        <path class="hand-hit event-hit" d="M188 -5 C207 -10 226 -7 258 0"/>
+        <path class="event-vine hand-body" d="M0 0 C35 -1 52 -9 67 -2 C82 5 80 17 69 19 C58 21 54 11 61 7 C74 0 96 -18 119 -7 C136 1 133 15 148 15 C163 15 167 -6 184 -8 C200 -10 211 6 201 15 C190 25 177 15 183 6 C191 -5 218 -9 246 0"/>
+        <path class="event-tail hand-body" d="M98 -6 Q112 -24 125 -8 M132 13 Q143 28 157 11"/>
+        <use href="#fourStar" class="event-star" transform="translate(168 -8) scale(.74) rotate(12)"/>
+        <path class="event-tip hand-body" d="M239 -6 L258 0 239 6 246 0Z"/>
+        <circle class="hand-grip" cx="218" cy="-2" r="10"/>
+        </g>
       </g>
 
-      <g id="dayHand" class="dial-hand day-hand" data-kind="day" tabindex="0" role="slider" aria-label="日期指针" aria-valuemin="1" aria-valuemax="31">
+      <g id="dayHand" class="dial-hand day-hand" data-kind="day" tabindex="0" role="slider" aria-label="日期指针（中针）" aria-valuemin="1" aria-valuemax="31">
+        <g class="hand-art" transform="scale(0.9388379204892966 1)">
         <line class="hand-hit" x1="252" y1="0" x2="329" y2="0"/>
         <path class="day-rail-line hand-body" d="M0 -4 H72 L88 -11 103 -4 H178 L194 -10 210 -4 H278 L297 -13 321 -5 M0 4 H72 L88 11 103 4 H178 L194 10 210 4 H278 L297 13 321 5"/>
         <path class="day-spine hand-body" d="M26 0 H310"/>
@@ -75,15 +78,19 @@
         <circle class="day-hole hand-body" cx="238" cy="0" r="6"/>
         <rect class="day-block" x="132" y="-8" width="14" height="16"/>
         <circle class="hand-grip" cx="282" cy="0" r="10"/>
+        </g>
       </g>
 
-      <g id="eventHand" class="dial-hand event-hand" data-kind="event" tabindex="0" role="slider" aria-label="事件指针" aria-valuemin="1" aria-valuemax="1">
-        <path class="hand-hit event-hit" d="M188 -5 C207 -10 226 -7 258 0"/>
-        <path class="event-vine hand-body" d="M0 0 C35 -1 52 -9 67 -2 C82 5 80 17 69 19 C58 21 54 11 61 7 C74 0 96 -18 119 -7 C136 1 133 15 148 15 C163 15 167 -6 184 -8 C200 -10 211 6 201 15 C190 25 177 15 183 6 C191 -5 218 -9 246 0"/>
-        <path class="event-tail hand-body" d="M98 -6 Q112 -24 125 -8 M132 13 Q143 28 157 11"/>
-        <use href="#fourStar" class="event-star" transform="translate(168 -8) scale(.74) rotate(12)"/>
-        <path class="event-tip hand-body" d="M239 -6 L258 0 239 6 246 0Z"/>
-        <circle class="hand-grip" cx="218" cy="-2" r="10"/>
+      <g id="eventHand" class="dial-hand event-hand" data-kind="event" tabindex="0" role="slider" aria-label="事件指针（长针）" aria-valuemin="1" aria-valuemax="1">
+        <g class="hand-art" transform="scale(1.050131926121372 1)">
+        <line class="hand-hit" x1="298" y1="0" x2="389" y2="0"/>
+        <path class="month-silhouette hand-body" fill-rule="evenodd" d="M0 -5 L42 -5 55 -12 70 -5 106 -4 118 -17 131 -4 191 -4 205 -12 219 -4 263 -3 276 -15 289 -3 326 -3 340 -10 354 -4 379 0 354 4 340 10 326 3 289 3 276 15 263 3 219 4 205 12 191 4 131 4 118 17 106 4 70 5 55 12 42 5 0 5 Z M78 -2 L103 -2 91 2 78 2 Z M139 -2 L187 -2 175 2 139 2 Z M229 -1.6 L259 -1.6 248 1.6 229 1.6 Z"/>
+        <path class="month-filigree hand-line" d="M38 0 C65 -20 83 20 108 0 C132 -22 151 21 181 0 C208 -18 226 17 258 0 M284 0 C303 -16 318 14 340 0"/>
+        <path class="month-window hand-line" d="M112 0 Q119 -11 126 0 Q119 11 112 0Z M270 0 Q278 -9 286 0 Q278 9 270 0Z"/>
+        <use href="#fourStar" class="hand-sigil" transform="translate(345 0) scale(.72)"/>
+        <circle class="hand-grip" cx="316" cy="0" r="10"/>
+        <path class="event-endpoint" d="M373 -3 L379 0 373 3 375 0Z"/>
+        </g>
       </g>
 
       <g id="eventNodes"></g>
@@ -121,11 +128,11 @@
   </section>
 
   <footer class="dial-footer">
-    <p><span>TRACE DIAL / 05</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
+    <p><span>TRACE DIAL / 06</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
     <button id="resetDial" type="button">↻ RESET</button>
   </footer>
 </main>
 <div class="dial-toast" id="dialToast" role="status" aria-live="polite"></div>
-<script type="module" src="./trace-dial.js?v=atlas-hub-5"></script>
+<script type="module" src="./trace-dial.js?v=scale-map-1"></script>
 </body>
 </html>

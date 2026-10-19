@@ -62,7 +62,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .month-ghost{stroke:var(--color-cobalt);stroke-width:.8;stroke-dasharray:2 8;opacity:.42}
 .day-rail{stroke:var(--color-cobalt);stroke-width:1.05;stroke-dasharray:14 3 2 3;opacity:.74}
 .day-ghost{stroke:var(--color-ink);stroke-width:.65;stroke-dasharray:1 8;stroke-linecap:round;opacity:.38}
-.event-rail{stroke:var(--color-cyan);stroke-width:1.1;stroke-dasharray:19 3 3 3;opacity:.76}
+.month-selector-rail{stroke:var(--color-cyan);stroke-width:1.1;stroke-dasharray:19 3 3 3;opacity:.76}
 .event-ghost{stroke:var(--color-magenta);stroke-width:.65;stroke-dasharray:1 10;stroke-linecap:round;opacity:.42}
 .core-rail{stroke:var(--color-ink);stroke-width:.6;stroke-dasharray:1 8;stroke-linecap:round;opacity:.25}
 .diameter-line{stroke:var(--color-ink);stroke-width:.7;opacity:.22}
@@ -82,6 +82,14 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .tick.major{stroke-width:1.35;opacity:.88}
 .tick.mid{stroke:var(--color-cobalt);stroke-width:1.1;opacity:.72}
 .tick.minor{stroke-width:.55;opacity:.34}
+.month-label-group,.month-station{cursor:pointer;outline:none;touch-action:manipulation}
+.month-hit{fill:transparent;stroke:transparent}
+.month-label-group:focus-visible .month-hit,.month-station:focus-visible .month-hit{stroke:var(--color-focus);stroke-width:2;vector-effect:non-scaling-stroke}
+.month-station-cross{fill:none;stroke:var(--color-ink-2);stroke-width:.7;vector-effect:non-scaling-stroke;opacity:.55}
+.month-station-dot{fill:var(--color-paper-solid);stroke:var(--color-ink);stroke-width:1;vector-effect:non-scaling-stroke}
+.month-station.is-active .month-station-dot{fill:var(--color-ink)}
+.month-station.is-active .month-station-cross{stroke-width:1.4;opacity:1}
+.month-projection{fill:none;stroke:var(--color-ink);stroke-width:.65;stroke-dasharray:2 5;opacity:.3;pointer-events:none;vector-effect:non-scaling-stroke}
 .month-label{font:700 64px/1 var(--font-display);font-style:normal;font-synthesis:none;letter-spacing:-.04em;fill:var(--color-ink);text-anchor:middle;dominant-baseline:central;opacity:1;pointer-events:none}
 .day-label{font:600 8px/1 var(--font-mono);fill:var(--color-ink-2);text-anchor:middle;dominant-baseline:middle;opacity:.72}
 .day-event-mark{fill:var(--color-cobalt);stroke:var(--color-paper-solid);stroke-width:1.5;vector-effect:non-scaling-stroke}
@@ -103,7 +111,8 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .day-block{fill:var(--color-cobalt);pointer-events:none}
 .event-vine,.event-tail,.event-tip{fill:none;stroke:var(--color-cyan);stroke-width:2.35;stroke-linecap:round;stroke-linejoin:round}
 .event-tail{stroke:var(--color-magenta);stroke-width:1.45}
-.event-tip{fill:var(--color-signal-red);stroke:var(--color-signal-red)}
+.event-tip{fill:var(--color-ink);stroke:var(--color-ink)}
+.event-endpoint{fill:var(--color-signal-red);pointer-events:none}
 .event-star{fill:var(--color-magenta);stroke:var(--color-magenta)}
 .hand-grip{fill:var(--color-paper-solid);stroke-width:1.4;vector-effect:non-scaling-stroke;pointer-events:none}
 .month-hand .hand-grip{stroke:var(--color-ink)}
