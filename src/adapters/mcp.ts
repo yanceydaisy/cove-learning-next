@@ -174,6 +174,26 @@ export function createLearningMcpServer(app:LearningApplication){
   });
  }));
 
+ server.registerTool('learning_add_record',{
+  title:'Add Learning Record',
+  description:'Create a factual completed learning record. elapsed_minutes is derived from started_at and ended_at; focused_minutes defaults to elapsed time and cannot exceed it. Link to a real course/project/track and optionally a task. Use summary for what was learned and next_action for the concrete follow-up.',
+  inputSchema:{
+   local_date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+   started_at:z.string().min(1).max(80),
+   ended_at:z.string().min(1).max(80),
+   focused_minutes:z.number().int().min(0).max(1440).optional(),
+   title:z.string().min(1).max(160),
+   summary:z.string().max(4000).optional(),
+   activity_type:z.enum(['study','review','practice','reading','project','other']).optional(),
+   object_id:z.string().uuid().optional(),
+   task_id:z.string().uuid().optional(),
+   next_action:z.string().max(1200).optional(),
+   note:z.string().max(4000).optional(),
+   tags:z.array(z.string().min(1).max(40)).max(20).optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
+ },async args=>safe(()=>app.records.create({...clean(args),source:'mcp'})));
+
  server.registerTool('learning_focus',{
   title:'Learning Focus Session',
   description:'Read or control the Learning focus timer. pause/resume/finish may omit session_id to target the current active session.',

@@ -7,6 +7,7 @@ import {ScheduleService} from '../modules/planning/schedule.js';
 import {TaskEvidenceService} from '../modules/planning/task-evidence.js';
 import {LibraryService} from '../modules/library/service.js';
 import {ActivityService} from '../modules/activity/service.js';
+import {LearningRecordsService} from '../modules/activity/records.js';
 import {TodayService} from '../modules/today/service.js';
 export class LearningApplication {
  readonly database:Database;
@@ -17,6 +18,7 @@ export class LearningApplication {
  readonly taskEvidence:TaskEvidenceService;
  readonly library:LibraryService;
  readonly activity:ActivityService;
+ readonly records:LearningRecordsService;
  readonly today:TodayService;
  constructor(dataDir:string,memory=false,clock=()=>new Date()){
   this.database=new Database(memory?':memory:':join(dataDir,'learning.sqlite'));
@@ -28,6 +30,7 @@ export class LearningApplication {
   this.taskEvidence=new TaskEvidenceService(this.database,now);
   this.library=new LibraryService(this.database,join(dataDir,'originals'),now);
   this.activity=new ActivityService(this.database,this.catalog,clock);
+  this.records=new LearningRecordsService(this.database,this.catalog,now);
   this.today=new TodayService(this.database,clock);
  }
  close(){this.database.close();}

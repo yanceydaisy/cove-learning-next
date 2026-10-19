@@ -119,6 +119,30 @@ ALTER TABLE learning_objects ADD COLUMN updated_at TEXT;
 UPDATE learning_objects SET updated_at=created_at WHERE updated_at IS NULL;
 CREATE INDEX idx_learning_objects_project_status ON learning_objects(kind,project_status,updated_at);
 `}
+ ,{version:9,name:'learning_records',sql:`
+CREATE TABLE learning_records (
+ id TEXT PRIMARY KEY,
+ local_date TEXT NOT NULL,
+ started_at TEXT NOT NULL,
+ ended_at TEXT NOT NULL,
+ elapsed_minutes INTEGER NOT NULL CHECK(elapsed_minutes>=0),
+ focused_minutes INTEGER NOT NULL CHECK(focused_minutes>=0 AND focused_minutes<=elapsed_minutes),
+ title TEXT NOT NULL,
+ summary TEXT,
+ activity_type TEXT NOT NULL CHECK(activity_type IN ('study','review','practice','reading','project','other')),
+ object_id TEXT REFERENCES learning_objects(id) ON DELETE SET NULL,
+ task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+ next_action TEXT,
+ note TEXT,
+ tags_json TEXT NOT NULL DEFAULT '[]',
+ source TEXT NOT NULL CHECK(source IN ('manual','focus','mcp','import')),
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL
+);
+CREATE INDEX idx_learning_records_date ON learning_records(local_date,started_at,id);
+CREATE INDEX idx_learning_records_object ON learning_records(object_id,local_date);
+CREATE INDEX idx_learning_records_task ON learning_records(task_id,local_date);
+`}
 ] as const;
 
 export class Database {
