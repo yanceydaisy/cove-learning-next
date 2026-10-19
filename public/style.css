@@ -845,7 +845,9 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .archive-hands{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:visible}
 .archive-hand-image{position:absolute;left:50%;top:50%;display:block;width:auto;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 0 8px rgba(172,196,255,.18))}
 .archive-hand-image.minute{height:min(244%,2240px);max-width:192px;z-index:1}
-.archive-hand-image.hour{height:min(178%,1620px);max-width:224px;z-index:2;filter:drop-shadow(0 0 10px rgba(165,188,255,.20))}\n.archive-hand-image.minute.dark{transform:translate(-50%,-81%)}\n.archive-hand-image.hour.dark{transform-origin:0 0;transform:translate(50%,88%) rotate(180deg)}
+.archive-hand-image.hour{height:min(178%,1620px);max-width:224px;z-index:2;filter:drop-shadow(0 0 10px rgba(165,188,255,.20))}
+.archive-hand-image.minute.dark{transform:translate(-50%,-81%)}
+.archive-hand-image.hour.dark{transform-origin:0 0;transform:translate(50%,88%) rotate(180deg)}
 .archive-hand-image.light{display:none}
 :root[data-theme="light"] .archive-hand-image.dark{display:none}
 :root[data-theme="light"] .archive-hand-image.light{display:block;filter:drop-shadow(0 0 7px rgba(43,62,104,.14))}
