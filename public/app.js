@@ -963,7 +963,7 @@ function archiveTimeline(tasks,history,objects){
   groups.get(day).push(event);
  }
  if(!groups.size)return '<div class="archive-empty"><span>—</span><p>还没有可以放进轨迹的记录。</p></div>';
- return '<div class="archive-timeline"><div class="archive-hands" aria-hidden="true"><i class="archive-hand minute"></i><i class="archive-hand hour"></i><b class="archive-hand-hub"></b></div>'+[...groups.entries()].map(([day,items])=>{
+ return '<div class="archive-timeline"><div class="archive-hands" aria-hidden="true"><img class="archive-hand-image minute dark" src="./assets/trace/trace-minute-dark.webp" alt=""><img class="archive-hand-image hour dark" src="./assets/trace/trace-hour-dark.webp" alt=""><img class="archive-hand-image minute light" src="./assets/trace/trace-minute-light.webp" alt=""><img class="archive-hand-image hour light" src="./assets/trace/trace-hour-light.webp" alt=""></div>'+[...groups.entries()].map(([day,items])=>{
   const label=archiveDateLabel(day);
   return '<section class="archive-day"><div class="archive-date"><strong>'+esc(label.date)+'</strong><span>'+esc(label.weekday)+'</span></div>'+items.map(item=>{
    if(item.kind==='task')return '<div class="archive-event task"><div class="archive-side left"><article class="archive-card task-card"><span>DONE</span><strong>'+esc(item.title)+'</strong>'+(item.object?'<small>'+esc(item.object)+'</small>':'')+'<time>'+esc(archiveTimeLabel(item.at))+'</time></article></div><i class="archive-dot"></i><div class="archive-side right"></div></div>';
