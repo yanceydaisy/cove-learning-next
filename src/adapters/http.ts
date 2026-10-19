@@ -1,4 +1,3 @@
-
 import {createServer,type IncomingMessage,type ServerResponse} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -91,6 +90,8 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
      res.writeHead(200,{'content-type':'application/octet-stream','content-disposition':'attachment; filename="learning-original"','cache-control':'no-store','content-length':content.bytes.length});
      res.end(content.bytes);return;
     }
+    else if(path==='/api/learning-records'&&method==='GET')result=app.records.list({local_date:url.searchParams.get('local_date')??undefined,object_id:url.searchParams.get('object_id')??undefined,task_id:url.searchParams.get('task_id')??undefined});
+    else if(path==='/api/learning-records'&&method==='POST'){result=app.records.create(await parseBody(req));status=201;}
     else if(path==='/api/focus/active'&&method==='GET')result=app.activity.active();
     else if(path==='/api/focus/recent'&&method==='GET')result=app.activity.recent();
     else if(path==='/api/focus/history'&&method==='GET')result=app.activity.history();
