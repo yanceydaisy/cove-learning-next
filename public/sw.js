@@ -1,5 +1,5 @@
 
-const NAME='cove-learning-v0.60-20261019-trace-hand-assets';
+const NAME='cove-learning-v0.61-20261019-trace-assets-route';
 const SHELL=['./','./style.css','./app.js','./icon.svg','./icon-192.png','./icon-512.png','./assets/trace/trace-minute-dark.webp','./assets/trace/trace-hour-dark.webp','./assets/trace/trace-minute-light.webp','./assets/trace/trace-hour-light.webp'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(NAME).then(cache=>cache.addAll(SHELL)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cove-learning-')&&k!==NAME).map(k=>caches.delete(k)))));self.clients.claim();});
