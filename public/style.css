@@ -848,7 +848,8 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .archive-hand-image.light{display:none}
 :root[data-theme="light"] .archive-hand-image.dark{display:none}
 :root[data-theme="light"] .archive-hand-image.light{display:block;filter:drop-shadow(0 0 7px rgba(43,62,104,.14))}
-:root[data-theme="light"] .archive-hand-image.hour.light{filter:drop-shadow(0 0 9px rgba(43,62,104,.15))}
+:root[data-theme="light"] .archive-hand-image.minute.light{transform:translate(-80%,-80%)}
+:root[data-theme="light"] .archive-hand-image.hour.light{transform:translate(-20%,-80%);filter:drop-shadow(0 0 9px rgba(43,62,104,.15))}
 .archive-day{position:relative;z-index:1;margin-bottom:24px}
 .archive-date{position:relative;z-index:2;width:max-content;max-width:80%;margin:0 auto 11px;padding:4px 8px;border-radius:999px;background:var(--surface-strong);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);display:flex;align-items:baseline;gap:5px}
 .archive-date strong{font:500 9px/1.2 var(--serif);color:var(--ink)}
