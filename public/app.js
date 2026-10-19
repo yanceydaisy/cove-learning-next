@@ -70,14 +70,11 @@ function appearance(){
  const mode=localStorage.getItem('cove.home.themeMode')||'system';
  const prefers=window.matchMedia('(prefers-color-scheme: dark)').matches;
  const dark=mode==='dark'||mode==='system'&&prefers;
- const baseResolved=dark?'dark':'light';
- // The Trace page intentionally swaps the day/night presentation while
- // preserving the user's global Home appearance preference.
- const resolved=page()==='archive'?(baseResolved==='dark'?'light':'dark'):baseResolved;
+ const resolved=dark?'dark':'light';
  document.documentElement.dataset.theme=resolved;
  document.documentElement.dataset.themeMode=mode;
  const meta=document.querySelector('meta[name="theme-color"]');
- if(meta)meta.content=resolved==='dark'?'#202330':'#e4eaf2';
+ if(meta)meta.content=dark?'#202330':'#e4eaf2';
  const appearanceButton=document.querySelector('#appearance');
  if(appearanceButton){
   appearanceButton.textContent=mode==='system'?'自动':dark?'夜':'日';
@@ -989,7 +986,6 @@ async function perform(action){
  try{await action();}catch(error){notify(error.message);}
 }
 async function render(){
- try{appearance();}catch{}
  currentNav();const name=page();const seq=++viewId;
  if(timer){clearInterval(timer);timer=null;}
  try{
