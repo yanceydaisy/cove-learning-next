@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-19",
+  "framework": "vanilla HTML/CSS/JavaScript",
+  "font_stack": "Didot/Bodoni display with Noto Serif SC/Songti body",
+  "palette": "existing CSS custom properties, expanded into isolated trace-dial tokens",
+  "motion": "no motion library; requestAnimationFrame spring used for the physical dial",
+  "spacing": "4-point semantic token scale",
+  "scope": "public/trace-dial only"
+}

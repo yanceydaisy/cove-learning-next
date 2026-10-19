@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#edf1f5">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2f3f8">
 <title>Cove Learning · Trace Dial Lab</title>
 <link rel="stylesheet" href="./trace-dial.css">
 </head>
@@ -13,115 +13,110 @@
   <header class="dial-header">
     <a class="dial-back" href="./#/archive" aria-label="返回轨迹">‹</a>
     <div class="dial-brand">COVE <span>/</span> LEARNING</div>
-    <div class="dial-title">TRACE DIAL <small>· LAB 02</small></div>
+    <div class="dial-title">TRACE DIAL <small>· LAB 03</small></div>
   </header>
 
-  <section class="dial-stage" aria-label="竖向轨迹轮盘">
+  <section class="dial-stage" id="dialStage" aria-label="竖向轨迹轮盘" data-active-hand="event">
     <svg id="traceDial" class="trace-dial" viewBox="0 0 760 940" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="dialSvgTitle dialSvgDesc">
       <title id="dialSvgTitle">Cove Learning 竖向时间轮盘</title>
-      <desc id="dialSvgDesc">三根可拖动指针分别选择月份、日期和当天事件；轮盘上的事件点可点击展开。</desc>
+      <desc id="dialSvgDesc">三根可拖动的平面花体指针分别选择月份、日期和当天事件；轮盘节点可点击展开。</desc>
       <defs>
-        <filter id="selectedGlow" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="3" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <path id="monthHandShape" d="M0,-6 L50,-6 L67,-12 L82,-6 L220,-5 L239,-14 L253,-5 L316,-4 L337,-18 L368,0 L337,18 L316,4 L253,5 L239,14 L220,5 L82,6 L67,12 L50,6 L0,6 Z"/>
-        <path id="dayHandShape" d="M0,-5 L42,-5 L58,-12 L73,-5 L168,-4 L184,-13 L199,-4 L263,-3 L282,-14 L307,0 L282,14 L263,3 L199,4 L184,13 L168,4 L73,5 L58,12 L42,5 L0,5 Z"/>
-        <path id="eventHandShape" d="M0,-4 L36,-4 L49,-10 L63,-4 L128,-3 L143,-11 L159,-3 L206,-2 L224,-12 L246,0 L224,12 L206,2 L159,3 L143,11 L128,3 L63,4 L49,10 L36,4 L0,4 Z"/>
-        <g id="smallStar">
-          <path d="M0,-10 L2.5,-2.5 L10,0 L2.5,2.5 L0,10 L-2.5,2.5 L-10,0 L-2.5,-2.5 Z"/>
+        <g id="fourStar"><path d="M0,-10 2.3,-2.3 10,0 2.3,2.3 0,10 -2.3,2.3 -10,0 -2.3,-2.3Z"/></g>
+        <g id="tinyCross"><path d="M0,-6V6M-6,0H6"/></g>
+        <g id="laceUnit">
+          <path d="M0 0 C7 -14 18 -14 25 0 C18 -7 7 -7 0 0Z"/>
+          <path d="M7 -3 Q12 -14 18 -3 Q12 4 7 -3Z"/>
+          <circle cx="12.5" cy="-5.5" r="1.7"/>
         </g>
       </defs>
 
-      <g class="dial-geometry">
+      <g class="dial-geometry" aria-hidden="true">
         <path class="arc frame-a" d="M58 54 A416 416 0 0 1 58 886"/>
-        <path class="arc frame-b" d="M58 70 A400 400 0 0 1 58 870"/>
+        <path class="arc frame-b" d="M58 66 A404 404 0 0 1 58 874"/>
         <path class="arc frame-c" d="M58 86 A384 384 0 0 1 58 854"/>
-        <path class="arc month-rail" d="M58 112 A358 358 0 0 1 58 828"/>
-        <path class="arc month-ghost" d="M58 130 A340 340 0 0 1 58 810"/>
-        <path class="arc day-rail" d="M58 168 A302 302 0 0 1 58 772"/>
+        <path class="arc month-rail-a" d="M58 108 A362 362 0 0 1 58 832"/>
+        <path class="arc month-rail-b" d="M58 116 A354 354 0 0 1 58 824"/>
+        <path class="arc month-ghost" d="M58 134 A336 336 0 0 1 58 806"/>
+        <path class="arc day-rail" d="M58 166 A304 304 0 0 1 58 774"/>
         <path class="arc day-ghost" d="M58 188 A282 282 0 0 1 58 752"/>
-        <path class="arc event-rail" d="M58 228 A242 242 0 0 1 58 712"/>
-        <path class="arc event-ghost" d="M58 246 A224 224 0 0 1 58 694"/>
-        <path class="arc core-rail" d="M58 302 A168 168 0 0 1 58 638"/>
-        <line class="diameter-line" x1="58" y1="92" x2="58" y2="848"/>
+        <path class="arc event-rail" d="M58 224 A246 246 0 0 1 58 716"/>
+        <path class="arc event-ghost" d="M58 244 A226 226 0 0 1 58 696"/>
+        <path class="arc core-rail" d="M58 300 A170 170 0 0 1 58 640"/>
+        <line class="diameter-line" x1="58" y1="86" x2="58" y2="854"/>
       </g>
 
+      <g id="orbitLayer" class="orbit-layer" aria-hidden="true"></g>
+      <g id="laceLayer" class="lace-layer" aria-hidden="true"></g>
       <g id="ornamentLayer" aria-hidden="true"></g>
       <g id="monthTicks"></g>
       <g id="monthLabels"></g>
       <g id="dayTicks"></g>
+
+      <g class="dial-index index-month" aria-hidden="true"><line x1="118" y1="108" x2="162" y2="108"/><text x="168" y="103">月</text><text class="latin" x="168" y="121">MONTH / 01</text></g>
+      <g class="dial-index index-day" aria-hidden="true"><line x1="120" y1="282" x2="166" y2="282"/><text x="172" y="277">日</text><text class="latin" x="172" y="295">DAY / 02</text></g>
+      <g class="dial-index index-event" aria-hidden="true"><line x1="122" y1="410" x2="168" y2="410"/><text x="174" y="405">事件</text><text class="latin" x="174" y="423">EVENT / 03</text></g>
+
+      <g id="monthHand" class="dial-hand month-hand" data-kind="month" tabindex="0" role="slider" aria-label="月份指针" aria-valuemin="1" aria-valuemax="12">
+        <line class="hand-hit" x1="298" y1="0" x2="389" y2="0"/>
+        <path class="month-silhouette hand-body" fill-rule="evenodd" d="M0 -5 L42 -5 55 -12 70 -5 106 -4 118 -17 131 -4 191 -4 205 -12 219 -4 263 -3 276 -15 289 -3 326 -3 340 -10 354 -4 379 0 354 4 340 10 326 3 289 3 276 15 263 3 219 4 205 12 191 4 131 4 118 17 106 4 70 5 55 12 42 5 0 5 Z M78 -2 L103 -2 91 2 78 2 Z M139 -2 L187 -2 175 2 139 2 Z M229 -1.6 L259 -1.6 248 1.6 229 1.6 Z"/>
+        <path class="month-filigree hand-line" d="M38 0 C65 -20 83 20 108 0 C132 -22 151 21 181 0 C208 -18 226 17 258 0 M284 0 C303 -16 318 14 340 0"/>
+        <path class="month-window hand-line" d="M112 0 Q119 -11 126 0 Q119 11 112 0Z M270 0 Q278 -9 286 0 Q278 9 270 0Z"/>
+        <use href="#fourStar" class="hand-sigil" transform="translate(345 0) scale(.72)"/>
+        <circle class="hand-grip" cx="316" cy="0" r="10"/>
+      </g>
+
+      <g id="dayHand" class="dial-hand day-hand" data-kind="day" tabindex="0" role="slider" aria-label="日期指针" aria-valuemin="1" aria-valuemax="31">
+        <line class="hand-hit" x1="252" y1="0" x2="329" y2="0"/>
+        <path class="day-rail-line hand-body" d="M0 -4 H72 L88 -11 103 -4 H178 L194 -10 210 -4 H278 L297 -13 321 -5 M0 4 H72 L88 11 103 4 H178 L194 10 210 4 H278 L297 13 321 5"/>
+        <path class="day-spine hand-body" d="M26 0 H310"/>
+        <path class="day-notch hand-body" d="M63 -7 V7 M107 -6 V6 M170 -6 V6 M216 -6 V6 M264 -6 V6"/>
+        <path class="day-fork hand-body" d="M310 -5 L327 -14 320 0 327 14 310 5 M295 -12 L310 0 295 12"/>
+        <circle class="day-hole hand-body" cx="238" cy="0" r="6"/>
+        <rect class="day-block" x="132" y="-8" width="14" height="16"/>
+        <circle class="hand-grip" cx="282" cy="0" r="10"/>
+      </g>
+
+      <g id="eventHand" class="dial-hand event-hand" data-kind="event" tabindex="0" role="slider" aria-label="事件指针" aria-valuemin="1" aria-valuemax="1">
+        <path class="hand-hit event-hit" d="M188 -5 C207 -10 226 -7 258 0"/>
+        <path class="event-vine hand-body" d="M0 0 C35 -1 52 -9 67 -2 C82 5 80 17 69 19 C58 21 54 11 61 7 C74 0 96 -18 119 -7 C136 1 133 15 148 15 C163 15 167 -6 184 -8 C200 -10 211 6 201 15 C190 25 177 15 183 6 C191 -5 218 -9 246 0"/>
+        <path class="event-tail hand-body" d="M98 -6 Q112 -24 125 -8 M132 13 Q143 28 157 11"/>
+        <use href="#fourStar" class="event-star" transform="translate(168 -8) scale(.74) rotate(12)"/>
+        <path class="event-tip hand-body" d="M239 -6 L258 0 239 6 246 0Z"/>
+        <circle class="hand-grip" cx="218" cy="-2" r="10"/>
+      </g>
+
       <g id="eventNodes"></g>
-
-      <g class="dial-index index-month">
-        <line x1="116" y1="116" x2="160" y2="116"/>
-        <text x="166" y="111">月</text><text class="latin" x="166" y="128">MONTH</text>
-      </g>
-      <g class="dial-index index-day">
-        <line x1="116" y1="286" x2="160" y2="286"/>
-        <text x="166" y="281">日</text><text class="latin" x="166" y="298">DAY</text>
-      </g>
-      <g class="dial-index index-event">
-        <line x1="116" y1="416" x2="160" y2="416"/>
-        <text x="166" y="411">事件</text><text class="latin" x="166" y="428">EVENT</text>
-      </g>
-
-      <g id="monthHand" class="dial-hand month-hand" data-kind="month" tabindex="0" aria-label="月份指针">
-        <line class="hand-hit" x1="0" y1="0" x2="382" y2="0"/>
-        <use href="#monthHandShape" class="hand-body"/>
-        <circle class="hand-ring" cx="264" cy="0" r="13"/>
-        <circle class="hand-core" cx="264" cy="0" r="3.5"/>
-        <path class="hand-cut" d="M96 0 h82 M205 0 h38 M292 0 h25"/>
-      </g>
-
-      <g id="dayHand" class="dial-hand day-hand" data-kind="day" tabindex="0" aria-label="日期指针">
-        <line class="hand-hit" x1="0" y1="0" x2="320" y2="0"/>
-        <use href="#dayHandShape" class="hand-body"/>
-        <circle class="hand-ring" cx="213" cy="0" r="11"/>
-        <path class="hand-cut" d="M82 0 h64 M170 0 h32 M236 0 h26"/>
-      </g>
-
-      <g id="eventHand" class="dial-hand event-hand" data-kind="event" tabindex="0" aria-label="事件指针">
-        <line class="hand-hit" x1="0" y1="0" x2="260" y2="0"/>
-        <use href="#eventHandShape" class="hand-body"/>
-        <circle class="hand-ring" cx="174" cy="0" r="9"/>
-        <path class="hand-cut" d="M72 0 h42 M137 0 h24 M194 0 h18"/>
-      </g>
+      <g id="feedbackLayer" class="feedback-layer" aria-hidden="true"></g>
 
       <g class="dial-hub" aria-hidden="true">
-        <circle cx="58" cy="470" r="31" class="hub-orbit"/>
-        <circle cx="58" cy="470" r="22" class="hub-orbit inner"/>
-        <circle cx="58" cy="470" r="9" class="hub-core"/>
-        <path class="hub-star" d="M58 442 L64 464 L86 470 L64 476 L58 498 L52 476 L30 470 L52 464 Z"/>
+        <circle cx="58" cy="470" r="34" class="hub-orbit outer"/>
+        <circle cx="58" cy="470" r="24" class="hub-orbit middle"/>
+        <circle cx="58" cy="470" r="14" class="hub-orbit inner"/>
+        <path class="hub-star" d="M58 449 L63 465 L79 470 L63 475 L58 491 L53 475 L37 470 L53 465Z"/>
+        <circle cx="58" cy="470" r="3.5" class="hub-core"/>
       </g>
     </svg>
 
     <aside class="stage-editorial collapsed" id="eventEditorial" aria-live="polite">
-      <div class="editorial-rule"></div>
+      <div class="editorial-coordinate"><span>Y</span> 470.00 <i>/</i> X 302.00</div>
       <span class="editorial-kicker" id="eventKind">TRACE / SELECT</span>
-      <div class="editorial-date">
-        <span id="readoutYear">2026</span>
-        <strong id="readoutMonth">10</strong><i>/</i><strong id="readoutDay">19</strong>
-      </div>
+      <div class="editorial-date"><span id="readoutYear">2026</span><strong id="readoutMonth">10</strong><i>/</i><strong id="readoutDay">19</strong></div>
       <small id="readoutWeekday">周一 · MONDAY</small>
       <h1 id="eventTitle">点击轮盘上的事件标记</h1>
-      <p id="eventObject">事件会在这里展开，而不是进入卡片。</p>
-      <div class="editorial-meta">
-        <span id="detailTime">—</span>
-        <span id="detailType">TRACE EVENT</span>
-      </div>
+      <p id="eventObject">事件会沿着轨迹展开。</p>
+      <div class="editorial-meta"><span id="detailTime">—</span><span id="detailType">TRACE EVENT</span></div>
       <button class="editorial-close" id="closeEditorial" type="button" hidden>收起 · CLOSE</button>
     </aside>
 
-    <div class="dial-key" aria-hidden="true">
-      <span><i class="month"></i>月</span>
-      <span><i class="day"></i>日</span>
-      <span><i class="event"></i>事件</span>
+    <div class="dial-key" aria-label="指针图例">
+      <button type="button" data-focus-hand="month"><i class="month"></i><span>月</span></button>
+      <button type="button" data-focus-hand="day"><i class="day"></i><span>日</span></button>
+      <button type="button" data-focus-hand="event"><i class="event"></i><span>事件</span></button>
     </div>
   </section>
 
   <footer class="dial-footer">
-    <p><span>TRACE DIAL / 02</span> 拖动三根指针选择时间；点按内圈标记展开事件。</p>
+    <p><span>TRACE DIAL / 03</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
     <button id="resetDial" type="button">↻ RESET</button>
   </footer>
 </main>
