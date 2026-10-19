@@ -1,6 +1,14 @@
 [
   {
     "date": "2026-10-19",
+    "scope": "isolated trace dial composition",
+    "theme": "custom",
+    "theme_axes": "light+dark / bold-high-contrast-serif / neutral",
+    "macrostructure": "exposed half-dial with two corner captions",
+    "brief": "Reveal complete rosette axis, shift dial right, topographic contours and restrained technical symbols in corner negative space."
+  },
+  {
+    "date": "2026-10-19",
     "scope": "isolated dial typography and palette refinement",
     "macrostructure": "split-axis vertical chronograph (preserved at user request)",
     "theme": "custom",

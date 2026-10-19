@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f5">
 <title>Cove Learning · Trace Dial Lab</title>
-<link rel="stylesheet" href="./trace-dial.css?v=mono-roman-1">
+<link rel="stylesheet" href="./trace-dial.css?v=atlas-hub-1">
 </head>
 <body>
 <div class="dial-wallpaper" id="wallpaper"></div>
@@ -13,10 +13,11 @@
   <header class="dial-header">
     <a class="dial-back" href="./#/archive" aria-label="返回轨迹">‹</a>
     <div class="dial-brand">COVE <span>/</span> LEARNING</div>
-    <div class="dial-title">TRACE DIAL <small>· LAB 04</small></div>
+    <div class="dial-title">TRACE DIAL <small>· LAB 05</small></div>
   </header>
 
   <section class="dial-stage" id="dialStage" aria-label="竖向轨迹轮盘" data-active-hand="event">
+    <svg id="atlasDecor" class="atlas-decor" aria-hidden="true" focusable="false"></svg>
     <svg id="traceDial" class="trace-dial" viewBox="0 0 760 940" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="dialSvgTitle dialSvgDesc">
       <title id="dialSvgTitle">Cove Learning 竖向时间轮盘</title>
       <desc id="dialSvgDesc">三根可拖动的平面花体指针分别选择月份、日期和当天事件；轮盘节点可点击展开。</desc>
@@ -98,14 +99,18 @@
     </svg>
 
     <aside class="stage-editorial collapsed" id="eventEditorial" aria-live="polite">
-      <div class="editorial-coordinate"><span>Y</span> 470.00 <i>/</i> X 302.00</div>
-      <span class="editorial-kicker" id="eventKind">TRACE / SELECT</span>
-      <div class="editorial-date"><span id="readoutYear">2026</span><strong id="readoutMonth">10</strong><i>/</i><strong id="readoutDay">19</strong></div>
-      <small id="readoutWeekday">周一 · MONDAY</small>
-      <h1 id="eventTitle">点击轮盘上的事件标记</h1>
-      <p id="eventObject">事件会沿着轨迹展开。</p>
-      <div class="editorial-meta"><span id="detailTime">—</span><span id="detailType">TRACE EVENT</span></div>
-      <button class="editorial-close" id="closeEditorial" type="button" hidden>收起 · CLOSE</button>
+      <header class="editorial-top">
+        <div class="editorial-coordinate"><span>⌖</span> TEMPUS <i>/</i> ARCHIVE</div>
+        <div class="editorial-date"><span id="readoutYear">2026</span><strong id="readoutMonth">10</strong><i>/</i><strong id="readoutDay">19</strong></div>
+        <small id="readoutWeekday">周一 · MONDAY</small>
+      </header>
+      <section class="editorial-bottom">
+        <span class="editorial-kicker" id="eventKind">TRACE / SELECT</span>
+        <h1 id="eventTitle">点击轮盘上的事件标记</h1>
+        <p id="eventObject">事件会沿着轨迹展开。</p>
+        <div class="editorial-meta"><span id="detailTime">—</span><span id="detailType">TRACE EVENT</span></div>
+        <button class="editorial-close" id="closeEditorial" type="button" hidden>收起 · CLOSE</button>
+      </section>
     </aside>
 
     <div class="dial-key" aria-label="指针图例">
@@ -116,11 +121,11 @@
   </section>
 
   <footer class="dial-footer">
-    <p><span>TRACE DIAL / 04</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
+    <p><span>TRACE DIAL / 05</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
     <button id="resetDial" type="button">↻ RESET</button>
   </footer>
 </main>
 <div class="dial-toast" id="dialToast" role="status" aria-live="polite"></div>
-<script type="module" src="./trace-dial.js?v=mono-roman-1"></script>
+<script type="module" src="./trace-dial.js?v=atlas-hub-1"></script>
 </body>
 </html>

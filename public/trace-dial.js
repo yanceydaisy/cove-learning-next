@@ -73,6 +73,70 @@ function applyAppearance(){
  if(meta)meta.content=dark?'#070707':'#f5f5f5';
 }
 
+
+function drawHub(){
+ hub.replaceChildren();
+ const ring=(r,cls)=>el('circle',{cx,cy,r,class:cls});
+ // Cut-out rosette, concentric rings and eight fine radial registration marks.
+ for(let i=0;i<8;i++){
+  const petal=el('path',{d:`M${cx-5} ${cy-33} Q${cx} ${cy-49} ${cx+5} ${cy-33} Q${cx} ${cy-37} ${cx-5} ${cy-33}Z`,
+   class:'hub-lace',transform:`rotate(${i*45} ${cx} ${cy})`});hub.append(petal);
+ }
+ hub.append(ring(37,'hub-orbit outer'),ring(29,'hub-orbit middle'),ring(20,'hub-orbit inner'));
+ for(let i=0;i<8;i++){
+  const a=polar(30,i*45),b=polar(36,i*45);
+  hub.append(el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'hub-spoke'}));
+ }
+ let d='';
+ for(let i=0;i<16;i++){const p=polar(i%2?7.5:17,-90+i*22.5);d+=(i?' L':'M')+p.x+' '+p.y}
+ hub.append(el('path',{d:d+'Z',class:'hub-rose'}),ring(6,'hub-cut'),ring(2.5,'hub-core'));
+}
+
+function drawAtlasDecor(width,height){
+ const decor=document.querySelector('#atlasDecor');decor.setAttribute('viewBox',`0 0 ${width} ${height}`);decor.replaceChildren();
+ // Nested contour loops describe the empty corners, away from the numeral ring.
+ const contour=(x,y,rx,ry,angle,count)=>{
+  const group=el('g',{transform:`translate(${x} ${y}) rotate(${angle})`});
+  for(let n=0;n<count;n++){
+   const k=.25+n*.072;let d='';
+   for(let i=0;i<=96;i++){
+    const t=i/96*Math.PI*2;
+    const warp=1+.075*Math.sin(t*3+.6)+.04*Math.cos(t*5);
+    const px=Math.cos(t)*rx*k*warp,py=Math.sin(t)*ry*k*warp;
+    d+=(i?' L':'M')+px.toFixed(2)+' '+py.toFixed(2);
+   }
+   group.append(el('path',{d:d+'Z',class:'atlas-contour'}));
+  }
+  decor.append(group);
+ };
+ contour(width*.98,height*.075,width*.31,36,24,17);
+ contour(width*.035,height*.9,width*.26,27,-28,15);
+ const cross=(x,y,size=3)=>{
+  decor.append(el('path',{d:`M${x-size} ${y}h${size*2} M${x} ${y-size}v${size*2}`,class:'atlas-tech'}));
+ };
+ for(const [x,y] of [[width*.72,8],[width-12,height*.28],[width-12,height*.69],[10,height*.75],[width*.23,height-15]])cross(x,y);
+ const checker=el('g',{transform:`translate(${width-23} ${height*.61})`,class:'atlas-solid'});
+ for(let row=0;row<3;row++)for(let col=0;col<3;col++)if((row+col)%2===0)checker.append(el('rect',{x:col*4,y:row*4,width:4,height:4}));
+ decor.append(checker);
+ const dots=el('g',{class:'atlas-solid atlas-faint'});
+ for(let row=0;row<4;row++)for(let col=0;col<5;col++)dots.append(el('circle',{cx:12+col*6,cy:height*.73+row*6,r:.65}));
+ decor.append(dots);
+ decor.append(el('path',{d:`M${width-24} ${height*.34}h12 m-12 5h7 M8 ${height-21}h30 m3 0h22`,class:'atlas-tech'}));
+ for(let n=0;n<7;n++)decor.append(el('path',{d:`M${43+n*5} ${height-21}l3 -4`,class:'atlas-tech'}));
+ const asterisk=el('g',{transform:`translate(${width-17} ${height*.73})`,class:'atlas-tech'});
+ for(let i=0;i<3;i++)asterisk.append(el('path',{d:'M-5 0H5',transform:`rotate(${i*60})`}));
+ decor.append(asterisk);
+}
+
+function layoutDial(){
+ const {width,height}=stage.getBoundingClientRect();
+ const axisX=38,scale=Math.min((width-axisX-12)/428,(height-170)/856);
+ const axisY=height*.435;
+ Object.assign(svg.style,{width:`${760*scale}px`,height:`${940*scale}px`,
+  insetInlineStart:`${axisX-cx*scale}px`,insetBlockStart:`${axisY-cy*scale}px`});
+ drawAtlasDecor(width,height);drawFeedback();
+}
+
 function drawOrbits(){
  layers.orbit.replaceChildren();
  layers.orbit.append(
@@ -111,7 +175,7 @@ function drawOrnaments(){
 }
 
 function drawStaticDial(){
- layers.monthTicks.replaceChildren();layers.monthLabels.replaceChildren();drawOrnaments();
+ layers.monthTicks.replaceChildren();layers.monthLabels.replaceChildren();drawOrnaments();drawHub();
  for(let index=0;index<=144;index++){
   const angle=-90+index/144*180;
   const major=index%12===0,mid=!major&&index%6===0;
@@ -181,8 +245,12 @@ function drawFeedback(){
  if(!expanded||!currentEvent())return;
  const list=dayEvents(),angle=rangeAngle(selected.event,list.length,...handRange.event),point=polar(246,angle);
  const group=el('g',{class:'selection-feedback'});
- group.append(el('path',{d:`M${point.x} ${point.y} L${point.x+24} ${point.y} L430 ${point.y}`,class:'feedback-path'}));
- group.append(el('rect',{x:426,y:point.y-3,width:6,height:6,transform:`rotate(45 429 ${point.y})`,class:'feedback-terminal'}));
+ const caption=document.querySelector('.editorial-bottom').getBoundingClientRect(),matrix=svg.getScreenCTM();
+ if(!matrix)return;
+ const anchor=svg.createSVGPoint();anchor.x=caption.left-7;anchor.y=caption.top+5;
+ const end=anchor.matrixTransform(matrix.inverse());
+ group.append(el('path',{d:`M${point.x} ${point.y} L${point.x+22} ${point.y} L${end.x} ${end.y}`,class:'feedback-path'}));
+ group.append(el('rect',{x:end.x-2.5,y:end.y-2.5,width:5,height:5,transform:`rotate(45 ${end.x} ${end.y})`,class:'feedback-terminal'}));
  layers.feedback.prepend(group);
 }
 
@@ -408,4 +476,5 @@ async function load(){
  }catch(error){console.error(error);drawDayRing();drawEventRing();renderReadout();snapAll();toast('数据读取失败，轮盘仍可体验')}
 }
 
+new ResizeObserver(layoutDial).observe(stage);layoutDial();
 applyAppearance();setActiveHand('event');drawStaticDial();drawDayRing();drawEventRing();renderReadout();snapAll();load();

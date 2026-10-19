@@ -1,4 +1,4 @@
-/* Hallmark · macrostructure: split-axis vertical chronograph · genre: custom-bespoke · tone: monochrome-gothic · anchor hue: neutral */
+/* Hallmark · macrostructure: exposed half-dial with corner captions · genre: custom-bespoke · tone: monochrome-gothic-atlas · anchor hue: neutral */
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5 */
 :root{
  color-scheme:light;
@@ -43,7 +43,16 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .dial-title{font:500 .625rem/1 var(--font-display);letter-spacing:.16em;white-space:nowrap}
 .dial-title small{font-size:.5rem;opacity:.54}
 .dial-stage{position:relative;height:min(calc(100dvh - 6.8rem),47.5rem);min-height:40rem;margin-block-start:.3rem;overflow:hidden;isolation:isolate}
-.trace-dial{position:absolute;inset-block-start:0;inset-inline-start:-28%;width:auto;height:100%;overflow:visible;touch-action:pan-y}
+.trace-dial{position:absolute;inset-block-start:0;inset-inline-start:0;overflow:visible;touch-action:pan-y;z-index:1}
+.atlas-decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.atlas-contour{fill:none;stroke:var(--color-ink-2);stroke-width:.55;opacity:.16}
+.atlas-tech{fill:none;stroke:var(--color-ink);stroke-width:.75;opacity:.48}
+.atlas-solid{fill:var(--color-ink);stroke:none;opacity:.8}
+.atlas-faint{opacity:.26}
+.hub-lace{fill:var(--color-paper-solid);stroke:var(--color-ink);stroke-width:.8;vector-effect:non-scaling-stroke}
+.hub-spoke{fill:none;stroke:var(--color-ink);stroke-width:.65;vector-effect:non-scaling-stroke}
+.hub-rose{fill:var(--color-ink);stroke:none}
+.hub-cut{fill:var(--color-paper-solid);stroke:none}
 .arc{fill:none;stroke:var(--color-ink);vector-effect:non-scaling-stroke}
 .frame-a{stroke-width:2.1;opacity:.94}
 .frame-b{stroke-width:.7;opacity:.4}
@@ -131,24 +140,28 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .hub-star{fill:var(--color-paper-solid);stroke:var(--color-magenta);stroke-width:1;vector-effect:non-scaling-stroke}
 .hub-core{fill:var(--color-ink)}
 .dial-hub.is-active .middle{animation:hubCounter .42s var(--ease-out)}
-.stage-editorial{position:absolute;inset-inline-end:0;inset-block-start:13%;width:36%;max-width:19.4rem;padding-inline:.55rem .2rem;z-index:4;pointer-events:none;transition:opacity var(--dur-short) var(--ease-out),transform var(--dur-medium) var(--ease-out)}
-.stage-editorial::before{content:"";position:absolute;inset-inline-start:-.8rem;inset-block-start:1.1rem;width:2.6rem;height:1px;background:var(--color-magenta);transform:translateX(-100%)}
-.stage-editorial.collapsed{opacity:.58;transform:translateX(.2rem)}
-.editorial-coordinate{font:500 .375rem/1 var(--font-mono);letter-spacing:.11em;color:var(--color-muted);margin-block-end:1.15rem;white-space:nowrap}
-.editorial-coordinate span{display:inline-grid;place-items:center;width:.9rem;height:.9rem;margin-inline-end:.3rem;background:var(--color-cobalt);color:var(--color-accent-ink)}
-.editorial-coordinate i{font-style:normal;opacity:.35;margin-inline:.2rem}
-.editorial-kicker{display:block;font:600 .44rem/1 var(--font-mono);letter-spacing:.18em;color:var(--color-cobalt);margin-block-end:.85rem}
-.editorial-date{display:flex;align-items:baseline;gap:.3rem;margin-block-end:.25rem}
-.editorial-date>span{align-self:flex-start;padding-block-start:.32rem;font:500 .45rem/1 var(--font-mono);letter-spacing:.12em;color:var(--color-muted)}
-.editorial-date strong{font:400 var(--text-display)/.9 var(--font-display);letter-spacing:-.055em}
-.editorial-date strong:last-child{color:var(--color-cobalt)}
-.editorial-date i{font:300 1.25rem/1 var(--font-display);font-style:normal;opacity:.34}
-.stage-editorial>small{display:block;font:500 .42rem/1.35 var(--font-mono);letter-spacing:.1em;color:var(--color-muted);margin-block:.4rem 1.45rem}
-.stage-editorial h1{min-width:0;margin:0 0 .55rem;font:600 clamp(.95rem,4vw,1.5rem)/1.48 var(--font-body);font-style:normal;letter-spacing:.01em;text-wrap:balance;overflow-wrap:anywhere}
-.stage-editorial p{margin:0 0 1rem;font-size:.72rem;line-height:1.7;color:var(--color-ink-2);overflow-wrap:anywhere}
-.editorial-meta{display:flex;flex-direction:column;gap:.35rem;padding-block-start:.7rem;border-block-start:var(--rule-thin) solid var(--color-rule-soft);font:500 .45rem/1.4 var(--font-mono);letter-spacing:.08em;color:var(--color-muted)}
-.editorial-close{min-width:2.75rem;min-height:2.75rem;margin-block-start:.45rem;padding:0;border:0;background:transparent;font:600 .44rem/1.3 var(--font-mono);letter-spacing:.11em;border-block-end:1px solid var(--color-rule);color:var(--color-ink);pointer-events:auto;white-space:nowrap}
-.dial-key{position:absolute;inset-inline-end:.1rem;inset-block-end:5%;display:flex;gap:.3rem;z-index:4}
+
+/* Two corner captions leave the exposed axis and the semicircle clear. */
+.stage-editorial{position:absolute;inset:0;width:100%;z-index:4;pointer-events:none}
+.stage-editorial::before{content:none}
+.editorial-top{position:absolute;inset-block-start:.7rem;inset-inline-end:.15rem;width:46%;max-width:17rem}
+.editorial-coordinate{font:500 .44rem/1.2 var(--font-mono);letter-spacing:.13em;color:var(--color-muted);margin-block-end:.8rem;white-space:nowrap}
+.editorial-coordinate span{display:inline-block;margin-inline-end:.35rem;color:var(--color-ink)}
+.editorial-coordinate i{font-style:normal;margin-inline:.25rem;opacity:.5}
+.editorial-date{display:flex;align-items:baseline;gap:.25rem;white-space:nowrap}
+.editorial-date>span{align-self:flex-start;padding-block-start:.2rem;font:500 .48rem/1 var(--font-mono);letter-spacing:.08em;color:var(--color-muted)}
+.editorial-date strong{font:400 clamp(2.1rem,8.5vw,3.4rem)/1 var(--font-display);letter-spacing:-.055em}
+.editorial-date i{font:300 1.1rem/1 var(--font-display);font-style:normal;opacity:.35}
+.editorial-top>small{display:block;font:500 .44rem/1.5 var(--font-mono);letter-spacing:.05em;color:var(--color-muted);margin-block-start:.35rem}
+.editorial-bottom{position:absolute;inset-inline-end:.15rem;inset-block-end:.2rem;width:68%;max-width:27rem;max-height:8.7rem;overflow:auto;overscroll-behavior:contain;pointer-events:auto;padding-inline-end:2.7rem}
+.editorial-kicker{display:block;font:600 .46rem/1.2 var(--font-mono);letter-spacing:.16em;color:var(--color-muted);margin-block-end:.45rem}
+.editorial-bottom h1{min-width:0;margin:0 0 .3rem;font:600 clamp(.88rem,3.6vw,1.15rem)/1.4 var(--font-body);font-style:normal;overflow-wrap:anywhere}
+.editorial-bottom p{margin:0 0 .45rem;font-size:.72rem;line-height:1.5;color:var(--color-ink-2);overflow-wrap:anywhere}
+.editorial-meta{display:flex;flex-wrap:wrap;gap:.25rem .65rem;padding-block-start:.4rem;border-block-start:var(--rule-thin) solid var(--color-rule-soft);font:500 .44rem/1.5 var(--font-mono);letter-spacing:.04em;color:var(--color-muted)}
+.editorial-close{position:absolute;inset-inline-end:0;inset-block-start:0;min-width:2.75rem;min-height:2.75rem;padding:0;border:0;background:transparent;font:600 .42rem/1.3 var(--font-mono);writing-mode:vertical-rl;letter-spacing:.1em;color:var(--color-ink);white-space:nowrap}
+.stage-editorial.collapsed .editorial-bottom{opacity:.68}
+.dial-key{position:absolute;inset-inline-end:.1rem;inset-block-start:44%;inset-block-end:auto;display:flex;gap:.3rem;z-index:4}
+ .dial-key{flex-direction:column;gap:0}
 .dial-key button{display:inline-flex;align-items:center;gap:.3rem;min-width:2.75rem;min-height:2.75rem;padding:.4rem .25rem;border:0;background:transparent;color:var(--color-muted);font-size:.5rem;white-space:nowrap;outline:2px solid transparent;outline-offset:1px}
 .dial-key i{width:.38rem;height:.38rem;border:1px solid currentColor;border-radius:50%}
 .dial-key .month{background:var(--color-ink);color:var(--color-ink)}
@@ -172,16 +185,16 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 }
 @media (min-width:40rem){
  .dial-stage{min-height:42rem}
- .trace-dial{inset-inline-start:-8%}
- .stage-editorial{width:38%;inset-block-start:15%}
+
+
 }
 @media (pointer:coarse){.dial-key button,.dial-footer button,.editorial-close,.dial-back{min-width:3rem;min-height:3rem}}
 @media (max-width:23.4375rem){
  .dial-shell{padding-inline:.5rem}
  .dial-brand{font-size:.66rem;letter-spacing:.12em}
  .dial-title{font-size:.5rem;letter-spacing:.1em}
- .trace-dial{inset-inline-start:-30%}
- .stage-editorial{width:38%;padding-inline-start:.35rem}
+
+
  .stage-editorial h1{font-size:.88rem}
  .dial-key{gap:0}
  .dial-key button{padding-inline:.1rem}
