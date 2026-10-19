@@ -130,8 +130,9 @@ function drawAtlasDecor(width,height){
 
 function layoutDial(){
  const width=stage.getBoundingClientRect().width;
- // The diameter lies on the left crop; the main rim comes within 3px of the right edge.
- const axisX=0,scale=Math.min((width-3)/416,width>=640?1.1:Infinity);
+ // Keep the half hub at the left crop and a narrow breathing margin at the rim.
+ const rimGap=Math.max(28,Math.min(40,width*.08));
+ const axisX=0,scale=Math.min((width-rimGap)/416,width>=640?1.1:Infinity);
  const outerRadius=428*scale,height=outerRadius*2+152;
  stage.style.height=`${height}px`;
  const axisY=outerRadius+12;
