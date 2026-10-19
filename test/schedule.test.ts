@@ -1,4 +1,3 @@
-
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync} from 'node:fs';
@@ -44,11 +43,9 @@ test('weekly class schedule and task time blocks stay explicit and date-addressa
 
   const again=new LearningApplication(f.dir);
   try{
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,7);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,9);
    assert.equal(again.schedule.list().length,1);
    assert.equal(again.schedule.forDate('2026-10-13').length,1);
   }finally{again.close();}
  }finally{f.end();}
 });
-
-[executed on device: cove-prod-01 (996ee891-1352-4542-8974-83a3c70e71d0)]
