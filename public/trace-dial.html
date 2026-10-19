@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f2f3f8">
+<meta name="theme-color" content="#f5f5f5">
 <title>Cove Learning · Trace Dial Lab</title>
-<link rel="stylesheet" href="./trace-dial.css">
+<link rel="stylesheet" href="./trace-dial.css?v=mono-roman-1">
 </head>
 <body>
 <div class="dial-wallpaper" id="wallpaper"></div>
@@ -13,7 +13,7 @@
   <header class="dial-header">
     <a class="dial-back" href="./#/archive" aria-label="返回轨迹">‹</a>
     <div class="dial-brand">COVE <span>/</span> LEARNING</div>
-    <div class="dial-title">TRACE DIAL <small>· LAB 03</small></div>
+    <div class="dial-title">TRACE DIAL <small>· LAB 04</small></div>
   </header>
 
   <section class="dial-stage" id="dialStage" aria-label="竖向轨迹轮盘" data-active-hand="event">
@@ -33,10 +33,10 @@
       <g class="dial-geometry" aria-hidden="true">
         <path class="arc frame-a" d="M58 54 A416 416 0 0 1 58 886"/>
         <path class="arc frame-b" d="M58 66 A404 404 0 0 1 58 874"/>
-        <path class="arc frame-c" d="M58 86 A384 384 0 0 1 58 854"/>
-        <path class="arc month-rail-a" d="M58 108 A362 362 0 0 1 58 832"/>
-        <path class="arc month-rail-b" d="M58 116 A354 354 0 0 1 58 824"/>
-        <path class="arc month-ghost" d="M58 134 A336 336 0 0 1 58 806"/>
+        <path class="arc frame-c" d="M58 42 A428 428 0 0 1 58 898"/>
+        <path class="arc month-rail-a" d="M58 72 A398 398 0 0 1 58 868"/>
+        <path class="arc month-rail-b" d="M58 78 A392 392 0 0 1 58 862"/>
+        <path class="arc month-ghost" d="M58 146 A324 324 0 0 1 58 794"/>
         <path class="arc day-rail" d="M58 166 A304 304 0 0 1 58 774"/>
         <path class="arc day-ghost" d="M58 188 A282 282 0 0 1 58 752"/>
         <path class="arc event-rail" d="M58 224 A246 246 0 0 1 58 716"/>
@@ -116,11 +116,11 @@
   </section>
 
   <footer class="dial-footer">
-    <p><span>TRACE DIAL / 03</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
+    <p><span>TRACE DIAL / 04</span> 拖动指针，越过刻度会咬合；点按事件标记展开。</p>
     <button id="resetDial" type="button">↻ RESET</button>
   </footer>
 </main>
 <div class="dial-toast" id="dialToast" role="status" aria-live="polite"></div>
-<script type="module" src="./trace-dial.js"></script>
+<script type="module" src="./trace-dial.js?v=mono-roman-1"></script>
 </body>
 </html>

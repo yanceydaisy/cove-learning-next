@@ -1,6 +1,15 @@
 [
   {
     "date": "2026-10-19",
+    "scope": "isolated dial typography and palette refinement",
+    "macrostructure": "split-axis vertical chronograph (preserved at user request)",
+    "theme": "custom",
+    "theme_axes": "light+dark / bold-high-contrast-serif / neutral",
+    "brief": "Large inward-facing radial Roman numerals; monochrome hierarchy; tiny oxblood event tip",
+    "overrides": "User requests achromatic greys; do not tint neutrals or rotate layout."
+  },
+  {
+    "date": "2026-10-19",
     "macrostructure": "split-axis vertical chronograph",
     "theme": "custom",
     "theme_axes": "light+dark / high-contrast-serif / cool-cobalt",

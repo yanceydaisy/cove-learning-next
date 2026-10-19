@@ -23,7 +23,7 @@ const ui={
 };
 const reduceMotion=matchMedia('(prefers-reduced-motion:reduce)');
 const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
-const handRange={month:[-76,76],day:[-76,76],event:[-76,76]};
+const handRange={month:[-70,70],day:[-76,76],event:[-76,76]};
 const handRadius={month:368,day:307,event:246};
 const physics={
  month:{tau:.03,wn:18,zeta:.76,projection:.1,maxSteps:2},
@@ -70,7 +70,7 @@ function applyAppearance(){
  const layer=document.querySelector('#wallpaper');
  if(background&&/^(data:image\/|blob:)/.test(background)){layer.style.backgroundImage='url('+JSON.stringify(background)+')';layer.classList.add('custom')}
  const meta=document.querySelector('meta[name="theme-color"]');
- if(meta)meta.content=dark?'#0d1122':'#f2f3f8';
+ if(meta)meta.content=dark?'#070707':'#f5f5f5';
 }
 
 function drawOrbits(){
@@ -120,10 +120,12 @@ function drawStaticDial(){
   layers.monthTicks.append(el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'tick '+(major?'major':mid?'mid':'minor')}));
  }
  roman.forEach((label,index)=>{
-  const angle=rangeAngle(index,12),point=polar(371,angle);
-  const warped=index===2||index===8;
-  const transform=warped?`rotate(${index===2?-6:5} ${point.x} ${point.y})`:'';
-  const text=el('text',{x:point.x,y:point.y,class:'month-label','data-warp':warped,transform});text.textContent=label;layers.monthLabels.append(text);
+  // Align every label with its month detent; glyph feet always face the axis.
+  const angle=rangeAngle(index,12,...handRange.month),point=polar(357,angle);
+  const text=el('text',{x:0,y:0,class:'month-label',
+   transform:`translate(${point.x} ${point.y}) rotate(${angle+90}) scale(.62 1)`,
+   'data-month':index+1,'data-angle':angle,'aria-label':`${index+1}月`});
+  text.textContent=label;layers.monthLabels.append(text);
  });
 }
 

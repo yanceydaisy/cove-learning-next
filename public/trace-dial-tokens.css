@@ -1,27 +1,28 @@
-/* Hallmark · route: custom (bespoke) · structure: split-axis vertical chronograph · idea: "gothic hands inside a cobalt technical atlas"
- * paper: oklch(97% 0.012 270) · accent: oklch(58% 0.245 268) · display: Didot/Bodoni · body: Noto Serif SC
- * axes: light / high-contrast-serif / cool · gates: pending · studied: no
+/* Hallmark · route: custom (bespoke) · structure: split-axis vertical chronograph · idea: "radial Roman type inside a monochrome gothic atlas"
+ * paper: oklch(98% 0 0) · accent: oklch(43% .12 25) · display: Didot/Bodoni · body: Noto Serif SC
+ * axes: light+dark / bold-high-contrast-serif / neutral · scope: palette and typography · studied: no
  */
 :root{
  color-scheme:light;
- --color-paper:oklch(97% .012 270);
- --color-paper-solid:oklch(96% .016 267);
- --color-paper-clear:oklch(99% .006 270);
- --color-ink:oklch(22% .045 265);
- --color-ink-2:oklch(34% .052 263);
- --color-muted:oklch(45% .035 265);
- --color-rule:oklch(70% .05 266);
- --color-rule-soft:oklch(86% .025 268);
- --color-rule-faint:oklch(92% .018 270);
- --color-cobalt:oklch(54% .245 266);
- --color-cobalt-soft:oklch(70% .145 262);
- --color-cyan:oklch(72% .145 205);
- --color-magenta:oklch(64% .245 335);
- --color-accent-ink:oklch(98% .008 270);
- --color-focus:oklch(61% .255 266);
- --color-overlay:oklch(97% .012 270 / .91);
- --color-ink-alpha:oklch(22% .045 265 / .22);
- --color-cobalt-alpha:oklch(54% .245 266 / .18);
+ --color-deep-blue:oklch(30% .045 260);--color-signal-red:oklch(43% .12 25);
+ --color-paper:oklch(98% 0 0);
+ --color-paper-solid:oklch(97% 0 0);
+ --color-paper-clear:oklch(99% 0 0);
+ --color-ink:oklch(18% 0 0);
+ --color-ink-2:oklch(32% 0 0);
+ --color-muted:oklch(46% 0 0);
+ --color-rule:oklch(64% 0 0);
+ --color-rule-soft:oklch(82% 0 0);
+ --color-rule-faint:oklch(90% 0 0);
+ --color-cobalt:var(--color-ink-2);
+ --color-cobalt-soft:var(--color-rule);
+ --color-cyan:var(--color-ink-2);
+ --color-magenta:var(--color-ink);
+ --color-accent-ink:oklch(98% 0 0);
+ --color-focus:var(--color-deep-blue);
+ --color-overlay:oklch(98% 0 0 / .94);
+ --color-ink-alpha:oklch(18% 0 0 / .22);
+ --color-cobalt-alpha:oklch(32% 0 0 / .18);
  --font-display:Didot,"Bodoni 72","Bodoni MT",Georgia,serif;
  --font-body:"Noto Serif SC","Songti SC","Noto Serif CJK SC",STSong,Georgia,serif;
  --font-mono:"SFMono-Regular",Menlo,Consolas,monospace;
@@ -48,22 +49,23 @@
 }
 :root[data-theme="dark"]{
  color-scheme:dark;
- --color-paper:oklch(16% .025 267);
- --color-paper-solid:oklch(13% .027 267);
- --color-paper-clear:oklch(19% .03 267);
- --color-ink:oklch(94% .018 270);
- --color-ink-2:oklch(82% .032 268);
- --color-muted:oklch(68% .04 267);
- --color-rule:oklch(42% .065 266);
- --color-rule-soft:oklch(28% .045 267);
- --color-rule-faint:oklch(22% .035 267);
- --color-cobalt:oklch(70% .18 266);
- --color-cobalt-soft:oklch(62% .13 263);
- --color-cyan:oklch(79% .13 205);
- --color-magenta:oklch(74% .22 335);
- --color-accent-ink:oklch(15% .025 267);
- --color-focus:oklch(77% .18 266);
- --color-overlay:oklch(13% .027 267 / .9);
- --color-ink-alpha:oklch(94% .018 270 / .22);
- --color-cobalt-alpha:oklch(70% .18 266 / .2);
+ --color-deep-blue:oklch(78% .04 260);--color-signal-red:oklch(72% .105 25);
+ --color-paper:oklch(16% 0 0);
+ --color-paper-solid:oklch(13% 0 0);
+ --color-paper-clear:oklch(20% 0 0);
+ --color-ink:oklch(94% 0 0);
+ --color-ink-2:oklch(79% 0 0);
+ --color-muted:oklch(68% 0 0);
+ --color-rule:oklch(46% 0 0);
+ --color-rule-soft:oklch(30% 0 0);
+ --color-rule-faint:oklch(23% 0 0);
+ --color-cobalt:var(--color-ink-2);
+ --color-cobalt-soft:var(--color-rule);
+ --color-cyan:var(--color-ink-2);
+ --color-magenta:var(--color-ink);
+ --color-accent-ink:oklch(15% 0 0);
+ --color-focus:var(--color-deep-blue);
+ --color-overlay:oklch(13% 0 0 / .94);
+ --color-ink-alpha:oklch(94% 0 0 / .22);
+ --color-cobalt-alpha:oklch(79% 0 0 / .18);
 }
