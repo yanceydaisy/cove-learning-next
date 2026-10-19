@@ -17,6 +17,8 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
  try{
   const context=await browser.newContext({viewport:{width:393,height:1100},isMobile:true,hasTouch:true,timezoneId:'Asia/Shanghai',reducedMotion:'reduce'});
   const page=await context.newPage(),errors:string[]=[];
+  // tsx/esbuild names nested functions passed across Playwright's serialization boundary.
+  await page.addInitScript('globalThis.__name = (target) => target');
   page.on('pageerror',e=>errors.push(e.message));
   const iso=(day:string,time:string)=>day+'T'+time+':00+08:00';
   const records=[
@@ -76,7 +78,24 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
      assert.equal(await page.locator('.drag-echo.day').count(),0,'no moving arc can be mistaken for date scale');
     }
    }
-   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(250);
+   if(kind==='event')await page.evaluate(()=>{
+    (window as any).releaseFrames=[];
+    const sample=(now:number)=>{
+     const hand=document.querySelector('#eventHand') as SVGGraphicsElement;
+     const angle=Number(/rotate\(([-.0-9]+)/.exec(hand.getAttribute('transform')||'')?.[1]);
+     (window as any).releaseFrames.push({now,angle,value:hand.getAttribute('aria-valuenow')});
+     if((window as any).releaseFrames.length<60)requestAnimationFrame(sample);
+    };requestAnimationFrame(sample);
+   });
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(kind==='event'?1100:400);
+   if(kind==='event'){
+    const frames=await page.evaluate(()=>(window as any).releaseFrames) as {angle:number,value:string}[];
+    const minute=Number(await page.locator('#eventHand').getAttribute('aria-valuenow')),target=-90+minute/8;
+    const direction=targetAngle>0?1:-1;
+    assert.ok(frames.some(frame=>(frame.angle-target)*direction>.03),'release visibly crosses its target before rebounding');
+    assert.ok(Math.abs(frames.at(-1)!.angle-target)<.08,'spring settles accurately');
+    assert.ok(frames.every(frame=>Number(frame.value)===minute),'elastic motion never changes the selected time');
+   }
   }
   await page.emulateMedia({reducedMotion:'no-preference'});
   const month=await page.locator('#monthHand').getAttribute('aria-valuenow');
@@ -94,6 +113,24 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   // A second fast gesture must not be lost to the previous drag's click suppression.
   await touchDrag('event',390,-60);
   assert.ok(Math.abs(Number(await page.locator('#eventHand').getAttribute('aria-valuenow'))-240)<=1);
+  // Keyboard steps also use the same spring, for all three hands.
+  for(const kind of ['month','day','event']){
+   await page.emulateMedia({reducedMotion:'reduce'});await page.locator('#'+kind+'Hand').press('Home');
+   await page.emulateMedia({reducedMotion:'no-preference'});
+   const samples=await page.evaluate(async(kind)=>{
+    const hand=document.querySelector('#'+kind+'Hand') as SVGGraphicsElement;
+    const read=()=>Number(/rotate\(([-.0-9]+)/.exec(hand.getAttribute('transform')||'')?.[1]);
+    hand.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',shiftKey:kind==='event',bubbles:true}));
+    const frames:number[]=[];await new Promise<void>(resolve=>{
+     const start=performance.now();const sample=(now:number)=>{frames.push(read());if(now-start<1000)requestAnimationFrame(sample);else resolve()};
+     requestAnimationFrame(sample);
+    });
+    const value=Number(hand.getAttribute('aria-valuenow')),max=Number(hand.getAttribute('aria-valuemax'));
+    return {frames,target:kind==='event'?-90+value/8:-90+(value-.5)/max*180};
+   },kind);
+   assert.ok(Math.max(...samples.frames)>samples.target+.15,kind+' spring overshoots');
+   assert.ok(Math.abs(samples.frames.at(-1)!-samples.target)<.08,kind+' spring settles');
+  }
   for(const width of [320,375,414]){
    await page.setViewportSize({width,height:1100});
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));

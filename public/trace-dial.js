@@ -26,9 +26,9 @@ const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 const handRange={month:[-90,90],day:[-90,90],event:[-90,90]};
 const handRadius={month:246,day:307,event:398};
 const physics={
- month:{tau:.07,wn:18,zeta:.9,projection:0,maxSteps:0},
- day:{tau:.018,wn:25,zeta:.9,projection:0,maxSteps:0},
- event:{tau:.012,wn:28,zeta:.9,projection:0,maxSteps:0}
+ month:{wn:20,zeta:.6,dragWn:48,dragZeta:1,releaseSpeed:45},
+ day:{wn:24,zeta:.52,dragWn:64,dragZeta:.95,releaseSpeed:75},
+ event:{wn:26,zeta:.48,dragWn:72,dragZeta:.95,releaseSpeed:95}
 };
 const motion=Object.fromEntries(Object.keys(hands).map(kind=>[kind,{
  angle:0,target:0,desired:0,velocity:0,mode:'idle',pointerId:null,dragOffset:0,lastPointerAngle:0,lastPointerTime:0,preview:null,onSettle:null
@@ -373,7 +373,8 @@ function renderReadout(){
 function retargetOthers(exceptKind,animate=true){
  const angles=handAngles();
  for(const kind of Object.keys(hands)){
-  if(kind===exceptKind&&motion[kind].mode==='drag')continue;
+  if(kind===exceptKind||motion[kind].mode==='drag')continue;
+  if(animate&&Math.abs(motion[kind].target-angles[kind])<.0001)continue;
   if(animate)springTo(kind,angles[kind]);else{Object.assign(motion[kind],{angle:angles[kind],target:angles[kind],desired:angles[kind],velocity:0,mode:'idle'});setHandAngle(kind,angles[kind])}
  }
 }
@@ -403,33 +404,44 @@ function angleForKindIndex(kind,index){
  return rangeAngle(index,kind==='month'?12:daysInMonth(selected.year,selected.month));
 }
 
-function springTo(kind,target,onSettle=null,initialVelocity=0){
- const state=motion[kind];state.target=target;state.desired=target;state.onSettle=onSettle;
- if(reduceMotion.matches){state.angle=target;state.velocity=0;state.mode='idle';setHandAngle(kind,target);onSettle?.();return}
- state.velocity=clamp(initialVelocity,-450,450);state.mode='spring';ensureFrame();
+function springTo(kind,target,onSettle=null,initialVelocity=null){
+ const state=motion[kind],sameTarget=Math.abs(state.target-target)<.0001;
+ state.target=target;state.desired=target;
+ if(reduceMotion.matches){state.angle=target;state.velocity=0;state.mode='idle';state.onSettle=null;setHandAngle(kind,target);onSettle?.();return}
+ // Repeated readout updates must not restart another hand's spring or discard momentum.
+ if(state.mode==='spring'&&sameTarget&&initialVelocity===null){if(onSettle)state.onSettle=onSettle;return}
+ state.onSettle=onSettle;
+ state.velocity=clamp(initialVelocity??state.velocity,-180,180);
+ if(Math.abs(state.angle-target)<.001&&Math.abs(state.velocity)<.7){
+  state.angle=target;state.velocity=0;state.mode='idle';state.onSettle=null;setHandAngle(kind,target);onSettle?.();return;
+ }
+ state.mode='spring';ensureFrame();
 }
 
 function maybePreview(kind){
- const state=motion[kind],index=indexForAngle(kind,state.angle);
+ const state=motion[kind],index=indexForAngle(kind,state.desired);
  if(index===state.preview)return;
  state.preview=index;commitSelection(kind,index,{preview:true,animateOthers:true});
  const angle=angleForKindIndex(kind,index);if(kind!=='event'||index%15===0)pulseDetent(kind,angle);
  if(kind==='event')updateEventNodeClasses();
 }
 
-function stepSpring(state,config,dt){
- const iterations=dt>1/50?2:1,step=dt/iterations;
+function stepSpring(state,config,dt,target=state.target){
+ // Unit mass, k = wn², c = 2*zeta*wn. Semi-implicit Euler with <= 1/240s substeps.
+ const iterations=Math.max(1,Math.ceil(dt*240)),step=dt/iterations;
  for(let i=0;i<iterations;i++){
-  const acceleration=-config.wn*config.wn*(state.angle-state.target)-2*config.zeta*config.wn*state.velocity;
+  const acceleration=-config.wn*config.wn*(state.angle-target)-2*config.zeta*config.wn*state.velocity;
   state.velocity+=acceleration*step;state.angle+=state.velocity*step;
  }
 }
 function frame(now){
- const dt=lastFrame?Math.min((now-lastFrame)/1000,1/30):1/60;lastFrame=now;let running=false;
+ const dt=lastFrame?Math.min((now-lastFrame)/1000,1/20):1/60;lastFrame=now;let running=false;
  for(const kind of Object.keys(hands)){
   const state=motion[kind],config=physics[kind];
   if(state.mode==='drag'){
-   const alpha=1-Math.exp(-dt/config.tau);state.angle+= (state.desired-state.angle)*alpha;maybePreview(kind);showDragEcho(kind,state.angle);running=true;
+   if(reduceMotion.matches){state.angle=state.desired;state.velocity=0}
+   else stepSpring(state,{wn:config.dragWn,zeta:config.dragZeta},dt,state.desired);
+   maybePreview(kind);showDragEcho(kind,state.angle);running=true;
   }else if(state.mode==='spring'){
    stepSpring(state,config,dt);running=true;
    if(Math.abs(state.angle-state.target)<.08&&Math.abs(state.velocity)<.7){
@@ -480,7 +492,7 @@ function beginDrag(kind,event){
  const button=event.target.closest?.('.month-label-group,.month-station,.event-node,.event-duration');
  gesture={kind,pointerId:event.pointerId,x:event.clientX,y:event.clientY,moved:false,button,original:motion[kind].angle,angle};
  const state=motion[kind];setActiveHand(kind);state.mode='drag';state.pointerId=event.pointerId;
- state.dragOffset=angle-state.angle;state.lastPointerAngle=state.angle;state.lastPointerTime=event.timeStamp;state.velocity=0;state.preview=indexForAngle(kind,state.angle);state.onSettle=null;
+ state.dragOffset=angle-state.angle;state.lastPointerAngle=state.angle;state.lastPointerTime=event.timeStamp;state.velocity=0;state.pointerVelocity=0;state.preview=indexForAngle(kind,state.angle);state.onSettle=null;
  hands[kind].classList.add('is-dragging');svg.setPointerCapture(event.pointerId);event.preventDefault();ensureFrame();
 }
 function moveDrag(kind,event){
@@ -488,8 +500,11 @@ function moveDrag(kind,event){
  const threshold=kind==='month'?9:3;
  if(!gesture.moved&&Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)<threshold)return;
  gesture.moved=true;const raw=rawPointerAngle(event);if(raw===null)return;
- // Absolute angular tracking, no speed multiplier or release fling.
+ // Selection follows the absolute pointer angle; spring momentum only affects the drawing.
  const desired=rubberAngle(raw-state.dragOffset,kind);
+ const dt=clamp((event.timeStamp-state.lastPointerTime)/1000,.008,.08);
+ const speed=clamp((desired-state.lastPointerAngle)/dt,-720,720);
+ state.pointerVelocity+=(speed-state.pointerVelocity)*(1-Math.exp(-dt/.04));
  state.desired=desired;state.lastPointerAngle=desired;state.lastPointerTime=event.timeStamp;event.preventDefault();ensureFrame();
 }
 function endDrag(kind,event,cancelled=false){
@@ -505,8 +520,12 @@ function endDrag(kind,event,cancelled=false){
  }
  const value=cancelled?finished.original:finished.moved?state.desired:finished.original;
  const index=indexForAngle(kind,value),target=angleForKindIndex(kind,index);
+ const speedLimit=physics[kind].releaseSpeed;
+ const releaseAge=Math.max(0,((event.timeStamp??state.lastPointerTime)-state.lastPointerTime)/1000);
+ const momentum=state.velocity*.25+state.pointerVelocity*Math.exp(-releaseAge/.07)*.75;
+ const releaseVelocity=!cancelled&&finished.moved?clamp(momentum,-speedLimit,speedLimit):0;
  commitSelection(kind,index,{animateOthers:true});
- springTo(kind,target,()=>{if(kind==='event'&&currentEvent()&&!cancelled){expanded=true;updateEventNodeClasses();renderReadout();drawFeedback()}});
+ springTo(kind,target,()=>{if(kind==='event'&&currentEvent()&&!cancelled){expanded=true;updateEventNodeClasses();renderReadout();drawFeedback()}},releaseVelocity);
 }
 function cancelAllDrags(){
  if(gesture)endDrag(gesture.kind,{pointerId:gesture.pointerId},true);
