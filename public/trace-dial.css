@@ -34,7 +34,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .dial-wallpaper{position:fixed;inset:0;z-index:0;background:var(--color-paper-solid)}
 .dial-wallpaper.custom{background-position:center;background-size:cover;background-repeat:no-repeat}
 .dial-wallpaper::after{content:"";position:absolute;inset:0;background:var(--color-overlay);backdrop-filter:saturate(.72);-webkit-backdrop-filter:saturate(.72)}
-.dial-shell{position:relative;z-index:1;width:min(100%,56.25rem);min-height:100dvh;margin:auto;padding:calc(max(.75rem,env(safe-area-inset-top,0px)) + .2rem) clamp(.7rem,3.6vw,2.1rem) calc(1.1rem + env(safe-area-inset-bottom,0px))}
+.dial-shell{--shell-inset:clamp(.7rem,3.6vw,2.1rem);position:relative;z-index:1;width:min(100%,56.25rem);min-height:100dvh;margin:auto;padding:calc(max(.75rem,env(safe-area-inset-top,0px)) + .2rem) var(--shell-inset) calc(1.1rem + env(safe-area-inset-bottom,0px))}
 .dial-header{height:2.75rem;display:grid;grid-template-columns:1.5rem minmax(0,1fr) auto;align-items:center;gap:.55rem;border-block-end:var(--rule-thin) solid var(--color-rule-soft)}
 .dial-back{display:grid;place-items:center;min-width:2.75rem;min-height:2.75rem;margin-inline-start:-.65rem;text-decoration:none;font:300 2rem/.8 var(--font-display);outline:2px solid transparent;outline-offset:1px}
 .dial-back:focus-visible,.dial-key button:focus-visible,.dial-footer button:focus-visible,.editorial-close:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
@@ -42,7 +42,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .dial-brand span{opacity:.34;padding-inline:.3rem}
 .dial-title{font:500 .625rem/1 var(--font-display);letter-spacing:.16em;white-space:nowrap}
 .dial-title small{font-size:.5rem;opacity:.54}
-.dial-stage{position:relative;height:min(calc(100dvh - 6.8rem),47.5rem);min-height:40rem;margin-block-start:.3rem;overflow:hidden;isolation:isolate}
+.dial-stage{position:relative;height:min(calc(100dvh - 6.8rem),47.5rem);min-height:40rem;margin-block-start:.3rem;margin-inline:calc(-1 * var(--shell-inset));overflow:hidden;isolation:isolate}
 .trace-dial{position:absolute;inset-block-start:0;inset-inline-start:0;overflow:visible;touch-action:pan-y;z-index:1}
 .atlas-decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .atlas-contour{fill:none;stroke:var(--color-ink-2);stroke-width:.55;opacity:.16}
@@ -160,7 +160,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .editorial-meta{display:flex;flex-wrap:wrap;gap:.25rem .65rem;padding-block-start:.4rem;border-block-start:var(--rule-thin) solid var(--color-rule-soft);font:500 .44rem/1.5 var(--font-mono);letter-spacing:.04em;color:var(--color-muted)}
 .editorial-close{position:absolute;inset-inline-end:0;inset-block-start:0;min-width:2.75rem;min-height:2.75rem;padding:0;border:0;background:transparent;font:600 .42rem/1.3 var(--font-mono);writing-mode:vertical-rl;letter-spacing:.1em;color:var(--color-ink);white-space:nowrap}
 .stage-editorial.collapsed .editorial-bottom{opacity:.68}
-.dial-key{position:absolute;inset-inline-end:.1rem;inset-block-start:44%;inset-block-end:auto;display:flex;gap:.3rem;z-index:4}
+.dial-key{position:absolute;inset-inline-start:.4rem;inset-inline-end:auto;inset-block-start:auto;inset-block-end:.25rem;display:flex;gap:.3rem;z-index:4}
  .dial-key{flex-direction:column;gap:0}
 .dial-key button{display:inline-flex;align-items:center;gap:.3rem;min-width:2.75rem;min-height:2.75rem;padding:.4rem .25rem;border:0;background:transparent;color:var(--color-muted);font-size:.5rem;white-space:nowrap;outline:2px solid transparent;outline-offset:1px}
 .dial-key i{width:.38rem;height:.38rem;border:1px solid currentColor;border-radius:50%}
@@ -190,7 +190,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 }
 @media (pointer:coarse){.dial-key button,.dial-footer button,.editorial-close,.dial-back{min-width:3rem;min-height:3rem}}
 @media (max-width:23.4375rem){
- .dial-shell{padding-inline:.5rem}
+ .dial-shell{--shell-inset:.5rem;padding-inline:var(--shell-inset)}
  .dial-brand{font-size:.66rem;letter-spacing:.12em}
  .dial-title{font-size:.5rem;letter-spacing:.1em}
 

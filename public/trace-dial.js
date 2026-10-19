@@ -129,9 +129,12 @@ function drawAtlasDecor(width,height){
 }
 
 function layoutDial(){
- const {width,height}=stage.getBoundingClientRect();
- const axisX=38,scale=Math.min((width-axisX-12)/428,(height-170)/856);
- const axisY=height*.435;
+ const width=stage.getBoundingClientRect().width;
+ // The diameter lies on the left crop; the main rim comes within 3px of the right edge.
+ const axisX=0,scale=Math.min((width-3)/416,width>=640?1.1:Infinity);
+ const outerRadius=428*scale,height=outerRadius*2+152;
+ stage.style.height=`${height}px`;
+ const axisY=outerRadius+12;
  Object.assign(svg.style,{width:`${760*scale}px`,height:`${940*scale}px`,
   insetInlineStart:`${axisX-cx*scale}px`,insetBlockStart:`${axisY-cy*scale}px`});
  drawAtlasDecor(width,height);drawFeedback();
