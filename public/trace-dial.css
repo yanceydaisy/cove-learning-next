@@ -278,3 +278,12 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
  :host .editorial-bottom h1{-webkit-line-clamp:1}
  :host .editorial-top>small{font-size:.38rem}
 }
+
+/* Extra contrast only for the light view; retain the approved dark decoration. */
+:root:not([data-theme="dark"]) .atlas-contour,:host(:not([data-theme="dark"])) .atlas-contour{stroke:var(--color-ink);stroke-width:.8;opacity:.68}
+:root:not([data-theme="dark"]) .atlas-tech,:host(:not([data-theme="dark"])) .atlas-tech{opacity:.95}
+:root:not([data-theme="dark"]) .atlas-faint,:host(:not([data-theme="dark"])) .atlas-faint{opacity:.76}
+:root:not([data-theme="dark"]) .orbit-path,:host(:not([data-theme="dark"])) .orbit-path{opacity:.7}
+:root:not([data-theme="dark"]) .orbit-path.alt,:host(:not([data-theme="dark"])) .orbit-path.alt{opacity:.56}
+:root:not([data-theme="dark"]) .tech-bracket,:host(:not([data-theme="dark"])) .tech-bracket,:root:not([data-theme="dark"]) .tech-line,:host(:not([data-theme="dark"])) .tech-line{opacity:.92}
+:root:not([data-theme="dark"]) .tech-label,:host(:not([data-theme="dark"])) .tech-label,:root:not([data-theme="dark"]) .tech-number,:host(:not([data-theme="dark"])) .tech-number{fill:var(--color-ink)}
