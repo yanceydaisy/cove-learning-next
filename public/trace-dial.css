@@ -45,10 +45,10 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .dial-stage{position:relative;height:min(calc(100dvh - 6.8rem),47.5rem);min-height:40rem;margin-block-start:.3rem;margin-inline:calc(-1 * var(--shell-inset));overflow:hidden;isolation:isolate}
 .trace-dial{position:absolute;inset-block-start:0;inset-inline-start:0;overflow:visible;touch-action:pan-y;z-index:1}
 .atlas-decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.atlas-contour{fill:none;stroke:var(--color-ink-2);stroke-width:.55;opacity:.16}
-.atlas-tech{fill:none;stroke:var(--color-ink);stroke-width:.75;opacity:.48}
-.atlas-solid{fill:var(--color-ink);stroke:none;opacity:.8}
-.atlas-faint{opacity:.26}
+.atlas-contour{fill:none;stroke:var(--color-ink-2);stroke-width:.7;opacity:.42}
+.atlas-tech{fill:none;stroke:var(--color-ink);stroke-width:.9;opacity:.8}
+.atlas-solid{fill:var(--color-ink);stroke:none;opacity:.94}
+.atlas-faint{opacity:.55}
 .hub-lace{fill:var(--color-paper-solid);stroke:var(--color-ink);stroke-width:.8;vector-effect:non-scaling-stroke}
 .hub-spoke{fill:none;stroke:var(--color-ink);stroke-width:.65;vector-effect:non-scaling-stroke}
 .hub-rose{fill:var(--color-ink);stroke:none}
@@ -66,12 +66,12 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .event-ghost{stroke:var(--color-magenta);stroke-width:.65;stroke-dasharray:1 10;stroke-linecap:round;opacity:.42}
 .core-rail{stroke:var(--color-ink);stroke-width:.6;stroke-dasharray:1 8;stroke-linecap:round;opacity:.25}
 .diameter-line{stroke:var(--color-ink);stroke-width:.7;opacity:.22}
-.orbit-path{fill:none;stroke:var(--color-cobalt);stroke-width:.75;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;opacity:.32}
-.orbit-path.alt{stroke:var(--color-ink);stroke-dasharray:none;opacity:.2}
+.orbit-path{fill:none;stroke:var(--color-cobalt);stroke-width:.85;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;opacity:.52}
+.orbit-path.alt{stroke:var(--color-ink);stroke-dasharray:none;opacity:.38}
 .orbit-block{fill:var(--color-cobalt);opacity:.86}
-.tech-bracket,.tech-line{fill:none;stroke:var(--color-ink);stroke-width:.7;vector-effect:non-scaling-stroke;opacity:.5}
+.tech-bracket,.tech-line{fill:none;stroke:var(--color-ink);stroke-width:.85;vector-effect:non-scaling-stroke;opacity:.76}
 .tech-line.cobalt{stroke:var(--color-cobalt);opacity:.72}
-.tech-label{fill:var(--color-muted);font:500 6px/1 var(--font-mono);letter-spacing:.14em}
+.tech-label{fill:var(--color-ink-2);font:500 6px/1 var(--font-mono);letter-spacing:.14em}
 .tech-number{fill:var(--color-cobalt);font:600 7px/1 var(--font-mono);letter-spacing:.08em}
 .lace-stroke{fill:none;stroke:var(--color-ink);stroke-width:.75;vector-effect:non-scaling-stroke;opacity:.53}
 .lace-fill{fill:var(--color-paper-solid);stroke:var(--color-cobalt);stroke-width:.7;vector-effect:non-scaling-stroke;opacity:.8}
