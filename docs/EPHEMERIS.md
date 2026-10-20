@@ -52,3 +52,11 @@ A task is a point. Legacy tasks are explicitly marked `legacy_updated_at`; the U
 `npm run build` compiles the server and tests.
 
 The broader pre-existing `test:browser` suite currently fails at its Today start-button glass selector assertion (line 46). Running it against the unchanged pre-integration HEAD reproduces that failure. This rollout does not change the homepage material selector or its appearance.
+
+## Event briefs and hanging details
+
+The selected time surfaces an event brief without opening its details. The first six divisions (00:00–12:00) use the upper-right corner; the last six (12:00–24:00) use the lower-right corner. The date readout uses the opposite corner. Briefs show the factual title, linked object/task and a point or interval time, with large serif time and a heavier title.
+
+The arrow opens a non-modal frosted panel on the right, using the Plan schedule material (21px blur, restrained transparent gradient). Upper panels hang below the brief; lower panels open above it so the brief stays in its corner and the dock stays clear. There is no backdrop or page scroll. Closing with the arrow, × or Escape keeps the event selected. Changing event/date or RESET folds the panel; the needles remain usable. Summary, notes, next action, tags and task details use font-measured pages so all supplied content stays reachable on small screens. Empty fields do not generate invented content.
+
+Browser coverage includes both corners and card directions at 320×568, 393×852 and 414×896, point and interval labels, actual object association, arrow/close/Escape behavior, long-content paging and needle interaction while a card is open.

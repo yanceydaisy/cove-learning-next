@@ -25,7 +25,7 @@ const ui={
  year:scope.querySelector('#readoutYear'),month:scope.querySelector('#readoutMonth'),day:scope.querySelector('#readoutDay'),
  weekday:scope.querySelector('#readoutWeekday'),kind:scope.querySelector('#eventKind'),title:scope.querySelector('#eventTitle'),
  object:scope.querySelector('#eventObject'),time:scope.querySelector('#detailTime'),type:scope.querySelector('#detailType'),
- close:scope.querySelector('#closeEditorial'),toast:scope.querySelector('#dialToast')
+ close:scope.querySelector('#closeEditorial'),expand:scope.querySelector('#expandEditorial'),glass:scope.querySelector('#eventGlass'),toast:scope.querySelector('#dialToast')
 };
 const reduceMotion=matchMedia('(prefers-reduced-motion:reduce)');
 const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
@@ -43,7 +43,7 @@ const motion=Object.fromEntries(Object.keys(hands).map(kind=>[kind,{
 let objects=new Map();
 let events=[];
 let eventsByDay=new Map();
-let expanded=false;
+let detailsOpen=false,briefEventId=null;
 let activeHand='event';
 let raf=0,lastFrame=0;
 function currentSelection(){const now=new Date();return {year:now.getFullYear(),month:now.getMonth()+1,day:now.getDate(),event:-1,minute:now.getHours()*60+now.getMinutes()}}
@@ -165,7 +165,7 @@ function layoutDial(){
  Object.assign(svg.style,{width:760*scale+'px',height:940*scale+'px',
   insetInlineStart:-cx*scale+'px',insetBlockStart:axisY-cy*scale+'px'});
  drawAtlasDecor(width,height);
- if(embedded&&expanded&&currentEvent())renderRecordDetails(currentEvent());
+ if(currentEvent())renderReadout();
  drawFeedback();
 }
 
@@ -341,10 +341,10 @@ function updateEventNodeClasses(tickedIndex=null){
 function drawFeedback(){
  updateMonthScale();
  for(const child of [...layers.feedback.children])if(child.classList.contains('selection-feedback'))child.remove();
- if(!expanded||!currentEvent())return;
+ if(!currentEvent())return;
  const angle=timeAngle(currentEvent().startMinute),point=polar(handRadius.event,angle);
  const group=el('g',{class:'selection-feedback'});
- const caption=scope.querySelector('.editorial-bottom').getBoundingClientRect(),matrix=svg.getScreenCTM();
+ const caption=scope.querySelector('.event-brief').getBoundingClientRect(),matrix=svg.getScreenCTM();
  if(!matrix)return;
  const anchor=svg.createSVGPoint();anchor.x=caption.left-7;anchor.y=caption.top+5;
  const end=anchor.matrixTransform(matrix.inverse());
@@ -407,16 +407,30 @@ function collapsedCopy(){
  }else if(stage.dataset.loadState==='loading'){
   ui.title.textContent='正在读取这段时间的记录';ui.object.textContent='';ui.type.textContent='LOADING';
  }
- ui.close.hidden=true;editorial.classList.add('collapsed');
+ detailsOpen=false;briefEventId=null;ui.glass.hidden=true;ui.expand.hidden=true;ui.expand.setAttribute('aria-expanded','false');editorial.classList.remove('has-event','details-open');editorial.dataset.eventSide='lower';scope.querySelector('#eventTimeLabel').textContent='时刻';editorial.classList.add('collapsed');
 }
 
 function renderReadout(){
  ui.year.textContent=selected.year;ui.month.textContent=String(selected.month).padStart(2,'0');ui.day.textContent=String(selected.day).padStart(2,'0');ui.weekday.textContent=weekday(selected.year,selected.month,selected.day);
- const event=currentEvent();if(!expanded||!event){collapsedCopy();return}
- renderRecordDetails(event);
- editorial.classList.remove('collapsed');ui.kind.textContent=event.kind==='task'?'EPHEMERIS / DONE':event.kind==='focus'?'EPHEMERIS / FOCUS':'EPHEMERIS / EVENT';
- ui.title.textContent=event.title;ui.object.textContent=event.object||'Cove Learning';ui.time.textContent=dateKey(selected.year,selected.month,selected.day)+' · '+(event.endMinute>event.startMinute?clockTime(event.startMinute)+'—'+clockTime(event.endMinute):clockTime(event.startMinute));
- ui.type.textContent=event.kind==='task'?'DONE TASK':event.kind==='focus'?event.duration+' MIN FOCUS':(event.duration?event.duration+' MIN · '+event.kind.toUpperCase():event.kind.toUpperCase());ui.type.textContent=event.time_source==='legacy_updated_at'?'旧记录 · 完成时刻待补':event.kind==='task'?'完成任务':'专注 '+Math.floor((event.focused_ms||0)/60000)+' min · 经过 '+Math.round((event.elapsed_ms||0)/60000)+' min';if(event.time_source==='legacy_updated_at')ui.time.textContent=dateKey(selected.year,selected.month,selected.day)+' · 完成时刻未记录';ui.close.hidden=false;
+ const event=currentEvent();if(!event){collapsedCopy();return}
+ if(briefEventId!==event.id){detailsOpen=false;briefEventId=event.id}
+ editorial.classList.remove('collapsed');editorial.classList.add('has-event');
+ editorial.dataset.eventSide=selected.minute<720?'upper':'lower';
+ ui.kind.textContent=(event.kind==='task'?'DONE':event.kind==='focus'?'FOCUS':'EVENT')+' / '+dateKey(selected.year,selected.month,selected.day);
+ ui.title.textContent=event.title;
+ ui.object.textContent='关联 · '+([...new Set([event.object,event.taskTitle].filter(Boolean))].join(' / ')||'未关联');
+ const interval=event.endMinute>event.startMinute;
+ scope.querySelector('#eventTimeLabel').textContent=interval?'时段':'时点';
+ ui.time.replaceChildren();
+ for(const [index,value] of (interval?[clockTime(event.startMinute),clockTime(event.endMinute)]:[clockTime(event.startMinute)]).entries()){
+  if(index){const dash=document.createElement('i');dash.textContent='—';ui.time.append(dash)}
+  const time=document.createElement(index?'span':'strong');time.textContent=value;ui.time.append(time);
+ }
+ ui.type.textContent=event.time_source==='legacy_updated_at'?'旧记录 · 完成时刻待补':event.kind==='task'?'完成任务':'专注 '+Math.floor((event.focused_ms||0)/60000)+' min · 经过 '+Math.round((event.elapsed_ms||0)/60000)+' min';
+ if(event.time_source==='legacy_updated_at'){ui.time.textContent='完成时刻未记录';scope.querySelector('#eventTimeLabel').textContent='旧记录'}
+ ui.expand.hidden=false;ui.expand.setAttribute('aria-expanded',String(detailsOpen));ui.expand.setAttribute('aria-label',detailsOpen?'收起事件详情':'展开事件详情');
+ editorial.classList.toggle('details-open',detailsOpen);ui.glass.hidden=!detailsOpen;
+ if(detailsOpen)renderRecordDetails(event);else clearRecordDetails();
 }
 
 function retargetOthers(exceptKind,animate=true){
@@ -432,14 +446,14 @@ function commitSelection(kind,index,{preview=false,animateOthers=true}={}){
  if(kind==='month'){
   const next=clamp(index+1,1,12);if(next===selected.month&&preview)return;
   const changed=next!==selected.month;
-  selected.month=next;selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));syncTimeSelection();expanded=false;drawDayRing();drawEventRing();
+  detailsOpen=false;selected.month=next;selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));syncTimeSelection();drawDayRing();drawEventRing();
   if(changed)load();
  }else if(kind==='day'){
   const next=clamp(index+1,1,daysInMonth(selected.year,selected.month));if(next===selected.day&&preview)return;
-  selected.day=next;syncTimeSelection();expanded=false;drawEventRing();
+  detailsOpen=false;selected.day=next;syncTimeSelection();drawEventRing();
  }else{
   const next=clamp(Math.round(index),0,1440);if(next===selected.minute&&preview)return;
-  selected.minute=next;syncTimeSelection();expanded=false;updateEventNodeClasses();
+  selected.minute=next;syncTimeSelection();updateEventNodeClasses();
  }
  renderReadout();setHandAngle(kind,motion[kind].angle);retargetOthers(kind,animateOthers);drawFeedback();
 }
@@ -576,7 +590,7 @@ function endDrag(kind,event,cancelled=false){
  const momentum=state.velocity*.25+state.pointerVelocity*Math.exp(-releaseAge/.07)*.75;
  const releaseVelocity=!cancelled&&finished.moved?clamp(momentum,-speedLimit,speedLimit):0;
  commitSelection(kind,index,{animateOthers:true});
- springTo(kind,target,()=>{if(kind==='event'&&currentEvent()&&!cancelled){expanded=true;updateEventNodeClasses();renderReadout();drawFeedback()}},releaseVelocity);
+ springTo(kind,target,()=>{if(kind==='event'&&currentEvent()&&!cancelled){updateEventNodeClasses();renderReadout();drawFeedback()}},releaseVelocity);
 }
 function cancelAllDrags(){
  if(gesture)endDrag(gesture.kind,{pointerId:gesture.pointerId},true);
@@ -597,7 +611,7 @@ for(const [kind,hand] of Object.entries(hands)){
  listen(hand,'keydown',event=>{
   if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Home','End'].includes(event.key))return;
   setActiveHand(kind);event.preventDefault();
-  if(event.key==='Enter'){if(kind==='event'&&currentEvent()){expanded=true;renderReadout();drawFeedback()}return}
+  if(event.key==='Enter'){if(kind==='event'&&currentEvent()){renderReadout();drawFeedback()}return}
   const direction=event.key==='ArrowDown'||event.key==='ArrowRight'?1:-1;
   const current=kind==='month'?selected.month-1:kind==='day'?selected.day-1:selected.minute;
   const max=kind==='month'?11:kind==='day'?daysInMonth(selected.year,selected.month)-1:1440;
@@ -608,68 +622,66 @@ for(const [kind,hand] of Object.entries(hands)){
 
 function openEvent(index,animate=true){
  const list=dayEvents();if(!list.length)return;
- setActiveHand('event');selected.event=clamp(index,0,list.length-1);selected.minute=Math.round(currentEvent().startMinute);expanded=true;
+ setActiveHand('event');selected.event=clamp(index,0,list.length-1);selected.minute=Math.round(currentEvent().startMinute);
  updateEventNodeClasses(index);renderReadout();drawFeedback();
  const target=timeAngle(selected.minute);if(animate)springTo('event',target);else{motion.event.angle=target;setHandAngle('event',target)}
 }
 for(const button of scope.querySelectorAll('[data-focus-hand]'))listen(button,'click',()=>{
  preferredHand=button.dataset.focusHand;setActiveHand(preferredHand);
 });
-listen(ui.close,'click',()=>{expanded=false;renderReadout();drawFeedback()});
+function closeDetails(){detailsOpen=false;renderReadout();drawFeedback();ui.expand.focus({preventScroll:true})}
+listen(ui.expand,'click',()=>{detailsOpen=!detailsOpen;renderReadout();drawFeedback()});
+listen(ui.close,'click',closeDetails);
+listen(editorial,'keydown',event=>{if(event.key==='Escape'&&detailsOpen){event.preventDefault();event.stopPropagation();closeDetails()}});
 listen(scope.querySelector('#resetDial'),'click',()=>{
- cancelAllDrags();Object.assign(selected,currentSelection());expanded=false;syncTimeSelection();
+ cancelAllDrags();detailsOpen=false;briefEventId=null;Object.assign(selected,currentSelection());syncTimeSelection();
  drawDayRing();drawEventRing();renderReadout();retargetOthers('',true);load();toast('已回到当前时间');
 });
 for(const button of scope.querySelectorAll('[data-year-step]'))listen(button,'click',()=>{
- selected.year=clamp(selected.year+Number(button.dataset.yearStep),1970,9999);
- selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));expanded=false;
+ detailsOpen=false;selected.year=clamp(selected.year+Number(button.dataset.yearStep),1970,9999);
+ selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));
  drawDayRing();renderReadout();retargetOthers('',true);load();
 });
 listen(window,'blur',cancelAllDrags);
 
 let detailPages=[],detailPage=0,detailEventId=null;
+const detailNames={summary:'学习内容与总结',note:'笔记 / 补充',next:'下一步',tags:'索引 / TAGS',task:'关联任务'};
 function clearRecordDetails(){
  for(const node of scope.querySelectorAll('[data-record-detail]')){node.textContent='';node.hidden=true}
- const pager=scope.querySelector('#detailPager');if(pager)pager.hidden=true;
+ scope.querySelector('#detailPager').hidden=true;scope.querySelector('#detailEmpty').hidden=true;
 }
 function showDetailPage(){
  for(const node of scope.querySelectorAll('[data-record-detail]'))node.hidden=true;
  const page=detailPages[detailPage],pager=scope.querySelector('#detailPager');
+ scope.querySelector('#detailEmpty').hidden=!!page;
+ scope.querySelector('#detailHeading').textContent=page?detailNames[page.kind]:'记录详情';
  if(page){const node=scope.querySelector('[data-record-detail="'+page.kind+'"]');node.textContent=page.text;node.hidden=false}
- if(pager){
-  pager.hidden=detailPages.length<=1;
-  scope.querySelector('#detailPageCount').textContent=(detailPage+1)+' / '+detailPages.length;
-  for(const button of pager.querySelectorAll('[data-detail-step]'))button.disabled=detailPage+Number(button.dataset.detailStep)<0||detailPage+Number(button.dataset.detailStep)>=detailPages.length;
- }
+ pager.hidden=detailPages.length<=1;
+ scope.querySelector('#detailPageCount').textContent=(detailPage+1)+' / '+detailPages.length;
+ for(const button of pager.querySelectorAll('[data-detail-step]'))button.disabled=detailPage+Number(button.dataset.detailStep)<0||detailPage+Number(button.dataset.detailStep)>=detailPages.length;
 }
 function renderRecordDetails(event){
  clearRecordDetails();
- const values={summary:event.summary,note:event.note,next:event.next_action?'下一步 · '+event.next_action:'',tags:(event.tags||[]).map(tag=>'#'+tag).join(' '),task:event.taskTitle&&event.taskTitle!==event.title?'关联任务 · '+event.taskTitle:''};
- if(embedded){
-  if(detailEventId!==event.id)detailPage=0;detailEventId=event.id;detailPages=[];
-  const width=scope.querySelector('.editorial-bottom').getBoundingClientRect().width;
-  const columns=Math.max(8,Math.floor(width/10));
-  for(const [kind,value] of Object.entries(values))if(value){
-   let text='',line=0,column=0;
-   const finish=()=>{if(text)detailPages.push({kind,text});text='';line=0;column=0};
-   for(const character of Array.from(value)){
-    if(character==='\n'){
-     if(line===2)finish();else{text+='\n';line++;column=0}
-     continue;
-    }
-    if(column===columns){if(line===2)finish();else{text+='\n';line++;column=0}}
-    text+=character;column++;
-   }
-   finish();
+ const values={summary:event.summary,note:event.note,next:event.next_action,tags:(event.tags||[]).map(tag=>'#'+tag).join(' '),task:event.taskTitle&&event.taskTitle!==event.title?event.taskTitle:''};
+ if(detailEventId!==event.id)detailPage=0;detailEventId=event.id;detailPages=[];
+ const paragraph=scope.querySelector('[data-record-detail="summary"]'),style=getComputedStyle(paragraph);
+ const width=ui.glass.clientWidth-parseFloat(getComputedStyle(ui.glass).paddingLeft)-parseFloat(getComputedStyle(ui.glass).paddingRight);
+ const canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=style.font||style.fontSize+' '+style.fontFamily;
+ const maxLines=Number(getComputedStyle(ui.glass).getPropertyValue('--detail-lines'))||5;
+ for(const [kind,value] of Object.entries(values))if(value){
+  let text='',line=0,lineText='';
+  const finish=()=>{if(text)detailPages.push({kind,text});text='';line=0;lineText=''};
+  for(const character of Array.from(value)){
+   if(character==='\n'){if(line===maxLines-1)finish();else{text+='\n';line++;lineText=''};continue}
+   if(lineText&&context.measureText(lineText+character).width>width-2){if(line===maxLines-1)finish();else{text+='\n';line++;lineText=''}}
+   text+=character;lineText+=character;
   }
-  detailPage=clamp(detailPage,0,Math.max(0,detailPages.length-1));showDetailPage();return;
+  finish();
  }
- for(const [kind,value] of Object.entries(values)){
-  const node=scope.querySelector('[data-record-detail="'+kind+'"]');if(node&&value){node.textContent=value;node.hidden=false}
- }
+ detailPage=clamp(detailPage,0,Math.max(0,detailPages.length-1));showDetailPage();
 }
 for(const button of scope.querySelectorAll('[data-detail-step]'))listen(button,'click',()=>{
- detailPage=clamp(detailPage+Number(button.dataset.detailStep),0,Math.max(0,detailPages.length-1));showDetailPage();drawFeedback();
+ detailPage=clamp(detailPage+Number(button.dataset.detailStep),0,Math.max(0,detailPages.length-1));showDetailPage();
 });
 
 async function get(path,signal){
@@ -713,14 +725,14 @@ async function load(){
   if(disposed||sequence!==loadSequence)return;
   events=response.events.map(event=>({...event,kind:event.kind==='record'?event.activity_type:event.kind,at:event.occurred_at,
    object:event.object?.title||'',taskTitle:event.task?.title||'',duration:Math.floor((event.focused_ms||0)/60000)})).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at));
-  indexEvents();syncTimeSelection();expanded=false;stage.dataset.loadState='ready';
+  indexEvents();syncTimeSelection();stage.dataset.loadState='ready';
   drawDayRing();drawEventRing();renderReadout();
   // Fresh data may update details, but must not cancel a spring already in flight.
   retargetOthers('',true);
   stage.dataset.loadState='ready';
  }catch(error){
   if(disposed||sequence!==loadSequence||error.name==='AbortError')return;
-  events=[];eventsByDay=new Map();expanded=false;stage.dataset.loadState='error';drawDayRing();drawEventRing();renderReadout();
+  events=[];eventsByDay=new Map();stage.dataset.loadState='error';drawDayRing();drawEventRing();renderReadout();
   toast('记录读取失败，点 RESET 重试');
  }
 }

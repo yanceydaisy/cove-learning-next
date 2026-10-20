@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f5">
 <title>刻序 / EPHEMERIS · Cove Learning</title>
-<link rel="stylesheet" href="./trace-dial.css?v=ephemeris-daycontrast-1">
+<link rel="stylesheet" href="./trace-dial.css?v=ephemeris-event-glass-2">
 </head>
 <body>
 <div class="dial-wallpaper" id="wallpaper"></div>
@@ -111,18 +111,25 @@
         <div class="editorial-date"><span class="editorial-year"><button type="button" data-year-step="-1" aria-label="上一年">‹</button><span id="readoutYear">2026</span><button type="button" data-year-step="1" aria-label="下一年">›</button></span><strong id="readoutMonth">10</strong><i>/</i><strong id="readoutDay">19</strong></div>
         <small id="readoutWeekday">周一 · MONDAY</small>
       </header>
-      <section class="editorial-bottom">
-        <span class="editorial-kicker" id="eventKind">EPHEMERIS / SELECT</span>
-        <h1 id="eventTitle">点击轮盘上的事件标记</h1>
-        <p id="eventObject">事件会沿着轨迹展开。</p>
-        <p data-record-detail="task" hidden></p>
-        <p data-record-detail="summary" hidden></p>
-        <p data-record-detail="next" hidden></p>
-        <p data-record-detail="note" hidden></p>
-        <p data-record-detail="tags" hidden></p>
-        <div class="editorial-meta"><span id="detailTime">—</span><span id="detailType">TIME / EVENT</span></div>
-        <div class="detail-pager" id="detailPager" hidden><button type="button" data-detail-step="-1" aria-label="上一页记录详情">‹</button><span id="detailPageCount"></span><button type="button" data-detail-step="1" aria-label="下一页记录详情">›</button></div>
-        <button class="editorial-close" id="closeEditorial" type="button" hidden>收起 · CLOSE</button>
+      <section class="editorial-bottom" aria-label="所选事件">
+        <div class="event-brief">
+          <div class="event-brief-head"><span class="editorial-kicker" id="eventKind">EPHEMERIS / SELECT</span><button type="button" class="event-expand" id="expandEditorial" aria-label="展开事件详情" aria-expanded="false" aria-controls="eventGlass"><span aria-hidden="true">↘</span></button></div>
+          <h1 id="eventTitle">点击轮盘上的事件标记</h1>
+          <p id="eventObject">事件会沿着轨迹展开。</p>
+          <div class="event-time-row"><small id="eventTimeLabel">时刻</small><span id="detailTime">—</span></div>
+        </div>
+        <section class="event-glass" id="eventGlass" role="region" aria-labelledby="eventGlassTitle" tabindex="-1" hidden>
+          <header class="event-glass-head"><span id="eventGlassTitle">FIELD NOTES / 记录</span><button class="editorial-close" id="closeEditorial" type="button" aria-label="收起事件详情">×</button></header>
+          <h2 id="detailHeading">学习内容与总结</h2>
+          <p data-record-detail="task" hidden></p>
+          <p data-record-detail="summary" hidden></p>
+          <p data-record-detail="next" hidden></p>
+          <p data-record-detail="note" hidden></p>
+          <p data-record-detail="tags" hidden></p>
+          <p id="detailEmpty" hidden>这条记录暂未填写学习内容或总结。</p>
+          <div class="editorial-meta"><span id="detailType">TIME / EVENT</span></div>
+          <div class="detail-pager" id="detailPager" hidden><button type="button" data-detail-step="-1" aria-label="上一页记录详情">‹</button><span id="detailPageCount"></span><button type="button" data-detail-step="1" aria-label="下一页记录详情">›</button></div>
+        </section>
       </section>
     </aside>
 
@@ -139,6 +146,6 @@
   </footer>
 </main>
 <div class="dial-toast" id="dialToast" role="status" aria-live="polite"></div>
-<script type="module" src="./trace-dial.js?v=ephemeris-daycontrast-1"></script>
+<script type="module" src="./trace-dial.js?v=ephemeris-event-glass-2"></script>
 </body>
 </html>

@@ -24,12 +24,13 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   page.on('pageerror',e=>errors.push(e.message));
   await page.clock.setFixedTime(new Date('2024-02-29T18:26:00+08:00'));
   const iso=(day:string,time:string)=>day+'T'+time+':00+08:00';
+  const course=app.catalog.create({kind:'course',title:'现代控制理论'}) as {id:string};
   const records=[
    {id:'a',title:'一小时记录',summary:'复习状态空间模型。',next_action:'整理一道例题',note:'检查单位',tags:['复习'],started_at:iso('2024-02-29','09:00'),ended_at:iso('2024-02-29','10:00'),focused_minutes:45,activity_type:'study'},
    {id:'b',title:'两小时记录',summary:('这一段用于核对较长记录能否完整翻页展示，不能靠隐藏内容代替无滚动。\n').repeat(12),started_at:iso('2024-02-29','12:00'),ended_at:iso('2024-02-29','14:00'),focused_minutes:100,activity_type:'study'},
    {id:'c',title:'跨午夜记录',started_at:iso('2024-02-29','23:30'),ended_at:iso('2024-03-01','00:30'),focused_minutes:60,activity_type:'reading'}
   ];
-  for(const item of records)app.records.create({...item,local_date:'2024-02-29',time_zone:'Asia/Shanghai'});
+  for(const item of records)app.records.create({...item,...(item.id==='a'?{object_id:course.id}:{}),local_date:'2024-02-29',time_zone:'Asia/Shanghai'});
   const task=app.planning.create({title:'完成节点'}) as any;
   clock=new Date('2024-02-29T15:00:00+08:00');app.planning.complete(task.id);
   clock=new Date('2024-02-29T10:30:00+08:00');const focus=app.activity.start({}) as any;
@@ -172,6 +173,30 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#dock a').count(),4);
   await page.locator('#ephemerisHost .event-node[data-minute="540"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
   assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录');
+
+  assert.equal(await page.locator('#ephemerisHost #eventEditorial').getAttribute('data-event-side'),'upper','first six divisions place the event at upper right');
+  assert.equal(await page.locator('#ephemerisHost #eventTimeLabel').innerText(),'时段');
+  assert.match(await page.locator('#ephemerisHost #detailTime').innerText(),/09:00.*10:00/s);
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'selecting a marker shows a brief without opening a card');
+  assert.equal(await page.locator('#ephemerisHost #eventObject').innerText(),'关联 · 现代控制理论');
+  await page.screenshot({path:'/tmp/ephemeris-event-brief-upper.png'});
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  assert.equal(await page.locator('#ephemerisHost #expandEditorial').getAttribute('aria-expanded'),'true');
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),true);
+  const glass=await page.locator('#ephemerisHost #eventGlass').evaluate(node=>{
+   const r=node.getBoundingClientRect(),style=getComputedStyle(node);
+   return {right:r.right,width:r.width,left:r.left,filter:style.backdropFilter,modal:node.getAttribute('aria-modal')};
+  });
+  assert.ok(glass.right<=393&&glass.left>393*.35&&glass.width<393*.6,'glass card stays on the right without a full-screen overlay');
+  assert.match(glass.filter,/blur\(21px\)/);assert.equal(glass.modal,null);
+  await page.screenshot({path:'/tmp/ephemeris-event-glass-light.png'});
+  await page.locator('#ephemerisHost #closeEditorial').click();
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false);
+  assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录','closing details keeps the event selected');
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  await page.locator('#ephemerisHost #expandEditorial').press('Escape');
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'Escape dismisses only the floating sheet');
+  await page.locator('#ephemerisHost #expandEditorial').click();
   assert.equal(await page.locator('#ephemerisHost [data-record-detail=summary]').innerText(),'复习状态空间模型。');
   await page.locator('#ephemerisHost [data-detail-step="1"]').click();
   assert.equal(await page.locator('#ephemerisHost [data-record-detail=note]').innerText(),'检查单位');
@@ -187,6 +212,10 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   });
   assert.ok(embeddedLayout<=.752&&embeddedLayout>.5,'native dial fits available height and never exceeds approved width');
   await page.locator('#ephemerisHost .event-node[data-minute="720"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  assert.equal(await page.locator('#ephemerisHost #eventEditorial').getAttribute('data-event-side'),'lower','last six divisions use the lower right');
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'switching events folds the previous card');
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  await page.screenshot({path:'/tmp/ephemeris-event-glass-dark.png'});
   const totalPages=Number((await page.locator('#ephemerisHost #detailPageCount').innerText()).split('/')[1]);
   assert.ok(totalPages>3);
   let recovered='';
@@ -205,15 +234,50 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
     const footer=shadow.querySelector('.dial-footer')!.getBoundingClientRect();
     const pager=shadow.querySelector('#detailPager')!.getBoundingClientRect(),caption=shadow.querySelector('.editorial-bottom')!.getBoundingClientRect();
     return {background:getComputedStyle(host).backgroundColor,rows:[screen.scrollHeight-screen.clientHeight,measured.scrollHeight-measured.clientHeight,stage.scrollHeight-stage.clientHeight],
-     footerBottom:footer.bottom,screenBottom:screen.getBoundingClientRect().bottom,pagerBottom:pager.bottom,captionBottom:caption.bottom,header:shadow.querySelector('.dial-header'),masks:shadow.querySelectorAll('mask').length,topbar:document.querySelector('.topbar')!.getBoundingClientRect().height,
+     glassTop:shadow.querySelector('#eventGlass')!.getBoundingClientRect().top,stageTop:stage.getBoundingClientRect().top,footerBottom:footer.bottom,screenBottom:screen.getBoundingClientRect().bottom,pagerBottom:pager.bottom,captionBottom:caption.bottom,header:shadow.querySelector('.dial-header'),masks:shadow.querySelectorAll('mask').length,topbar:document.querySelector('.topbar')!.getBoundingClientRect().height,
      ratio:416*Math.hypot(m.a,m.b)/innerWidth};
    });
    assert.equal(fixed.background,'rgba(0, 0, 0, 0)','Learning wallpaper is visible through the archive');
    assert.deepEqual(fixed.rows,[0,0,0],'no nested page overflows or scrolls');
    assert.equal(fixed.header,null);assert.equal(fixed.masks,4,'needle and hub details use real negative space');
+   assert.ok(fixed.glassTop>=fixed.stageTop,'floating card never extends above the fixed stage');assert.ok(fixed.captionBottom<=fixed.footerBottom-30,'card stays above the footer');
    assert.ok(fixed.footerBottom<=fixed.screenBottom+1);assert.ok(fixed.pagerBottom<=fixed.captionBottom+1,'detail paging controls stay visible');
    assert.ok(fixed.ratio<=.752&&fixed.ratio>.45);assert.ok(fixed.topbar<=28);
   }
+
+  // The day pointer still works while a non-modal card is open; point events have one time.
+  await page.locator('#ephemerisHost .event-node[data-minute="900"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+  assert.equal(await page.locator('#ephemerisHost #eventTimeLabel').innerText(),'时点');
+  assert.equal(await page.locator('#ephemerisHost #detailTime').innerText(),'15:00');
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false);
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  assert.match(await page.locator('#ephemerisHost #detailEmpty').innerText(),/暂未填写/);
+  await page.locator('#ephemerisHost #dayHand').press('ArrowLeft');
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false);
+  await page.locator('#ephemerisHost #dayHand').press('ArrowRight');
+  // The brief and glass remain within the fixed viewport in both corners, even on small phones.
+  for(const size of [{width:320,height:568},{width:393,height:852},{width:414,height:896}]){
+   await page.setViewportSize(size);
+   for(const minute of ['540','720']){
+    await page.locator('#ephemerisHost .event-node[data-minute="'+minute+'"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
+    await page.locator('#ephemerisHost #expandEditorial').click();
+    const boxes=await page.locator('#ephemerisHost').evaluate(host=>{
+     const root=host.shadowRoot!,r=(selector:string)=>{const b=root.querySelector(selector)!.getBoundingClientRect();return {top:b.top,bottom:b.bottom,left:b.left,right:b.right,height:b.height}};
+     return {brief:r('.event-brief'),glass:r('#eventGlass'),stage:r('#dialStage')};
+    });
+    assert.ok(boxes.glass.top>=boxes.stage.top-1&&boxes.glass.bottom<=boxes.stage.bottom+1,'both floating directions fit the stage');
+    assert.ok(boxes.glass.left>size.width*.3&&boxes.glass.right<=size.width,'card remains a small right-side panel');
+    if(minute==='540')assert.ok(boxes.brief.top<boxes.stage.top+10,'upper event stays in its upper empty corner');
+    else assert.ok(boxes.brief.bottom>boxes.stage.bottom-12,'lower event stays in its lower empty corner');
+    await page.locator('#ephemerisHost #closeEditorial').click();
+   }
+  }
+  await page.setViewportSize({width:393,height:852});
+  // Selection through the long hand surfaces a brief without automatically opening details.
+  await page.locator('#ephemerisHost #eventHand').press('Home');
+  for(let i=0;i<9;i++)await page.locator('#ephemerisHost #eventHand').press('Shift+ArrowRight');
+  assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录');
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false);
   await page.setViewportSize({width:393,height:852});
   await page.evaluate(()=>document.documentElement.style.setProperty('--safe-top','59px'));await page.waitForTimeout(50);
   const safeArea=await page.locator('#ephemerisHost').evaluate(host=>{
