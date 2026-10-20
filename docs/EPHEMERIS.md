@@ -8,6 +8,8 @@ The approved half-dial is the regular Learning archive at `/#/archive`, reached 
 
 Month/day/time selection remains independent of drawing motion. The per-frame underdamped spring may overshoot visually, while selected values stay fixed. Month loading never restarts an in-flight spring. The middle scale stays fixed; only a month/year change can redistribute dates.
 
+Every mount starts from one current local date/time snapshot, regardless of the most recent saved event. RESET returns to the current date/time. Manual browsing stays at the selected time; there is no timer that pulls it back. Footer month/day/event labels and indexes share an aligned row.
+
 The backend month query uses device-local month boundaries converted to ISO instants. Year controls allow historical records to remain reachable. Stale month requests are aborted/ignored. Loading, an empty month and a failed request have distinct states.
 
 ## Backend fields and identity

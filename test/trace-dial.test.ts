@@ -22,6 +22,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   // tsx/esbuild names nested functions passed across Playwright's serialization boundary.
   await page.addInitScript('globalThis.__name = (target) => target');
   page.on('pageerror',e=>errors.push(e.message));
+  await page.clock.setFixedTime(new Date('2024-02-29T18:26:00+08:00'));
   const iso=(day:string,time:string)=>day+'T'+time+':00+08:00';
   const records=[
    {id:'a',title:'一小时记录',summary:'复习状态空间模型。',next_action:'整理一道例题',note:'检查单位',tags:['复习'],started_at:iso('2024-02-29','09:00'),ended_at:iso('2024-02-29','10:00'),focused_minutes:45,activity_type:'study'},
@@ -35,6 +36,14 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   clock=new Date('2024-02-29T10:30:30+08:00');app.activity.finish(focus.id);
   await page.goto('http://127.0.0.1:'+address.port+'/trace-dial',{waitUntil:'networkidle'});
   assert.match(await page.title(),/刻序 \/ EPHEMERIS/);
+  assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1106','opens at current local time, not the latest 23:30 record');
+  assert.equal(await page.locator('#readoutMonth').innerText(),'02');assert.equal(await page.locator('#readoutDay').innerText(),'29');
+  const aligned=await page.locator('.dial-key').evaluate(key=>['.key-index','.key-label'].every(selector=>{
+   const centres=Array.from(key.querySelectorAll(selector)).map(node=>{const r=node.getBoundingClientRect();return r.y+r.height/2});
+   return Math.max(...centres)-Math.min(...centres)<.5;
+  }));
+  assert.equal(aligned,true,'footer indexes and labels share one horizontal row');
+
   assert.equal(await page.locator('#dayHand').getAttribute('aria-valuemax'),'29');
   const tickAngles=await page.locator('.time-tick.major').evaluateAll(nodes=>nodes.map(n=>Number((n as SVGElement).dataset.angle)));
   assert.deepEqual(tickAngles,Array.from({length:13},(_,i)=>-90+i*15),'twelve full, equal major divisions');
@@ -55,6 +64,10 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#eventHand').getAttribute('aria-disabled'),null,'time needle works on empty days');
   await page.locator('#eventHand').press('Home');assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'0');
   await page.locator('#eventHand').press('End');assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1440');
+  await page.locator('#resetDial').click();await page.locator('#dialStage[data-load-state=ready]').waitFor();
+  assert.equal(await page.locator('#readoutMonth').innerText(),'02');assert.equal(await page.locator('#readoutDay').innerText(),'29');
+  assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1106','RESET returns to now instead of a saved event');
+
 
   // Put all three hands on the same angle; screen-space radius must disambiguate.
   await page.locator('.month-label-group[data-month="6"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
@@ -230,12 +243,19 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#ephemerisHost #monthHand').getAttribute('aria-valuenow'),fixedMonth);
   assert.ok(Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'))>850,'real long-hand touch drag works on the fixed transparent page');
   await page.locator('#ephemerisHost #eventHand').press('Shift+ArrowRight');
+  const browsingMinute=await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow');
+  await page.clock.setFixedTime(new Date('2025-03-01T00:02:00+08:00'));await page.waitForTimeout(30);
+  assert.equal(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'),browsingMinute,'browsing a chosen time is not overridden by the clock');
   await page.locator('#dock a[data-nav=today]').click();
   await page.locator('.today-brief').waitFor();
   assert.equal(await page.locator('#ephemerisHost').count(),0);
   assert.equal(await page.locator('html').getAttribute('data-page'),'today');
   await page.locator('.today-review-trace').click();
   await page.locator('#ephemerisHost #dialStage[data-load-state=ready]').waitFor();
+  assert.equal(await page.locator('#ephemerisHost #readoutYear').innerText(),'2025');
+  assert.equal(await page.locator('#ephemerisHost #readoutMonth').innerText(),'03');
+  assert.equal(await page.locator('#ephemerisHost #readoutDay').innerText(),'01');
+  assert.equal(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'),'2','reopening uses the new current date/time even without records');
   const beforeMinute=Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'));
   await page.locator('#ephemerisHost #eventHand').press('ArrowRight');
   assert.equal(Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow')),Math.min(1440,beforeMinute+5),'remount installs exactly one keyboard listener');

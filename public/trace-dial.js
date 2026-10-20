@@ -46,7 +46,8 @@ let eventsByDay=new Map();
 let expanded=false;
 let activeHand='event';
 let raf=0,lastFrame=0;
-let selected={year:new Date().getFullYear(),month:new Date().getMonth()+1,day:new Date().getDate(),event:-1,minute:new Date().getHours()*60+new Date().getMinutes()};
+function currentSelection(){const now=new Date();return {year:now.getFullYear(),month:now.getMonth()+1,day:now.getDate(),event:-1,minute:now.getHours()*60+now.getMinutes()}}
+let selected=currentSelection();
 
 function el(name,attrs={}){
  const node=document.createElementNS(NS,name);
@@ -615,7 +616,10 @@ for(const button of scope.querySelectorAll('[data-focus-hand]'))listen(button,'c
  preferredHand=button.dataset.focusHand;setActiveHand(preferredHand);
 });
 listen(ui.close,'click',()=>{expanded=false;renderReadout();drawFeedback()});
-listen(scope.querySelector('#resetDial'),'click',()=>{load({initial:true});toast('已回到最近一条轨迹')});
+listen(scope.querySelector('#resetDial'),'click',()=>{
+ cancelAllDrags();Object.assign(selected,currentSelection());expanded=false;syncTimeSelection();
+ drawDayRing();drawEventRing();renderReadout();retargetOthers('',true);load();toast('已回到当前时间');
+});
 for(const button of scope.querySelectorAll('[data-year-step]'))listen(button,'click',()=>{
  selected.year=clamp(selected.year+Number(button.dataset.yearStep),1970,9999);
  selected.day=clamp(selected.day,1,daysInMonth(selected.year,selected.month));expanded=false;
@@ -700,24 +704,19 @@ function indexEvents(){
  for(const list of eventsByDay.values())list.sort((a,b)=>a.startMinute-b.startMinute||a.endMinute-b.endMinute);
 }
 let loadSequence=0,loadController=null;
-async function load({initial=false}={}){
+async function load(){
  const sequence=++loadSequence;loadController?.abort();loadController=new AbortController();
  stage.dataset.loadState='loading';renderReadout();
  const from=new Date(selected.year,selected.month-1,1).toISOString(),to=new Date(selected.year,selected.month,1).toISOString();
  try{
   const response=await get('/trace?'+new URLSearchParams({from,to}),loadController.signal);
   if(disposed||sequence!==loadSequence)return;
-  if(initial&&response.latest_at){
-   const latest=localDay(response.latest_at),changed=latest.year!==selected.year||latest.month!==selected.month;
-   Object.assign(selected,latest,{minute:Math.round(minuteOfDay(response.latest_at))});
-   if(changed){load();return}
-  }
   events=response.events.map(event=>({...event,kind:event.kind==='record'?event.activity_type:event.kind,at:event.occurred_at,
    object:event.object?.title||'',taskTitle:event.task?.title||'',duration:Math.floor((event.focused_ms||0)/60000)})).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at));
   indexEvents();syncTimeSelection();expanded=false;stage.dataset.loadState='ready';
   drawDayRing();drawEventRing();renderReadout();
   // Fresh data may update details, but must not cancel a spring already in flight.
-  if(initial&&!gesture)snapAll();else retargetOthers('',true);
+  retargetOthers('',true);
   stage.dataset.loadState='ready';
  }catch(error){
   if(disposed||sequence!==loadSequence||error.name==='AbortError')return;
@@ -727,7 +726,7 @@ async function load({initial=false}={}){
 }
 
 const resizeObserver=new ResizeObserver(layoutDial);resizeObserver.observe(stage);layoutDial();
-applyAppearance();setActiveHand('event');drawStaticDial();applyTransparency();drawDayRing();drawEventRing();renderReadout();snapAll();load({initial:true});
+applyAppearance();setActiveHand('event');drawStaticDial();applyTransparency();drawDayRing();drawEventRing();renderReadout();snapAll();load();
 return ()=>{
  disposed=true;loadController?.abort();lifetime.abort();resizeObserver.disconnect();
  if(raf)cancelAnimationFrame(raf);for(const timer of timers)window.clearTimeout(timer);timers.clear();
