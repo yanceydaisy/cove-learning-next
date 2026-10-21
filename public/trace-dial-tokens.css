@@ -69,3 +69,7 @@
  --color-ink-alpha:oklch(94% 0 0 / .22);
  --color-cobalt-alpha:oklch(79% 0 0 / .18);
 }
+
+/* Borderless ornamental leaf, sharing the chronograph ink and type. */
+:root,:host{--color-tarot-wash:oklch(97% 0 0 / .72);--color-tarot-veil:oklch(94% 0 0 / .42);--radius-tarot:0}
+:root[data-theme="dark"],:host([data-theme="dark"]){--color-tarot-wash:oklch(13% 0 0 / .76);--color-tarot-veil:oklch(20% 0 0 / .46)}

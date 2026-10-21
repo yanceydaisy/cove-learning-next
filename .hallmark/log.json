@@ -1,5 +1,13 @@
 [
   {
+    "date": "2026-10-21",
+    "scope": "component",
+    "macrostructure": "fixed date register and ornamental event leaf",
+    "theme": "custom monochrome-gothic-atlas",
+    "enrichment": "original SVG acanthus scrollwork",
+    "brief": "Keep the date fixed, use 21 Oct notation, and expand factual event details in a tall borderless leaf."
+  },
+  {
     "date": "2026-10-19",
     "scope": "isolated trace dial composition",
     "theme": "custom",

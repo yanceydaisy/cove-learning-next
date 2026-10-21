@@ -37,8 +37,9 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   clock=new Date('2024-02-29T10:30:30+08:00');app.activity.finish(focus.id);
   await page.goto('http://127.0.0.1:'+address.port+'/trace-dial',{waitUntil:'networkidle'});
   assert.match(await page.title(),/刻序 \/ EPHEMERIS/);
+  const ornamentResponse=await context.request.get('http://127.0.0.1:'+address.port+'/assets/trace/ephemeris-tarot.svg');assert.equal(ornamentResponse.status(),200);assert.match(ornamentResponse.headers()['content-type']||'',/image\/svg\+xml/);
   assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1106','opens at current local time, not the latest 23:30 record');
-  assert.equal(await page.locator('#readoutMonth').innerText(),'02');assert.equal(await page.locator('#readoutDay').innerText(),'29');
+  assert.equal(await page.locator('#readoutMonth').innerText(),'Feb');assert.equal(await page.locator('#readoutDay').innerText(),'29');assert.equal(await page.locator('#readoutClock').innerText(),'18:26');
   const aligned=await page.locator('.dial-key').evaluate(key=>['.key-index','.key-label'].every(selector=>{
    const centres=Array.from(key.querySelectorAll(selector)).map(node=>{const r=node.getBoundingClientRect();return r.y+r.height/2});
    return Math.max(...centres)-Math.min(...centres)<.5;
@@ -66,7 +67,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   await page.locator('#eventHand').press('Home');assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'0');
   await page.locator('#eventHand').press('End');assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1440');
   await page.locator('#resetDial').click();await page.locator('#dialStage[data-load-state=ready]').waitFor();
-  assert.equal(await page.locator('#readoutMonth').innerText(),'02');assert.equal(await page.locator('#readoutDay').innerText(),'29');
+  assert.equal(await page.locator('#readoutMonth').innerText(),'Feb');assert.equal(await page.locator('#readoutDay').innerText(),'29');
   assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1106','RESET returns to now instead of a saved event');
 
 
@@ -185,16 +186,16 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),true);
   const glass=await page.locator('#ephemerisHost #eventGlass').evaluate(node=>{
    const r=node.getBoundingClientRect(),style=getComputedStyle(node);
-   return {right:r.right,width:r.width,left:r.left,filter:style.backdropFilter,modal:node.getAttribute('aria-modal')};
+   return {right:r.right,width:r.width,left:r.left,filter:getComputedStyle(node,'::after').backdropFilter,border:style.borderWidth,shadow:style.boxShadow,ratio:r.height/r.width,ornament:getComputedStyle(node,'::before').maskImage,modal:node.getAttribute('aria-modal')};
   });
   assert.ok(glass.right<=393&&glass.left>393*.35&&glass.width<393*.6,'glass card stays on the right without a full-screen overlay');
-  assert.match(glass.filter,/blur\(21px\)/);assert.equal(glass.modal,null);
+  assert.match(glass.filter,/blur\(21px\)/);assert.equal(glass.modal,null);assert.equal(glass.border,'0px');assert.equal(glass.shadow,'none');assert.ok(glass.ratio>=1.9,'opened card is tall even with only one short note');assert.match(glass.ornament,/ephemeris-tarot\.svg/);
   await page.screenshot({path:'/tmp/ephemeris-event-glass-light.png'});
   await page.locator('#ephemerisHost #closeEditorial').click();
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false);
   assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录','closing details keeps the event selected');
   await page.locator('#ephemerisHost #expandEditorial').click();
-  await page.locator('#ephemerisHost #expandEditorial').press('Escape');
+  await page.locator('#ephemerisHost #eventGlass').press('Escape');
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'Escape dismisses only the floating sheet');
   await page.locator('#ephemerisHost #expandEditorial').click();
   assert.equal(await page.locator('#ephemerisHost [data-record-detail=summary]').innerText(),'复习状态空间模型。');
@@ -232,7 +233,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
     const stage=shadow.querySelector('#dialStage') as HTMLElement;
     const svg=shadow.querySelector('#traceDial') as SVGSVGElement,m=svg.getScreenCTM()!;
     const footer=shadow.querySelector('.dial-footer')!.getBoundingClientRect();
-    const pager=shadow.querySelector('#detailPager')!.getBoundingClientRect(),caption=shadow.querySelector('.editorial-bottom')!.getBoundingClientRect();
+    const pager=shadow.querySelector('#detailPager')!.getBoundingClientRect(),caption=shadow.querySelector('#eventGlass')!.getBoundingClientRect();
     return {background:getComputedStyle(host).backgroundColor,rows:[screen.scrollHeight-screen.clientHeight,measured.scrollHeight-measured.clientHeight,stage.scrollHeight-stage.clientHeight],
      glassTop:shadow.querySelector('#eventGlass')!.getBoundingClientRect().top,stageTop:stage.getBoundingClientRect().top,footerBottom:footer.bottom,screenBottom:screen.getBoundingClientRect().bottom,pagerBottom:pager.bottom,captionBottom:caption.bottom,header:shadow.querySelector('.dial-header'),masks:shadow.querySelectorAll('mask').length,topbar:document.querySelector('.topbar')!.getBoundingClientRect().height,
      ratio:416*Math.hypot(m.a,m.b)/innerWidth};
@@ -258,14 +259,18 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   // The brief and glass remain within the fixed viewport in both corners, even on small phones.
   for(const size of [{width:320,height:568},{width:393,height:852},{width:414,height:896}]){
    await page.setViewportSize(size);
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   const dateBefore=await page.locator('#ephemerisHost .editorial-top').boundingBox();
    for(const minute of ['540','720']){
     await page.locator('#ephemerisHost .event-node[data-minute="'+minute+'"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
     await page.locator('#ephemerisHost #expandEditorial').click();
+    assert.deepEqual(await page.locator('#ephemerisHost .editorial-top').boundingBox(),dateBefore,'date register never swaps corners or moves when an event/card changes');
     const boxes=await page.locator('#ephemerisHost').evaluate(host=>{
      const root=host.shadowRoot!,r=(selector:string)=>{const b=root.querySelector(selector)!.getBoundingClientRect();return {top:b.top,bottom:b.bottom,left:b.left,right:b.right,height:b.height}};
-     return {brief:r('.event-brief'),glass:r('#eventGlass'),stage:r('#dialStage')};
+     return {brief:r('.event-brief'),glass:r('#eventGlass'),stage:r('#dialStage'),date:r('.editorial-top'),page:r('.record-pages'),text:r('[data-record-detail]:not([hidden])')};
     });
-    assert.ok(boxes.glass.top>=boxes.stage.top-1&&boxes.glass.bottom<=boxes.stage.bottom+1,'both floating directions fit the stage');
+    assert.ok(boxes.glass.top>=boxes.stage.top-1&&boxes.glass.bottom<=boxes.stage.bottom+1,'long tarot card fits the fixed stage');assert.ok(boxes.glass.height/(boxes.glass.right-boxes.glass.left)>=1.9,'long aspect ratio is retained on small phones');assert.ok(boxes.date.bottom<=boxes.glass.top+1,'fixed date remains readable above the expanded card');
+    assert.ok(boxes.text.bottom<=boxes.page.bottom+1,'paged body never exceeds the usable long-card text area');
     assert.ok(boxes.glass.left>size.width*.3&&boxes.glass.right<=size.width,'card remains a small right-side panel');
     if(minute==='540')assert.ok(boxes.brief.top<boxes.stage.top+10,'upper event stays in its upper empty corner');
     else assert.ok(boxes.brief.bottom>boxes.stage.bottom-12,'lower event stays in its lower empty corner');
@@ -317,8 +322,8 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   await page.locator('.today-review-trace').click();
   await page.locator('#ephemerisHost #dialStage[data-load-state=ready]').waitFor();
   assert.equal(await page.locator('#ephemerisHost #readoutYear').innerText(),'2025');
-  assert.equal(await page.locator('#ephemerisHost #readoutMonth').innerText(),'03');
-  assert.equal(await page.locator('#ephemerisHost #readoutDay').innerText(),'01');
+  assert.equal(await page.locator('#ephemerisHost #readoutMonth').innerText(),'Mar');
+  assert.equal(await page.locator('#ephemerisHost #readoutDay').innerText(),'1');
   assert.equal(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'),'2','reopening uses the new current date/time even without records');
   const beforeMinute=Number(await page.locator('#ephemerisHost #eventHand').getAttribute('aria-valuenow'));
   await page.locator('#ephemerisHost #eventHand').press('ArrowRight');

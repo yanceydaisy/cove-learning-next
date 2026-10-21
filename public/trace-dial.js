@@ -23,7 +23,7 @@ const hub=scope.querySelector('.dial-hub');
 const editorial=scope.querySelector('#eventEditorial');
 const ui={
  year:scope.querySelector('#readoutYear'),month:scope.querySelector('#readoutMonth'),day:scope.querySelector('#readoutDay'),
- weekday:scope.querySelector('#readoutWeekday'),kind:scope.querySelector('#eventKind'),title:scope.querySelector('#eventTitle'),
+ clock:scope.querySelector('#readoutClock'),weekday:scope.querySelector('#readoutWeekday'),kind:scope.querySelector('#eventKind'),title:scope.querySelector('#eventTitle'),
  object:scope.querySelector('#eventObject'),time:scope.querySelector('#detailTime'),type:scope.querySelector('#detailType'),
  close:scope.querySelector('#closeEditorial'),expand:scope.querySelector('#expandEditorial'),glass:scope.querySelector('#eventGlass'),toast:scope.querySelector('#dialToast')
 };
@@ -164,6 +164,11 @@ function layoutDial(){
  const axisY=outerRadius+10;
  Object.assign(svg.style,{width:760*scale+'px',height:940*scale+'px',
   insetInlineStart:-cx*scale+'px',insetBlockStart:axisY-cy*scale+'px'});
+ const cardHeight=Math.min(460,Math.floor(height*.60));
+ stage.style.setProperty('--tarot-height',cardHeight+'px');
+ stage.style.setProperty('--tarot-width',Math.min(width*.50,cardHeight/1.95)+'px');
+ const dateHeight=scope.querySelector('.editorial-top').offsetHeight;
+ stage.style.setProperty('--date-center',Math.min(height*(height<460?.27:.32),height-cardHeight-18-dateHeight/2)+'px');
  drawAtlasDecor(width,height);
  if(currentEvent())renderReadout();
  drawFeedback();
@@ -411,7 +416,7 @@ function collapsedCopy(){
 }
 
 function renderReadout(){
- ui.year.textContent=selected.year;ui.month.textContent=String(selected.month).padStart(2,'0');ui.day.textContent=String(selected.day).padStart(2,'0');ui.weekday.textContent=weekday(selected.year,selected.month,selected.day);
+ ui.year.textContent=selected.year;ui.month.textContent=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][selected.month-1];ui.day.textContent=String(selected.day);ui.weekday.textContent=new Date(selected.year,selected.month-1,selected.day).toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();ui.clock.textContent=clockTime(selected.minute);scope.querySelector('.editorial-top').setAttribute('aria-label',dateKey(selected.year,selected.month,selected.day)+' '+clockTime(selected.minute));
  const event=currentEvent();if(!event){collapsedCopy();return}
  if(briefEventId!==event.id){detailsOpen=false;briefEventId=event.id}
  editorial.classList.remove('collapsed');editorial.classList.add('has-event');
@@ -430,7 +435,7 @@ function renderReadout(){
  if(event.time_source==='legacy_updated_at'){ui.time.textContent='完成时刻未记录';scope.querySelector('#eventTimeLabel').textContent='旧记录'}
  ui.expand.hidden=false;ui.expand.setAttribute('aria-expanded',String(detailsOpen));ui.expand.setAttribute('aria-label',detailsOpen?'收起事件详情':'展开事件详情');
  editorial.classList.toggle('details-open',detailsOpen);ui.glass.hidden=!detailsOpen;
- if(detailsOpen)renderRecordDetails(event);else clearRecordDetails();
+ if(detailsOpen){scope.querySelector('#cardEventTitle').textContent=event.title;scope.querySelector('#cardEventTitle').title=event.title;scope.querySelector('#cardEventObject').textContent=ui.object.textContent;scope.querySelector('#cardEventTime').textContent=ui.time.textContent;renderRecordDetails(event)}else clearRecordDetails();
 }
 
 function retargetOthers(exceptKind,animate=true){
@@ -656,8 +661,8 @@ function showDetailPage(){
  scope.querySelector('#detailEmpty').hidden=!!page;
  scope.querySelector('#detailHeading').textContent=page?detailNames[page.kind]:'记录详情';
  if(page){const node=scope.querySelector('[data-record-detail="'+page.kind+'"]');node.textContent=page.text;node.hidden=false}
- pager.hidden=detailPages.length<=1;
- scope.querySelector('#detailPageCount').textContent=(detailPage+1)+' / '+detailPages.length;
+ pager.hidden=false;pager.classList.toggle('single-page',detailPages.length<=1);
+ scope.querySelector('#detailPageCount').textContent=detailPages.length?(detailPage+1)+' / '+detailPages.length:'—';
  for(const button of pager.querySelectorAll('[data-detail-step]'))button.disabled=detailPage+Number(button.dataset.detailStep)<0||detailPage+Number(button.dataset.detailStep)>=detailPages.length;
 }
 function renderRecordDetails(event){
@@ -665,9 +670,11 @@ function renderRecordDetails(event){
  const values={summary:event.summary,note:event.note,next:event.next_action,tags:(event.tags||[]).map(tag=>'#'+tag).join(' '),task:event.taskTitle&&event.taskTitle!==event.title?event.taskTitle:''};
  if(detailEventId!==event.id)detailPage=0;detailEventId=event.id;detailPages=[];
  const paragraph=scope.querySelector('[data-record-detail="summary"]'),style=getComputedStyle(paragraph);
- const width=ui.glass.clientWidth-parseFloat(getComputedStyle(ui.glass).paddingLeft)-parseFloat(getComputedStyle(ui.glass).paddingRight);
+ const pageArea=scope.querySelector('.record-pages'),width=pageArea.clientWidth;
  const canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=style.font||style.fontSize+' '+style.fontFamily;
- const maxLines=Number(getComputedStyle(ui.glass).getPropertyValue('--detail-lines'))||5;
+ scope.querySelector('#detailPager').hidden=false;
+ const lineHeight=parseFloat(style.lineHeight),heading=scope.querySelector('#detailHeading');
+ const maxLines=Math.max(1,Math.floor((pageArea.clientHeight-heading.getBoundingClientRect().height-12)/lineHeight));
  for(const [kind,value] of Object.entries(values))if(value){
   let text='',line=0,lineText='';
   const finish=()=>{if(text)detailPages.push({kind,text});text='';line=0;lineText=''};
