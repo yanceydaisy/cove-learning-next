@@ -301,9 +301,8 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .editorial-top .editorial-date #readoutMonth{font:400 clamp(20px,6.7vw,31px)/1 var(--font-display);font-style:italic;letter-spacing:-.045em;align-self:auto;padding:0;color:var(--color-ink)}
 .editorial-top .editorial-clock,:host .editorial-top .editorial-clock{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:3px;margin:6px 0 0;font:500 6px/1.4 var(--font-mono);letter-spacing:.03em;color:var(--color-ink-2)}
 .editorial-clock i{font-style:normal;opacity:.5}
-.editorial-bottom,:host .editorial-bottom{inset-inline-end:.5rem;inset-block-start:auto;inset-block-end:.55rem;width:46%;max-width:19rem;max-height:none;padding:0;overflow:visible;pointer-events:none;touch-action:none}
+.editorial-bottom,:host .editorial-bottom{inset-inline-end:.5rem;inset-block-start:.3rem;inset-block-end:auto;width:46%;max-width:19rem;max-height:none;padding:0;overflow:visible;pointer-events:none;touch-action:none}
 .editorial-bottom .event-brief{position:relative;pointer-events:none}
-.stage-editorial[data-event-side="upper"] .editorial-bottom{inset-block-start:.3rem;inset-block-end:auto}
 .event-brief-head{display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:27px}
 .editorial-bottom .editorial-kicker,:host .editorial-bottom .editorial-kicker{margin:0;font:500 7px/1.25 var(--font-mono);letter-spacing:.09em;color:var(--color-ink-2);white-space:normal}
 .editorial-bottom h1,:host .editorial-bottom h1{display:block;max-height:none;margin:2px 0 7px;overflow:visible;font:650 clamp(17px,4.9vw,24px)/1.18 system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:-.045em;overflow-wrap:anywhere}

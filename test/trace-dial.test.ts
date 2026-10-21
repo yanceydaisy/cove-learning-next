@@ -175,7 +175,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   await page.locator('#ephemerisHost .event-node[data-minute="540"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
   assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录');
 
-  assert.equal(await page.locator('#ephemerisHost #eventEditorial').getAttribute('data-event-side'),'upper','first six divisions place the event at upper right');
+  assert.ok((await page.locator('#ephemerisHost .event-brief').boundingBox())!.y<(await page.locator('#ephemerisHost #dialStage').boundingBox())!.y+10,'event brief is fixed at upper right');
   assert.equal(await page.locator('#ephemerisHost #eventTimeLabel').innerText(),'时段');
   assert.match(await page.locator('#ephemerisHost #detailTime').innerText(),/09:00.*10:00/s);
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'selecting a marker shows a brief without opening a card');
@@ -219,7 +219,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   });
   assert.ok(embeddedLayout<=.752&&embeddedLayout>.5,'native dial fits available height and never exceeds approved width');
   await page.locator('#ephemerisHost .event-node[data-minute="720"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
-  assert.equal(await page.locator('#ephemerisHost #eventEditorial').getAttribute('data-event-side'),'lower','last six divisions use the lower right');
+  assert.equal((await page.locator('#ephemerisHost .event-brief').boundingBox())!.y,briefBefore!.y,'afternoon event keeps the same upper-right brief position');
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'switching events folds the previous card');
   await page.locator('#ephemerisHost #expandEditorial').click();
   await page.screenshot({path:'/tmp/ephemeris-event-glass-dark.png'});
@@ -281,8 +281,8 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
     assert.equal(textBounds.align,'center','book-menu typography is centered');
     assert.ok(textBounds.rects.every(r=>r.left>=textBounds.safe.left-1&&r.right<=textBounds.safe.right+1&&r.top>=textBounds.safe.top-1&&r.bottom<=textBounds.safe.bottom+1),'all rendered text stays within the frame safe rectangle: '+JSON.stringify(textBounds));
     assert.ok(boxes.glass.left>size.width*.3&&boxes.glass.right<=size.width,'card remains a small right-side panel');
-    if(minute==='540')assert.ok(boxes.brief.top<boxes.stage.top+10,'upper event stays in its upper empty corner');
-    else assert.ok(boxes.brief.bottom>boxes.stage.bottom-12,'lower event stays in its lower empty corner');
+    assert.ok(boxes.brief.top<boxes.stage.top+10,'morning, afternoon and point events all retain the upper-right brief');
+    assert.ok(boxes.brief.bottom<=boxes.glass.top+1,'retained summary stays clear of the lower-right card');
     await page.locator('#ephemerisHost #closeEditorial').click();
    }
   }

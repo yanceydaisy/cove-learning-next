@@ -412,7 +412,7 @@ function collapsedCopy(){
  }else if(stage.dataset.loadState==='loading'){
   ui.title.textContent='正在读取这段时间的记录';ui.object.textContent='';ui.type.textContent='LOADING';
  }
- detailsOpen=false;briefEventId=null;ui.glass.hidden=true;ui.expand.hidden=true;ui.expand.setAttribute('aria-expanded','false');editorial.classList.remove('has-event','details-open');editorial.dataset.eventSide='lower';scope.querySelector('#eventTimeLabel').textContent='时刻';editorial.classList.add('collapsed');
+ detailsOpen=false;briefEventId=null;ui.glass.hidden=true;ui.expand.hidden=true;ui.expand.setAttribute('aria-expanded','false');editorial.classList.remove('has-event','details-open');scope.querySelector('#eventTimeLabel').textContent='时刻';editorial.classList.add('collapsed');
 }
 
 function renderReadout(){
@@ -420,7 +420,6 @@ function renderReadout(){
  const event=currentEvent();if(!event){collapsedCopy();return}
  if(briefEventId!==event.id){detailsOpen=false;briefEventId=event.id}
  editorial.classList.remove('collapsed');editorial.classList.add('has-event');
- editorial.dataset.eventSide=selected.minute<720?'upper':'lower';
  ui.kind.textContent=(event.kind==='task'?'DONE':event.kind==='focus'?'FOCUS':'EVENT')+' / '+dateKey(selected.year,selected.month,selected.day);
  ui.title.textContent=event.title;
  ui.object.textContent='关联 · '+([...new Set([event.object,event.taskTitle].filter(Boolean))].join(' / ')||'未关联');
