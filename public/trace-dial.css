@@ -291,7 +291,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 
 
 /* Corner briefs and a fixed date register; opened records use a long ornamental leaf. */
-:root,:host{--color-tarot-wash:oklch(97% 0 0 / .72);--color-tarot-veil:oklch(94% 0 0 / .42);--radius-tarot:0}
+:root,:host{--color-tarot-wash:oklch(100% 0 0);--color-tarot-veil:oklch(100% 0 0);--radius-tarot:0}
 :root[data-theme="dark"],:host([data-theme="dark"]){--color-tarot-wash:oklch(13% 0 0 / .76);--color-tarot-veil:oklch(20% 0 0 / .46)}
 .stage-editorial .editorial-top,:host .stage-editorial .editorial-top{inset-block-start:var(--date-center,32%);inset-block-end:auto;inset-inline-end:.5rem;transform:translateY(-50%);width:24%;max-width:9rem;z-index:7;text-align:right;pointer-events:none}
 .editorial-top .editorial-coordinate{display:none}
@@ -405,7 +405,7 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 
 /* Selected-event annotation: a quiet patch, serif hierarchy and a visible anchor. */
 :root,:host{--color-brief-wash:oklch(98% 0 0 / .68);--color-brief-edge:oklch(98% 0 0 / .24)}
-:root[data-theme="dark"],:host([data-theme="dark"]){--color-brief-wash:oklch(13% 0 0 / .74);--color-brief-edge:oklch(13% 0 0 / .28)}
+:root[data-theme="dark"],:host([data-theme="dark"]){--color-brief-wash:oklch(13% 0 0 / .36);--color-brief-edge:oklch(13% 0 0 / .10)}
 .editorial-bottom .event-brief{isolation:isolate}
 .event-brief>*{position:relative;z-index:1}
 .stage-editorial.has-event .event-brief::before{content:"";position:absolute;inset:-12px -8px -12px -18px;z-index:0;pointer-events:none;background:linear-gradient(110deg,var(--color-brief-wash),var(--color-brief-edge));-webkit-backdrop-filter:blur(7px) saturate(.3);backdrop-filter:blur(7px) saturate(.3);-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,transparent 100%)}

@@ -71,10 +71,10 @@
 }
 
 /* Borderless ornamental leaf, sharing the chronograph ink and type. */
-:root,:host{--color-tarot-wash:oklch(97% 0 0 / .72);--color-tarot-veil:oklch(94% 0 0 / .42);--radius-tarot:0}
+:root,:host{--color-tarot-wash:oklch(100% 0 0);--color-tarot-veil:oklch(100% 0 0);--radius-tarot:0}
 :root[data-theme="dark"],:host([data-theme="dark"]){--color-tarot-wash:oklch(13% 0 0 / .76);--color-tarot-veil:oklch(20% 0 0 / .46)}
 
 :root,:host{--color-brief-wash:oklch(98% 0 0 / .68);--color-brief-edge:oklch(98% 0 0 / .24)}
-:root[data-theme="dark"],:host([data-theme="dark"]){--color-brief-wash:oklch(13% 0 0 / .74);--color-brief-edge:oklch(13% 0 0 / .28)}
+:root[data-theme="dark"],:host([data-theme="dark"]){--color-brief-wash:oklch(13% 0 0 / .36);--color-brief-edge:oklch(13% 0 0 / .10)}
 
 :root,:host{--font-body:"Ephemeris Song","Noto Serif SC","Songti SC",STSong,Georgia,serif;--font-display:Didot,"Bodoni 72","Bodoni MT",Georgia,"Ephemeris Song",serif;--font-mono:"SFMono-Regular",Menlo,Consolas,"Ephemeris Song",monospace}
