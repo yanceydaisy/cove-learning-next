@@ -180,10 +180,16 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.match(await page.locator('#ephemerisHost #detailTime').innerText(),/09:00.*10:00/s);
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'selecting a marker shows a brief without opening a card');
   assert.equal(await page.locator('#ephemerisHost #eventObject').innerText(),'关联 · 现代控制理论');
+  const briefBefore=await page.locator('#ephemerisHost .event-brief').boundingBox();
   await page.screenshot({path:'/tmp/ephemeris-event-brief-upper.png'});
   await page.locator('#ephemerisHost #expandEditorial').click();
   assert.equal(await page.locator('#ephemerisHost #expandEditorial').getAttribute('aria-expanded'),'true');
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),true);
+  assert.equal(await page.locator('#ephemerisHost .event-brief').isVisible(),true,'upper event brief remains visible alongside its opened card');
+  assert.deepEqual(await page.locator('#ephemerisHost .event-brief').boundingBox(),briefBefore,'opening details never moves the brief');
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'retained summary arrow can fold the card directly');
+  await page.locator('#ephemerisHost #expandEditorial').click();
   const glass=await page.locator('#ephemerisHost #eventGlass').evaluate(node=>{
    const r=node.getBoundingClientRect(),style=getComputedStyle(node);
    return {right:r.right,width:r.width,left:r.left,filter:getComputedStyle(node,'::after').backdropFilter,border:style.borderWidth,shadow:style.boxShadow,ratio:r.height/r.width,ornament:getComputedStyle(node,'::before').maskImage,modal:node.getAttribute('aria-modal')};
