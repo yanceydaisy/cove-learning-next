@@ -27,6 +27,53 @@ const ui={
  object:scope.querySelector('#eventObject'),time:scope.querySelector('#detailTime'),type:scope.querySelector('#detailType'),
  close:scope.querySelector('#closeEditorial'),expand:scope.querySelector('#expandEditorial'),glass:scope.querySelector('#eventGlass'),toast:scope.querySelector('#dialToast')
 };
+// Floating record: pointer capture keeps dragging separate from the three needles.
+let cardDrag=null;
+const cardPose={x:0,y:0};
+function placeCard(x=cardPose.x,y=cardPose.y){
+ if(ui.glass.hidden)return;
+ const area=stage.getBoundingClientRect(),box=ui.glass.getBoundingClientRect();
+ const originX=box.left-area.left-cardPose.x,originY=box.top-area.top-cardPose.y;
+ const minX=8-originX,maxX=area.width-box.width-8-originX;
+ const minY=8-originY,maxY=area.height-box.height-8-originY;
+ cardPose.x=clamp(x,Math.min(minX,maxX),Math.max(minX,maxX));
+ cardPose.y=clamp(y,Math.min(minY,maxY),Math.max(minY,maxY));
+ ui.glass.style.transform='translate3d('+cardPose.x+'px,'+cardPose.y+'px,0)';
+}
+function finishCardDrag(){
+ const previous=cardDrag;cardDrag=null;ui.glass.classList.remove('is-dragging');
+ if(previous)try{if(ui.glass.hasPointerCapture(previous.id))ui.glass.releasePointerCapture(previous.id)}catch{}
+}
+function resetCardPose(){finishCardDrag();cardPose.x=0;cardPose.y=0;ui.glass.style.removeProperty('transform')}
+listen(ui.glass,'pointerdown',event=>{
+ if(event.button!==0||event.isPrimary===false||cardDrag||event.target.closest('button,a,input,textarea,select'))return;
+ event.preventDefault();event.stopPropagation();
+ cardDrag={id:event.pointerId,startX:event.clientX,startY:event.clientY,x:cardPose.x,y:cardPose.y};
+ ui.glass.setPointerCapture(event.pointerId);ui.glass.classList.add('is-dragging');
+});
+listen(ui.glass,'pointermove',event=>{
+ if(!cardDrag||event.pointerId!==cardDrag.id)return;
+ event.preventDefault();event.stopPropagation();
+ placeCard(cardDrag.x+event.clientX-cardDrag.startX,cardDrag.y+event.clientY-cardDrag.startY);
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])listen(ui.glass,type,event=>{
+ if(!cardDrag||event.pointerId!==cardDrag.id)return;
+ if(type==='pointerup')event.preventDefault();event.stopPropagation();finishCardDrag();
+});
+listen(ui.glass,'selectstart',event=>event.preventDefault());
+listen(ui.glass,'dragstart',event=>event.preventDefault());
+listen(ui.glass,'contextmenu',event=>event.preventDefault());
+listen(window,'blur',finishCardDrag);
+const cardHandle=scope.querySelector('.event-glass-head');
+cardHandle.tabIndex=0;cardHandle.setAttribute('aria-label','移动记录卡片：方向键调整位置，Home 回到右下角');
+listen(cardHandle,'keydown',event=>{
+ if(event.target!==cardHandle||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home'].includes(event.key))return;
+ event.preventDefault();event.stopPropagation();
+ if(event.key==='Home'){resetCardPose();placeCard();return}
+ const step=event.shiftKey?32:12;
+ placeCard(cardPose.x+(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0),cardPose.y+(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0));
+});
+
 const reduceMotion=matchMedia('(prefers-reduced-motion:reduce)');
 const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 const handRange={month:[-90,90],day:[-90,90],event:[-90,90]};
@@ -441,7 +488,7 @@ function renderReadout(){
  ui.type.textContent=event.time_source==='legacy_updated_at'?'旧记录 · 完成时刻待补':event.kind==='task'?'完成任务':'专注 '+Math.floor((event.focused_ms||0)/60000)+' min · 经过 '+Math.round((event.elapsed_ms||0)/60000)+' min';
  if(event.time_source==='legacy_updated_at'){ui.time.textContent='完成时刻未记录';scope.querySelector('#eventTimeLabel').textContent='旧记录'}
  ui.expand.hidden=false;ui.expand.setAttribute('aria-expanded',String(detailsOpen));ui.expand.setAttribute('aria-label',detailsOpen?'收起事件详情':'展开事件详情');
- editorial.classList.toggle('details-open',detailsOpen);ui.glass.hidden=!detailsOpen;
+ editorial.classList.toggle('details-open',detailsOpen);ui.glass.hidden=!detailsOpen;if(detailsOpen)placeCard();else finishCardDrag();
  quietBriefBackdrop();
  if(detailsOpen){scope.querySelector('#cardEventTitle').textContent=event.title;scope.querySelector('#cardEventTitle').title=event.title;scope.querySelector('#cardEventObject').textContent=ui.object.textContent;scope.querySelector('#cardEventTime').textContent=ui.time.textContent;renderRecordDetails(event)}else clearRecordDetails();
 }
@@ -647,7 +694,7 @@ listen(ui.expand,'click',()=>{detailsOpen=!detailsOpen;renderReadout();drawFeedb
 listen(ui.close,'click',closeDetails);
 listen(editorial,'keydown',event=>{if(event.key==='Escape'&&detailsOpen){event.preventDefault();event.stopPropagation();closeDetails()}});
 listen(scope.querySelector('#resetDial'),'click',()=>{
- cancelAllDrags();detailsOpen=false;briefEventId=null;Object.assign(selected,currentSelection());syncTimeSelection();
+ cancelAllDrags();resetCardPose();detailsOpen=false;briefEventId=null;Object.assign(selected,currentSelection());syncTimeSelection();
  drawDayRing();drawEventRing();renderReadout();retargetOthers('',true);load();toast('已回到当前时间');
 });
 for(const button of scope.querySelectorAll('[data-year-step]'))listen(button,'click',()=>{
@@ -757,8 +804,10 @@ async function load(){
 
 const resizeObserver=new ResizeObserver(layoutDial);resizeObserver.observe(stage);layoutDial();
 applyAppearance();setActiveHand('event');drawStaticDial();applyTransparency();drawDayRing();drawEventRing();renderReadout();snapAll();load();
+stage.dataset.fontState='loading';
+Promise.all([document.fonts.load('400 12px "Ephemeris Song"','刻序学习记录'),document.fonts.load('600 12px "Ephemeris Song"','刻序学习记录')]).then(()=>{if(!disposed){stage.dataset.fontState='ready';layoutDial();renderReadout();drawFeedback()}}).catch(()=>{if(!disposed)stage.dataset.fontState='error'});
 return ()=>{
- disposed=true;loadController?.abort();lifetime.abort();resizeObserver.disconnect();
+ disposed=true;finishCardDrag();loadController?.abort();lifetime.abort();resizeObserver.disconnect();
  if(raf)cancelAnimationFrame(raf);for(const timer of timers)window.clearTimeout(timer);timers.clear();
 };
 }

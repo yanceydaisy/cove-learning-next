@@ -1,3 +1,4 @@
+@font-face{font-family:"Ephemeris Song";font-style:normal;font-weight:400 600;font-display:swap;src:url("./assets/fonts/ephemeris-noto-serif-sc-400-600.woff2") format("woff2")}
 /* Cove Learning / B direction: editorial hierarchy, restrained glass, open rhythm */
 :root{
  color-scheme:light;

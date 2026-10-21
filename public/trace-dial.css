@@ -1,3 +1,4 @@
+@font-face{font-family:"Ephemeris Song";font-style:normal;font-weight:400 600;font-display:swap;src:url("./assets/fonts/ephemeris-noto-serif-sc-400-600.woff2") format("woff2")}
 /* Hallmark · macrostructure: exposed half-dial with corner captions · genre: custom-bespoke · tone: monochrome-gothic-atlas · anchor hue: neutral */
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5 */
 :root,:host{
@@ -418,3 +419,14 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 #detailTime{font-family:var(--font-body)}
 .stage-editorial.collapsed #detailTime{font-family:var(--font-display)}
 @media(max-height:650px){.editorial-bottom h1,:host .editorial-bottom h1{font-size:18px}.stage-editorial.has-event #eventTitle::after{margin-top:5px}.editorial-bottom #eventObject,:host .editorial-bottom #eventObject{font-size:9px;margin-bottom:6px}}
+
+/* Real CJK serif glyphs and a movable, non-selectable floating record. */
+:root,:host{--font-body:"Ephemeris Song","Noto Serif SC","Songti SC","Noto Serif CJK SC",STSong,Georgia,serif;--font-display:Didot,"Bodoni 72","Bodoni MT",Georgia,"Ephemeris Song",serif;--font-mono:"SFMono-Regular",Menlo,Consolas,"Ephemeris Song",monospace}
+.event-glass,.event-glass *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+.event-glass{cursor:grab;outline:none;will-change:transform}
+.event-glass.is-dragging,.event-glass.is-dragging *{cursor:grabbing}
+.event-glass button{cursor:pointer}
+.event-glass .event-glass-head{cursor:grab;outline:none}
+.event-glass button:focus-visible,.event-glass .event-glass-head:focus-visible{outline:1px solid var(--color-ink);outline-offset:2px}
+
+.event-glass .detail-pager button{font:400 14px/1 var(--font-display)}

@@ -38,6 +38,9 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   await page.goto('http://127.0.0.1:'+address.port+'/trace-dial',{waitUntil:'networkidle'});
   assert.match(await page.title(),/刻序 \/ EPHEMERIS/);
   const ornamentResponse=await context.request.get('http://127.0.0.1:'+address.port+'/assets/trace/ephemeris-tarot.svg');assert.equal(ornamentResponse.status(),200);assert.match(ornamentResponse.headers()['content-type']||'',/image\/svg\+xml/);
+  await page.locator('#dialStage[data-font-state=ready]').waitFor();
+  assert.ok(await page.evaluate(()=>{let loaded=false;document.fonts.forEach(font=>{if(font.family.replaceAll('"','')==='Ephemeris Song'&&font.status==='loaded')loaded=true});return loaded}),'real Chinese serif face is loaded');
+  const fontResponse=await context.request.get('http://127.0.0.1:'+address.port+'/assets/fonts/ephemeris-noto-serif-sc-400-600.woff2');assert.equal(fontResponse.status(),200);assert.equal(fontResponse.headers()['content-type'],'font/woff2');
   assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1106','opens at current local time, not the latest 23:30 record');
   assert.equal(await page.locator('#readoutMonth').innerText(),'Feb');assert.equal(await page.locator('#readoutDay').innerText(),'29');assert.equal(await page.locator('#readoutClock').innerText(),'18:26');
   const aligned=await page.locator('.dial-key').evaluate(key=>['.key-index','.key-label'].every(selector=>{
@@ -57,7 +60,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'540');
   assert.match(await page.locator('#eventHand').getAttribute('transform')||'',/rotate\(-22.5\)/,'9am has fixed position independent of record count');
   await page.locator('.month-label-group[data-month="3"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
-  await page.locator('#dialStage[data-load-state=ready]').waitFor();
+  await page.locator('#dialStage[data-load-state=ready][data-font-state=ready]').waitFor();
   await page.locator('#dayHand').press('Home');
   assert.equal(await page.locator('#dayHand').getAttribute('aria-valuemax'),'31');
   assert.deepEqual(await page.locator('.event-duration').evaluateAll(nodes=>nodes.map(n=>[(n as SVGElement).dataset.startMinute,(n as SVGElement).dataset.endMinute])),[['0','30']],'midnight continuation appears on the next day');
@@ -66,14 +69,14 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#eventHand').getAttribute('aria-disabled'),null,'time needle works on empty days');
   await page.locator('#eventHand').press('Home');assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'0');
   await page.locator('#eventHand').press('End');assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1440');
-  await page.locator('#resetDial').click();await page.locator('#dialStage[data-load-state=ready]').waitFor();
+  await page.locator('#resetDial').click();await page.locator('#dialStage[data-load-state=ready][data-font-state=ready]').waitFor();
   assert.equal(await page.locator('#readoutMonth').innerText(),'Feb');assert.equal(await page.locator('#readoutDay').innerText(),'29');
   assert.equal(await page.locator('#eventHand').getAttribute('aria-valuenow'),'1106','RESET returns to now instead of a saved event');
 
 
   // Put all three hands on the same angle; screen-space radius must disambiguate.
   await page.locator('.month-label-group[data-month="6"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
-  await page.locator('#dialStage[data-load-state=ready]').waitFor();
+  await page.locator('#dialStage[data-load-state=ready][data-font-state=ready]').waitFor();
   await page.locator('#dayHand').press('Home');
   for(let i=1;i<16;i++)await page.locator('#dayHand').press('ArrowRight');
   await page.locator('#eventHand').press('Home');
@@ -169,7 +172,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.ok(await page.evaluate(()=>scrollY)>20,'blank area preserves page scrolling');
   // The real Learning route mounts the same dial without a frame or duplicate listeners.
   await page.goto('http://127.0.0.1:'+address.port+'/#/archive',{waitUntil:'networkidle'});
-  await page.locator('#ephemerisHost #dialStage[data-load-state=ready]').waitFor();
+  await page.locator('#ephemerisHost #dialStage[data-load-state=ready][data-font-state=ready]').waitFor();
   assert.equal(await page.locator('iframe').count(),0);
   assert.equal(await page.locator('#dock a').count(),4);
   await page.locator('#ephemerisHost .event-node[data-minute="540"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
@@ -302,6 +305,46 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   for(let i=0;i<9;i++)await page.locator('#ephemerisHost #eventHand').press('Shift+ArrowRight');
   assert.equal(await page.locator('#ephemerisHost #eventTitle').innerText(),'一小时记录');
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false);
+
+  // Floating card: touch/mouse drag is isolated from the dial and never selects text.
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  const card=page.locator('#ephemerisHost #eventGlass'),cardStart=(await card.boundingBox())!;
+  const fixedBrief=await page.locator('#ephemerisHost .event-brief').boundingBox(),fixedDate=await page.locator('#ephemerisHost .editorial-top').boundingBox();
+  const beforeDrag=await page.locator('#ephemerisHost').evaluate(host=>['month','day','event'].map(kind=>host.shadowRoot!.querySelector('#'+kind+'Hand')!.getAttribute('aria-valuenow')));
+  const dragText=page.locator('#ephemerisHost .record-pages p:not([hidden])'),textStart=(await dragText.boundingBox())!;
+  const grip={x:textStart.x+textStart.width/2,y:textStart.y+textStart.height/2};
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...grip,id:1}]});
+  for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:grip.x-72*i/8,y:grip.y-88*i/8,id:1}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  const dragged=(await card.boundingBox())!;
+  assert.ok(Math.abs(dragged.x-cardStart.x+72)<1&&Math.abs(dragged.y-cardStart.y+88)<1,'touch can move the full card from its text surface');
+  assert.deepEqual(await page.locator('#ephemerisHost .event-brief').boundingBox(),fixedBrief);
+  assert.deepEqual(await page.locator('#ephemerisHost .editorial-top').boundingBox(),fixedDate);
+  assert.deepEqual(await page.locator('#ephemerisHost').evaluate(host=>['month','day','event'].map(kind=>host.shadowRoot!.querySelector('#'+kind+'Hand')!.getAttribute('aria-valuenow'))),beforeDrag,'card dragging does not move any needle');
+  const selection=await card.evaluate(node=>({text:getSelection()?.toString(),select:getComputedStyle(node).userSelect,webkit:getComputedStyle(node).getPropertyValue('-webkit-user-select'),tap:getComputedStyle(node).getPropertyValue('-webkit-tap-highlight-color'),outline:getComputedStyle(node).outlineStyle,dragging:node.classList.contains('is-dragging')}));
+  assert.equal(selection.text,'');assert.equal(selection.select,'none');assert.equal(selection.webkit,'none');assert.match(selection.tap,/rgba\(0, 0, 0, 0\)/);assert.equal(selection.outline,'none');assert.equal(selection.dragging,false);
+  await page.screenshot({path:'/tmp/ephemeris-floating-drag.png'});
+  await page.locator('#ephemerisHost #closeEditorial').click();
+  await page.locator('#ephemerisHost #expandEditorial').click();
+  assert.deepEqual(await card.boundingBox(),dragged,'closing and reopening preserves a chosen floating position');
+  const header=page.locator('#ephemerisHost .event-glass-head');await header.focus();await header.press('ArrowLeft');
+  assert.ok(Math.abs((await card.boundingBox())!.x-dragged.x+12)<1,'keyboard can also move the floating card');
+  await header.press('Home');
+  assert.deepEqual(await card.boundingBox(),cardStart,'Home returns the card to its default corner');
+  const handle=(await dragText.boundingBox())!,start={x:handle.x+handle.width/2,y:handle.y+handle.height/2};
+  await page.mouse.move(start.x,start.y);await page.mouse.down();await page.mouse.move(start.x-40,start.y-40);await page.mouse.up();
+  assert.ok(Math.abs((await card.boundingBox())!.x-cardStart.x+40)<1,'mouse dragging is supported');
+  const movedText=(await dragText.boundingBox())!,cancelGrip={x:movedText.x+movedText.width/2,y:movedText.y+movedText.height/2};
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...cancelGrip,id:1}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cancelGrip.x-10,y:cancelGrip.y-10,id:1}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+  assert.equal(await card.evaluate(n=>n.classList.contains('is-dragging')),false,'cancelled touch releases pointer capture');
+  await header.focus();await header.press('Home');
+  const boundedGrip=(await dragText.boundingBox())!;
+  await page.mouse.move(boundedGrip.x+boundedGrip.width/2,boundedGrip.y+boundedGrip.height/2);await page.mouse.down();await page.mouse.move(-300,-300);await page.mouse.up();
+  const edge=(await card.boundingBox())!,area=(await page.locator('#ephemerisHost #dialStage').boundingBox())!;
+  assert.ok(edge.x>=area.x+7&&edge.y>=area.y+7,'the card cannot be lost outside the fixed viewport');
+  await header.focus();await header.press('Home');await page.locator('#ephemerisHost #closeEditorial').click();
   await page.setViewportSize({width:393,height:852});
   await page.evaluate(()=>document.documentElement.style.setProperty('--safe-top','59px'));await page.waitForTimeout(50);
   const safeArea=await page.locator('#ephemerisHost').evaluate(host=>{
@@ -339,7 +382,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.equal(await page.locator('#ephemerisHost').count(),0);
   assert.equal(await page.locator('html').getAttribute('data-page'),'today');
   await page.locator('.today-review-trace').click();
-  await page.locator('#ephemerisHost #dialStage[data-load-state=ready]').waitFor();
+  await page.locator('#ephemerisHost #dialStage[data-load-state=ready][data-font-state=ready]').waitFor();
   assert.equal(await page.locator('#ephemerisHost #readoutYear').innerText(),'2025');
   assert.equal(await page.locator('#ephemerisHost #readoutMonth').innerText(),'Mar');
   assert.equal(await page.locator('#ephemerisHost #readoutDay').innerText(),'1');

@@ -76,3 +76,5 @@
 
 :root,:host{--color-brief-wash:oklch(98% 0 0 / .68);--color-brief-edge:oklch(98% 0 0 / .24)}
 :root[data-theme="dark"],:host([data-theme="dark"]){--color-brief-wash:oklch(13% 0 0 / .74);--color-brief-edge:oklch(13% 0 0 / .28)}
+
+:root,:host{--font-body:"Ephemeris Song","Noto Serif SC","Songti SC",STSong,Georgia,serif;--font-display:Didot,"Bodoni 72","Bodoni MT",Georgia,"Ephemeris Song",serif;--font-mono:"SFMono-Regular",Menlo,Consolas,"Ephemeris Song",monospace}
