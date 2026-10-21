@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f5">
 <title>刻序 / EPHEMERIS · Cove Learning</title>
-<link rel="stylesheet" href="./trace-dial.css?v=ephemeris-fixed-brief-1">
+<link rel="stylesheet" href="./trace-dial.css?v=ephemeris-brief-annotation-2">
 </head>
 <body>
 <div class="dial-wallpaper" id="wallpaper"></div>
@@ -114,7 +114,7 @@
       </header>
       <section class="editorial-bottom" aria-label="所选事件">
         <div class="event-brief">
-          <div class="event-brief-head"><span class="editorial-kicker" id="eventKind">EPHEMERIS / SELECT</span><button type="button" class="event-expand" id="expandEditorial" aria-label="展开事件详情" aria-expanded="false" aria-controls="eventGlass"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 19 19M6 19h13V6"/></svg></button></div>
+          <div class="event-brief-head"><i class="brief-anchor" aria-hidden="true"></i><span class="editorial-kicker" id="eventKind">EPHEMERIS / SELECT</span><button type="button" class="event-expand" id="expandEditorial" aria-label="展开事件详情" aria-expanded="false" aria-controls="eventGlass"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 19 19M6 19h13V6"/></svg></button></div>
           <h1 id="eventTitle">点击轮盘上的事件标记</h1>
           <p id="eventObject">事件会沿着轨迹展开。</p>
           <div class="event-time-row"><small id="eventTimeLabel">时刻</small><span id="detailTime">—</span></div>
@@ -154,6 +154,6 @@
   </footer>
 </main>
 <div class="dial-toast" id="dialToast" role="status" aria-live="polite"></div>
-<script type="module" src="./trace-dial.js?v=ephemeris-fixed-brief-1"></script>
+<script type="module" src="./trace-dial.js?v=ephemeris-brief-annotation-2"></script>
 </body>
 </html>

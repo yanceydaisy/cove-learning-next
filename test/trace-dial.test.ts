@@ -180,6 +180,16 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
   assert.match(await page.locator('#ephemerisHost #detailTime').innerText(),/09:00.*10:00/s);
   assert.equal(await page.locator('#ephemerisHost #eventGlass').isVisible(),false,'selecting a marker shows a brief without opening a card');
   assert.equal(await page.locator('#ephemerisHost #eventObject').innerText(),'关联 · 现代控制理论');
+  const annotation=await page.locator('#ephemerisHost').evaluate(host=>{
+   const root=host.shadowRoot!,brief=root.querySelector('.event-brief')!,anchor=root.querySelector('.brief-anchor')!.getBoundingClientRect();
+   const path=root.querySelector('.selection-feedback path') as SVGGeometryElement;
+   const end=path.getPointAtLength(path.getTotalLength()),screen=new DOMPoint(end.x,end.y).matrixTransform((path as SVGGraphicsElement).getScreenCTM()!);
+   return {families:['#eventTitle','#eventKind','#eventObject','#eventTimeLabel','#detailTime'].map(selector=>getComputedStyle(root.querySelector(selector)!).fontFamily),blur:getComputedStyle(brief,'::before').backdropFilter,quiet:(root.querySelector('#atlasDecor') as HTMLElement).style.maskImage,anchorError:Math.hypot(screen.x-anchor.left-anchor.width/2,screen.y-anchor.top-anchor.height/2)};
+  });
+  assert.ok(annotation.families.every(font=>/serif/i.test(font)&&!/sans-serif|system-ui/i.test(font)),'the complete brief uses serif typography');
+  assert.match(annotation.blur,/blur\(7px\)/);assert.match(annotation.quiet,/radial-gradient/);
+  assert.ok(annotation.anchorError<1,'event leader terminates at the visible brief diamond');
+
   const briefBefore=await page.locator('#ephemerisHost .event-brief').boundingBox();
   await page.screenshot({path:'/tmp/ephemeris-event-brief-upper.png'});
   await page.locator('#ephemerisHost #expandEditorial').click();

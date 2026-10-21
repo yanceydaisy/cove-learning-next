@@ -343,18 +343,26 @@ function updateEventNodeClasses(tickedIndex=null){
  drawFeedback();
 }
 
+function quietBriefBackdrop(){
+ const decor=scope.querySelector('#atlasDecor');
+ if(!currentEvent()||!editorial.classList.contains('has-event')){decor.style.removeProperty('mask-image');decor.style.removeProperty('-webkit-mask-image');return}
+ const brief=scope.querySelector('.event-brief').getBoundingClientRect(),area=decor.getBoundingClientRect();
+ const mask='radial-gradient(ellipse '+(brief.width/2+24)+'px '+(brief.height/2+18)+'px at '+(brief.left-area.left+brief.width/2)+'px '+(brief.top-area.top+brief.height/2)+'px, rgba(0,0,0,.14) 68%, #000 100%)';
+ decor.style.maskImage=mask;decor.style.webkitMaskImage=mask;
+}
+
 function drawFeedback(){
+ quietBriefBackdrop();
  updateMonthScale();
  for(const child of [...layers.feedback.children])if(child.classList.contains('selection-feedback'))child.remove();
  if(!currentEvent())return;
  const angle=timeAngle(currentEvent().startMinute),point=polar(handRadius.event,angle);
  const group=el('g',{class:'selection-feedback'});
- const caption=scope.querySelector('.event-brief').getBoundingClientRect(),matrix=svg.getScreenCTM();
+ const caption=scope.querySelector('.brief-anchor').getBoundingClientRect(),matrix=svg.getScreenCTM();
  if(!matrix)return;
- const anchor=svg.createSVGPoint();anchor.x=caption.left-7;anchor.y=caption.top+5;
+ const anchor=svg.createSVGPoint();anchor.x=caption.left+caption.width/2;anchor.y=caption.top+caption.height/2;
  const end=anchor.matrixTransform(matrix.inverse());
  group.append(el('path',{d:`M${point.x} ${point.y} L${point.x+22} ${point.y} L${end.x} ${end.y}`,class:'feedback-path'}));
- group.append(el('rect',{x:end.x-2.5,y:end.y-2.5,width:5,height:5,transform:`rotate(45 ${end.x} ${end.y})`,class:'feedback-terminal'}));
  layers.feedback.prepend(group);
 }
 
@@ -412,7 +420,7 @@ function collapsedCopy(){
  }else if(stage.dataset.loadState==='loading'){
   ui.title.textContent='正在读取这段时间的记录';ui.object.textContent='';ui.type.textContent='LOADING';
  }
- detailsOpen=false;briefEventId=null;ui.glass.hidden=true;ui.expand.hidden=true;ui.expand.setAttribute('aria-expanded','false');editorial.classList.remove('has-event','details-open');scope.querySelector('#eventTimeLabel').textContent='时刻';editorial.classList.add('collapsed');
+ detailsOpen=false;briefEventId=null;ui.glass.hidden=true;ui.expand.hidden=true;ui.expand.setAttribute('aria-expanded','false');editorial.classList.remove('has-event','details-open');scope.querySelector('#eventTimeLabel').textContent='时刻';editorial.classList.add('collapsed');quietBriefBackdrop();
 }
 
 function renderReadout(){
@@ -434,6 +442,7 @@ function renderReadout(){
  if(event.time_source==='legacy_updated_at'){ui.time.textContent='完成时刻未记录';scope.querySelector('#eventTimeLabel').textContent='旧记录'}
  ui.expand.hidden=false;ui.expand.setAttribute('aria-expanded',String(detailsOpen));ui.expand.setAttribute('aria-label',detailsOpen?'收起事件详情':'展开事件详情');
  editorial.classList.toggle('details-open',detailsOpen);ui.glass.hidden=!detailsOpen;
+ quietBriefBackdrop();
  if(detailsOpen){scope.querySelector('#cardEventTitle').textContent=event.title;scope.querySelector('#cardEventTitle').title=event.title;scope.querySelector('#cardEventObject').textContent=ui.object.textContent;scope.querySelector('#cardEventTime').textContent=ui.time.textContent;renderRecordDetails(event)}else clearRecordDetails();
 }
 

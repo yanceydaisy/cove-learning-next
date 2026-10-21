@@ -401,3 +401,20 @@ button:disabled,.dial-hand[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
  .event-glass .detail-pager{font-size:6px}
  .event-glass .detail-pager button{min-width:22px;min-height:22px}
 }
+
+/* Selected-event annotation: a quiet patch, serif hierarchy and a visible anchor. */
+:root,:host{--color-brief-wash:oklch(98% 0 0 / .68);--color-brief-edge:oklch(98% 0 0 / .24)}
+:root[data-theme="dark"],:host([data-theme="dark"]){--color-brief-wash:oklch(13% 0 0 / .74);--color-brief-edge:oklch(13% 0 0 / .28)}
+.editorial-bottom .event-brief{isolation:isolate}
+.event-brief>*{position:relative;z-index:1}
+.stage-editorial.has-event .event-brief::before{content:"";position:absolute;inset:-12px -8px -12px -18px;z-index:0;pointer-events:none;background:linear-gradient(110deg,var(--color-brief-wash),var(--color-brief-edge));-webkit-backdrop-filter:blur(7px) saturate(.3);backdrop-filter:blur(7px) saturate(.3);-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,transparent 100%)}
+.brief-anchor{display:block;flex:none;width:5px;height:5px;margin-inline-end:3px;transform:rotate(45deg);background:var(--color-ink);opacity:.35}
+.stage-editorial.has-event .brief-anchor{opacity:1}
+.editorial-bottom .editorial-kicker,:host .editorial-bottom .editorial-kicker{flex:1;font:500 8px/1.25 var(--font-display);letter-spacing:.1em;color:var(--color-ink-2)}
+.editorial-bottom h1,:host .editorial-bottom h1{font:600 clamp(20px,5.2vw,26px)/1.22 var(--font-body);letter-spacing:.015em;margin:3px 0 8px}
+.stage-editorial.has-event #eventTitle::after{content:"";display:block;width:28px;height:1px;margin-top:7px;background:var(--color-ink);opacity:.75}
+.editorial-bottom #eventObject,:host .editorial-bottom #eventObject{font:400 10px/1.45 var(--font-body);color:var(--color-ink-2);margin-bottom:9px}
+.event-time-row>small{font:400 8px/1.2 var(--font-body)}
+#detailTime{font-family:var(--font-body)}
+.stage-editorial.collapsed #detailTime{font-family:var(--font-display)}
+@media(max-height:650px){.editorial-bottom h1,:host .editorial-bottom h1{font-size:18px}.stage-editorial.has-event #eventTitle::after{margin-top:5px}.editorial-bottom #eventObject,:host .editorial-bottom #eventObject{font-size:9px;margin-bottom:6px}}

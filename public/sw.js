@@ -1,5 +1,5 @@
-const NAME='cove-learning-v0.82-20261021-ephemeris-fixed-brief';
-const SHELL=['./','./style.css','./app.js','./trace-dial.html','./trace-dial.css?v=ephemeris-fixed-brief-1','./trace-dial.js?v=ephemeris-fixed-brief-1','./assets/trace/ephemeris-tarot.svg?v=vertical-vines-1','./icon.svg','./icon-192.png','./icon-512.png','./assets/trace/trace-minute-dark.webp','./assets/trace/trace-hour-dark.webp','./assets/trace/trace-minute-light.webp','./assets/trace/trace-hour-light.webp'];
+const NAME='cove-learning-v0.84-20261021-ephemeris-brief-annotation';
+const SHELL=['./','./style.css','./app.js','./trace-dial.html','./trace-dial.css?v=ephemeris-brief-annotation-2','./trace-dial.js?v=ephemeris-brief-annotation-2','./assets/trace/ephemeris-tarot.svg?v=vertical-vines-1','./icon.svg','./icon-192.png','./icon-512.png','./assets/trace/trace-minute-dark.webp','./assets/trace/trace-hour-dark.webp','./assets/trace/trace-minute-light.webp','./assets/trace/trace-hour-light.webp'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(NAME).then(cache=>cache.addAll(SHELL)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('cove-learning-')&&k!==NAME).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',event=>{
