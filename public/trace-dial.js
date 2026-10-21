@@ -650,16 +650,17 @@ for(const button of scope.querySelectorAll('[data-year-step]'))listen(button,'cl
 listen(window,'blur',cancelAllDrags);
 
 let detailPages=[],detailPage=0,detailEventId=null;
-const detailNames={summary:'学习内容与总结',note:'笔记 / 补充',next:'下一步',tags:'索引 / TAGS',task:'关联任务'};
+const detailNames={empty:'记录详情',summary:'学习内容与总结',note:'笔记 / 补充',next:'下一步',tags:'索引 / TAGS',task:'关联任务'};
 function clearRecordDetails(){
  for(const node of scope.querySelectorAll('[data-record-detail]')){node.textContent='';node.hidden=true}
  scope.querySelector('#detailPager').hidden=true;scope.querySelector('#detailEmpty').hidden=true;
 }
+function setDetailHeading(kind){const heading=scope.querySelector('#detailHeading');heading.textContent=({summary:'Notes',note:'Memo',next:'Next',tags:'Index',task:'Related',empty:'Record'})[kind]||'Record';const subtitle=document.createElement('small');subtitle.textContent=detailNames[kind]||'记录详情';heading.append(subtitle)}
 function showDetailPage(){
  for(const node of scope.querySelectorAll('[data-record-detail]'))node.hidden=true;
  const page=detailPages[detailPage],pager=scope.querySelector('#detailPager');
  scope.querySelector('#detailEmpty').hidden=!!page;
- scope.querySelector('#detailHeading').textContent=page?detailNames[page.kind]:'记录详情';
+ setDetailHeading(page?.kind);
  if(page){const node=scope.querySelector('[data-record-detail="'+page.kind+'"]');node.textContent=page.text;node.hidden=false}
  pager.hidden=false;pager.classList.toggle('single-page',detailPages.length<=1);
  scope.querySelector('#detailPageCount').textContent=detailPages.length?(detailPage+1)+' / '+detailPages.length:'—';
@@ -668,7 +669,9 @@ function showDetailPage(){
 function renderRecordDetails(event){
  clearRecordDetails();
  const values={summary:event.summary,note:event.note,next:event.next_action,tags:(event.tags||[]).map(tag=>'#'+tag).join(' '),task:event.taskTitle&&event.taskTitle!==event.title?event.taskTitle:''};
+ if(!Object.values(values).some(Boolean))values.empty='这条记录暂未填写学习内容或总结。';
  if(detailEventId!==event.id)detailPage=0;detailEventId=event.id;detailPages=[];
+ setDetailHeading(Object.keys(values).find(kind=>values[kind]));
  const paragraph=scope.querySelector('[data-record-detail="summary"]'),style=getComputedStyle(paragraph);
  const pageArea=scope.querySelector('.record-pages'),width=pageArea.clientWidth;
  const canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=style.font||style.fontSize+' '+style.fontFamily;

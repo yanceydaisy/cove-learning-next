@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f5">
 <title>刻序 / EPHEMERIS · Cove Learning</title>
-<link rel="stylesheet" href="./trace-dial.css?v=ephemeris-tarot-2">
+<link rel="stylesheet" href="./trace-dial.css?v=ephemeris-tarot-copy-2">
 </head>
 <body>
 <div class="dial-wallpaper" id="wallpaper"></div>
@@ -121,6 +121,7 @@
         </div>
       </section>
       <section class="event-glass" id="eventGlass" role="region" aria-labelledby="cardEventTitle" tabindex="-1" hidden>
+        <div class="card-copy">
         <header class="event-glass-head"><span id="eventGlassTitle">记录 / EPHEMERIS</span><button class="editorial-close" id="closeEditorial" type="button" aria-label="收起事件详情">×</button></header>
         <h2 id="cardEventTitle"></h2>
         <p id="cardEventObject"></p>
@@ -132,10 +133,11 @@
           <p data-record-detail="next" hidden></p>
           <p data-record-detail="note" hidden></p>
           <p data-record-detail="tags" hidden></p>
-          <p id="detailEmpty" hidden>这条记录暂未填写学习内容或总结。</p>
+          <p id="detailEmpty" data-record-detail="empty" hidden>这条记录暂未填写学习内容或总结。</p>
         </div>
         <div class="editorial-meta"><span id="detailType">TIME / EVENT</span></div>
         <div class="detail-pager" id="detailPager"><button type="button" data-detail-step="-1" aria-label="上一页记录详情">‹</button><span id="detailPageCount"></span><button type="button" data-detail-step="1" aria-label="下一页记录详情">›</button></div>
+        </div>
       </section>
     </aside>
 
@@ -152,6 +154,6 @@
   </footer>
 </main>
 <div class="dial-toast" id="dialToast" role="status" aria-live="polite"></div>
-<script type="module" src="./trace-dial.js?v=ephemeris-tarot-2"></script>
+<script type="module" src="./trace-dial.js?v=ephemeris-tarot-copy-2"></script>
 </body>
 </html>

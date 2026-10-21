@@ -261,7 +261,7 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
    await page.setViewportSize(size);
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
    const dateBefore=await page.locator('#ephemerisHost .editorial-top').boundingBox();
-   for(const minute of ['540','720']){
+   for(const minute of ['540','720','900']){
     await page.locator('#ephemerisHost .event-node[data-minute="'+minute+'"]').evaluate(n=>(n as SVGElement).dispatchEvent(new MouseEvent('click',{bubbles:true})));
     await page.locator('#ephemerisHost #expandEditorial').click();
     assert.deepEqual(await page.locator('#ephemerisHost .editorial-top').boundingBox(),dateBefore,'date register never swaps corners or moves when an event/card changes');
@@ -271,6 +271,9 @@ test('Ephemeris: calendar, proportional intervals, and touch gestures do not swi
     });
     assert.ok(boxes.glass.top>=boxes.stage.top-1&&boxes.glass.bottom<=boxes.stage.bottom+1,'long tarot card fits the fixed stage');assert.ok(boxes.glass.height/(boxes.glass.right-boxes.glass.left)>=1.9,'long aspect ratio is retained on small phones');assert.ok(boxes.date.bottom<=boxes.glass.top+1,'fixed date remains readable above the expanded card');
     assert.ok(boxes.text.bottom<=boxes.page.bottom+1,'paged body never exceeds the usable long-card text area');
+    const textBounds=await page.locator('#ephemerisHost #eventGlass').evaluate(card=>{const box=card.getBoundingClientRect(),copy=card.querySelector('.card-copy')!,safe={left:box.left+box.width*32/180,right:box.left+box.width*148/180,top:box.top+box.height*76/420,bottom:box.top+box.height*344/420};const walker=document.createTreeWalker(copy,NodeFilter.SHOW_TEXT),rects: {left:number,right:number,top:number,bottom:number}[]=[];let node:Node|null;while(node=walker.nextNode()){if(!node.textContent?.trim()||node.parentElement?.closest('[hidden],#closeEditorial'))continue;const range=document.createRange();range.selectNodeContents(node);for(const r of Array.from(range.getClientRects()))if(r.width&&r.height)rects.push({left:r.left,right:r.right,top:r.top,bottom:r.bottom})}return {safe,rects,align:getComputedStyle(copy).textAlign}});
+    assert.equal(textBounds.align,'center','book-menu typography is centered');
+    assert.ok(textBounds.rects.every(r=>r.left>=textBounds.safe.left-1&&r.right<=textBounds.safe.right+1&&r.top>=textBounds.safe.top-1&&r.bottom<=textBounds.safe.bottom+1),'all rendered text stays within the frame safe rectangle: '+JSON.stringify(textBounds));
     assert.ok(boxes.glass.left>size.width*.3&&boxes.glass.right<=size.width,'card remains a small right-side panel');
     if(minute==='540')assert.ok(boxes.brief.top<boxes.stage.top+10,'upper event stays in its upper empty corner');
     else assert.ok(boxes.brief.bottom>boxes.stage.bottom-12,'lower event stays in its lower empty corner');
