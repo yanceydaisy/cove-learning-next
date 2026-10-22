@@ -1,3 +1,5 @@
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
+/* Hallmark · macrostructure: Workbench · tone: austere editorial · anchor hue: neutral */
 @font-face{font-family:"Ephemeris Song";font-style:normal;font-weight:400 600;font-display:swap;src:url("./assets/fonts/ephemeris-noto-serif-sc-400-600.woff2") format("woff2")}
 /* Cove Learning / B direction: editorial hierarchy, restrained glass, open rhythm */
 :root{
@@ -56,11 +58,11 @@ html{
 body{color:var(--body);font-size:13px;line-height:1.6;background-color:var(--bg-c);
  background-image:radial-gradient(ellipse at 16% 2%,rgba(255,255,255,.50),transparent 48%),linear-gradient(156deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c))
 }
-body,button,input,select{font-family:var(--serif)}
-button,a,input,select{-webkit-tap-highlight-color:transparent}
+body,button,input,select,textarea{font-family:var(--serif)}
+button,a,input,select,textarea,summary{-webkit-tap-highlight-color:transparent}
 button{cursor:pointer}a{text-decoration:none;color:inherit}
-button,input,select{color:var(--ink)}
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #8b8da2;outline-offset:3px}
+button,input,select,textarea{color:var(--ink)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #8b8da2;outline-offset:3px}
 button:disabled{opacity:.45;cursor:not-allowed}
 [hidden]{display:none!important}
 .wallpaper{position:fixed;top:var(--app-top,0px);left:0;right:0;height:var(--app-height,100dvh);
@@ -593,6 +595,7 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid{border:1px so
 html[data-learning-ui="glass"] .today-start-action.learning-liquid>span,
 html[data-learning-ui="glass"] .today-start-action.learning-liquid>.micro-icon,
 html[data-learning-ui="glass"] .today-start-action.learning-liquid>.today-start-plus{position:relative;z-index:2}
+.today-v3>section{flex-shrink:0}
 .today-brief{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(118px,.72fr);
  border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-height:176px}
 .today-agenda{padding:12px 18px 12px 1px;min-width:0;display:flex;align-items:stretch}
@@ -645,6 +648,25 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.today-start-
 .today-review p{margin:6px 0 14px;color:var(--muted);font-size:9px;line-height:1.65}
 .today-review>a{display:inline-flex;align-items:center;gap:5px;color:var(--body);font-size:9px}
 .today-review>a .micro-icon{width:12px;height:12px}
+.today-next{min-width:0;padding:2px 0 3px}
+.today-next-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:10px}
+.today-next-head h2{margin:0;color:var(--ink);font:400 21px/1.28 var(--serif);letter-spacing:.015em}
+.today-next-head p{margin:0 0 2px;color:var(--muted);font-size:10px;line-height:1.5;text-align:right}
+.today-next-list{display:flex;flex-direction:column;gap:7px}
+.today-next-card{display:grid;grid-template-columns:43px minmax(0,1fr) auto;align-items:center;gap:11px;min-height:76px;padding:11px 12px;
+ border:1px solid var(--line);border-radius:17px;background:var(--surface);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.today-next-card.lead{min-height:91px;padding-block:14px;background:var(--surface-strong)}
+.today-next-rank{align-self:stretch;display:flex;flex-direction:column;justify-content:space-between;padding-block:1px;border-right:1px solid var(--line)}
+.today-next-rank span{font:400 8px/1 var(--display);letter-spacing:.16em;color:var(--muted)}
+.today-next-rank strong{font:400 23px/.9 var(--display);letter-spacing:-.04em;color:var(--ink)}
+.today-next-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.today-next-title{display:flex;align-items:center;gap:7px;min-width:0}
+.today-next-title>strong{min-width:0;color:var(--ink);font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.today-next-title>span{flex:none;padding:2px 7px;border:1px solid var(--line);border-radius:100px;color:var(--muted);font-size:9px;white-space:nowrap}
+.today-next-title>span[data-workflow="in_progress"]{color:var(--ink);background:var(--surface-strong)}
+.today-next-copy p{margin:0;color:var(--body);font-size:10px;line-height:1.55;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.today-next-copy small{color:var(--muted);font-size:9px;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.today-next-actions{display:flex;align-items:center;gap:6px}
 .today-backlog{min-width:0}
 .today-backlog-head{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:6px}
 .today-backlog-head .section-eyebrow{margin-bottom:4px}
@@ -663,6 +685,8 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.today-start-
 .today-task-copy span{font-size:9px;color:var(--muted);line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today-priority-button,.today-task-check{flex:none;width:30px;height:30px;padding:0;border-radius:50%;
  border:1px solid var(--line);background:transparent;color:var(--body);display:grid;place-items:center}
+.today-priority-button,.today-task-check{position:relative}
+.today-priority-button::before,.today-task-check::before{content:"";position:absolute;inset:-7px;border-radius:50%}
 .today-priority-button .micro-icon{width:13px;height:13px}
 .today-priority-button.active{background:var(--surface-strong);color:var(--ink)}
 .today-task-check{width:22px;height:22px;color:var(--muted);cursor:pointer}
@@ -686,7 +710,9 @@ html[data-learning-ui="glass"] .today-start-action.learning-liquid>.today-start-
 .today-matrix-note{margin:0;color:var(--muted);font-size:10px;line-height:1.8}
 html[data-learning-ui="glass"] .today-view-switch,
 html[data-learning-ui="glass"] .today-task-card,
+html[data-learning-ui="glass"] .today-next-card,
 html[data-learning-ui="glass"] .today-matrix-wrap{background:var(--glass-panel);border-color:var(--glass-border)}
+html[data-learning-ui="glass"] .today-next-card.lead{background:var(--glass-panel-strong)}
 html[data-learning-ui="glass"] .today-task-card.complete{background:rgba(235,238,244,.08);border-color:var(--glass-border);box-shadow:none;
  -webkit-backdrop-filter:blur(22px) saturate(.72);backdrop-filter:blur(22px) saturate(.72)}
 html[data-learning-ui="glass"] .today-backlog-head h2,
@@ -694,6 +720,8 @@ html[data-learning-ui="glass"] .today-reality-main strong,
 html[data-learning-ui="glass"] .today-distance-part strong,
 html[data-learning-ui="glass"] .today-reality-time strong,
 html[data-learning-ui="glass"] .today-agenda-copy strong,
+html[data-learning-ui="glass"] .today-next-title>strong,
+html[data-learning-ui="glass"] .today-next-rank strong,
 html[data-learning-ui="glass"] .today-task-copy strong,
 html[data-learning-ui="glass"] .today-review-total strong{color:var(--glass-text-strong)}
 html[data-learning-ui="glass"] .today-view-switch button{color:var(--glass-muted)}
@@ -713,6 +741,9 @@ html[data-learning-ui="glass"] .today-agenda-time,
 html[data-learning-ui="glass"] .today-review-kicker,
 html[data-learning-ui="glass"] .today-review-total>span,
 html[data-learning-ui="glass"] .today-review-total em,
+html[data-learning-ui="glass"] .today-next-head p,
+html[data-learning-ui="glass"] .today-next-rank span,
+html[data-learning-ui="glass"] .today-next-copy small,
 html[data-learning-ui="glass"] .today-task-copy span,
 html[data-learning-ui="glass"] .today-matrix-note{color:var(--glass-muted)}
 @media(max-width:430px){
@@ -722,14 +753,17 @@ html[data-learning-ui="glass"] .today-matrix-note{color:var(--glass-muted)}
  .today-agenda{padding-right:12px}
  .today-review{padding-left:12px}
  .today-agenda-time{max-width:76px;overflow:hidden;text-overflow:ellipsis}
+ .today-next-head{align-items:flex-start}
+ .today-next-head p{max-width:120px}
  .today-task-card{gap:7px;padding-inline:9px}
  .today-task-index{width:18px}
  .today-matrix-wrap{grid-template-columns:1fr}
  .today-matrix{min-height:210px}
 }
 @media(max-width:350px){
- .today-brief{grid-template-columns:1fr}
- .today-review{border-left:0;border-top:1px solid var(--line);padding:13px 0}
+ .today-next-card{grid-template-columns:30px minmax(0,1fr);gap:8px;padding-inline:9px}
+ .today-next-actions{grid-column:2;justify-content:flex-end}
+ .today-next-rank strong{font-size:18px}
 }
 
 /* Optional task inputs preserve the one-line default capture experience. */
@@ -751,11 +785,14 @@ html[data-learning-ui="glass"] .task-extra-fields input{color:var(--glass-text);
 .task-inline-edit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:9px;
  border-bottom:1px solid var(--line);padding:11px 1px 15px}
 .task-inline-edit label{min-width:0;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:5px}
-.task-inline-edit input{min-width:0;width:100%;min-height:40px;padding:7px;border:1px solid var(--line);
+.task-inline-edit input,.task-inline-edit select,.task-inline-edit textarea{min-width:0;width:100%;min-height:40px;padding:7px;border:1px solid var(--line);
  border-radius:10px;background:var(--surface);color:var(--ink);font:400 12px system-ui,sans-serif}
+.task-inline-edit textarea{min-height:82px;resize:vertical;font-family:var(--serif);line-height:1.55}
 html[data-learning-ui="glass"] .plan-task-copy small,
 html[data-learning-ui="glass"] .task-inline-edit label{color:var(--glass-muted)}
-html[data-learning-ui="glass"] .task-inline-edit input{color:var(--glass-text);color-scheme:inherit;background:var(--glass-input)}
+html[data-learning-ui="glass"] .task-inline-edit input,
+html[data-learning-ui="glass"] .task-inline-edit select,
+html[data-learning-ui="glass"] .task-inline-edit textarea{color:var(--glass-text);color-scheme:inherit;background:var(--glass-input);border-color:var(--glass-input-border)}
 @media(max-width:610px){.task-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}.task-inline-edit button{width:max-content}}
 @media(max-width:390px){.plan-task .task-item .button{padding-inline:9px}}
 
@@ -918,6 +955,7 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-event-main{display:flex;align-items:baseline;gap:9px;min-width:0;margin-top:4px}
 .plan-event-main strong{min-width:0;max-width:100%;font:500 13px/1.4 var(--display);color:var(--ink);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
 .plan-event-main small{min-width:0;max-width:100%;font-size:9px;color:var(--muted);white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.plan-event-context{margin:4px 0 0;font-size:10px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
 .plan-event-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .plan-timeline-row.past{opacity:.36}
 .plan-timeline-row.collapsed-past{opacity:.46}
@@ -954,12 +992,26 @@ html[data-learning-ui="glass"] .matrix-point{border-color:var(--glass-text-stron
 .plan-dialog-close{width:35px;height:35px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--muted);font-size:22px;line-height:1}
 .plan-create-form{display:flex;flex-direction:column;gap:12px}
 .plan-create-form label{display:flex;flex-direction:column;gap:5px;font-size:9px;color:var(--muted)}
-.plan-create-form input,.plan-create-form select{width:100%;min-width:0;min-height:42px;padding:8px 11px;border:1px solid var(--line);border-radius:12px;background:var(--input);color:var(--ink);font-size:12px}
+.plan-create-form input,.plan-create-form select,.plan-create-form textarea{width:100%;min-width:0;min-height:42px;padding:8px 11px;border:1px solid var(--line);border-radius:12px;background:var(--input);color:var(--ink);font-size:12px}
+.plan-create-form textarea{min-height:88px;resize:vertical;line-height:1.55}
 .plan-create-title input{font-size:14px}
 .plan-create-grid{display:grid;grid-template-columns:1.25fr .75fr .75fr;gap:8px}
 .plan-create-grid.two{grid-template-columns:1.35fr .65fr}
 .plan-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 .task-inline-edit{grid-template-columns:minmax(120px,1.2fr) minmax(82px,.65fr) minmax(82px,.65fr) minmax(150px,1.2fr) minmax(90px,.7fr) auto}
+.task-edit-title{grid-column:span 2}
+.task-edit-save{grid-column:-2/-1;justify-self:end}
+.task-execution-fields{grid-column:1/-1;min-width:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:3px 0}
+.task-execution-fields summary{list-style:none;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;color:var(--ink);font-size:11px}
+.task-execution-fields summary::-webkit-details-marker{display:none}
+.task-execution-fields summary::after{content:"＋";flex:none;color:var(--muted);font:400 16px/1 var(--display)}
+.task-execution-fields[open] summary::after{content:"−"}
+.task-execution-fields summary>span{font-weight:600}
+.task-execution-fields summary>small{margin-inline-start:auto;color:var(--muted);font-size:9px;font-weight:400}
+.task-execution-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:7px 0 12px}
+.task-execution-grid label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--muted);font-size:9px}
+.task-execution-description,.task-blocked-reason{grid-column:1/-1}
+.plan-task-note{color:var(--body)!important;white-space:normal!important;line-height:1.45}
 html[data-learning-ui="glass"] .plan-add-button,
 html[data-learning-ui="glass"] .plan-day-button.selected,
 html[data-learning-ui="glass"] .plan-timeline-row.current .plan-event-card,
@@ -975,6 +1027,7 @@ html[data-learning-ui="glass"] .plan-calendar-controls button,
 html[data-learning-ui="glass"] .plan-time-cell span,
 html[data-learning-ui="glass"] .plan-event-meta span,
 html[data-learning-ui="glass"] .plan-event-main small,
+html[data-learning-ui="glass"] .plan-event-context,
 html[data-learning-ui="glass"] .plan-now-marker b,
 html[data-learning-ui="glass"] .plan-empty-day,
 html[data-learning-ui="glass"] .plan-empty-day p,
@@ -982,7 +1035,12 @@ html[data-learning-ui="glass"] .plan-empty-loose,
 html[data-learning-ui="glass"] .plan-create-form label,
 html[data-learning-ui="glass"] .plan-dialog-close{color:var(--glass-muted)}
 html[data-learning-ui="glass"] .plan-create-form input,
-html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-input);border-color:var(--glass-input-border);color:var(--glass-text)}
+html[data-learning-ui="glass"] .plan-create-form select,
+html[data-learning-ui="glass"] .plan-create-form textarea{background:var(--glass-input);border-color:var(--glass-input-border);color:var(--glass-text)}
+html[data-learning-ui="glass"] .task-execution-fields{border-color:var(--glass-border)}
+html[data-learning-ui="glass"] .task-execution-fields summary{color:var(--glass-text-strong)}
+html[data-learning-ui="glass"] .task-execution-fields summary>small,
+html[data-learning-ui="glass"] .task-execution-grid label{color:var(--glass-muted)}
 @media(max-width:610px){
  .plan-view{gap:0}
  .plan-top-row{padding-bottom:0;margin-bottom:-14px}
@@ -999,11 +1057,16 @@ html[data-learning-ui="glass"] .plan-create-form select{background:var(--glass-i
  .plan-timeline-row,.plan-now-marker{grid-template-columns:46px 14px minmax(0,1fr);gap:6px}
  .plan-time-cell strong{font-size:10px}.plan-event-card{padding-left:8px}
  .task-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .task-edit-save{grid-column:1/-1;justify-self:end}
+ .task-execution-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:430px){
  .plan-dialog{width:calc(100vw - 22px)}.plan-dialog-card{padding:18px;border-radius:23px}
  .plan-create-grid,.plan-create-grid.two{grid-template-columns:1fr 1fr}
  .plan-create-grid label:first-child{grid-column:1/-1}
+ .task-execution-grid{grid-template-columns:1fr}
+ .task-execution-description,.task-blocked-reason{grid-column:auto}
+ .task-edit-title{grid-column:1/-1}
  .plan-dialog-actions .button{flex:1}
  .plan-event-main{display:block}.plan-event-main small{display:block;margin-top:2px}
  .plan-event-actions .button{min-height:29px;padding-inline:9px}

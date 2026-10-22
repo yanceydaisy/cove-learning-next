@@ -320,11 +320,26 @@ function refreshTodayReality(){
  const current=root.querySelector('[data-today-reality]');
  if(current)current.outerHTML=todayRealityMarkup(todayTimedEvents,todayNextCourse);
 }
+const taskTypeNames={assignment:'作业',exam:'考试',review:'复习',practice:'练习',reading:'阅读',project:'项目',admin:'事务',other:'其他'};
+const workflowNames={todo:'待开始',in_progress:'进行中',waiting:'等待中',blocked:'已阻塞'};
+function taskExecutionBits(t){
+ const bits=[];
+ if(t.task_type)bits.push(taskTypeNames[t.task_type]||t.task_type);
+ if(t.workflow_state&&t.workflow_state!=='todo')bits.push(workflowNames[t.workflow_state]||t.workflow_state);
+ if(t.progress_percent!=null)bits.push(t.progress_percent+'%');
+ if(t.remaining_minutes!=null)bits.push('剩余 '+t.remaining_minutes+' 分钟');
+ return bits;
+}
+function taskAvailability(t){
+ if(!t.available_from)return '';
+ return date(t.available_from)+' '+time(t.available_from)+' 后可开始';
+}
 function decisionRow(t,index=0){
  const done=t.status==='done',id=esc(t.id);
  const importanceNote=t.importance?' · 重要度 '+({low:'低',medium:'中',high:'高'}[t.importance]||t.importance):'';
  const evidenceNote=t.evidence?.length?' · 证据 '+t.evidence.slice(0,2).map(item=>item.title).join(' / '):'';
- const note=done?('已完成 · '+date(t.updated_at)+' '+time(t.updated_at)):((t.reasons?.[0]||'由任务状态生成的建议')+importanceNote+evidenceNote);
+ const executionNote=taskExecutionBits(t).join(' · ');
+ const note=done?('已完成 · '+date(t.updated_at)+' '+time(t.updated_at)):([executionNote,t.reasons?.[0]||'由任务状态生成的建议'].filter(Boolean).join(' · ')+importanceNote+evidenceNote);
  const preferred=Number(t.boost||0)>0;
  const priority=done?'':'<button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+id+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销今天优先':'今天先做')+'" title="'+(preferred?'已优先':'今天先做')+'">'+ornament(preferred?'pin':'up')+'</button>';
  const check=done
@@ -332,6 +347,20 @@ function decisionRow(t,index=0){
   :'<button type="button" class="today-task-check" data-today-done="'+id+'" aria-label="完成 '+esc(t.title)+'" title="完成"> </button>';
  return '<article class="today-task-card'+(done?' complete':'')+'"><span class="today-task-index">'+String(index+1).padStart(2,'0')+'</span>'+
   '<div class="today-task-copy"><strong>'+esc(t.title)+'</strong><span>'+esc(done?note:(deadlineDistance(t.due_at)+' · '+note))+'</span></div>'+priority+check+'</article>';
+}
+function nextDecisionCard(t,index){
+ const id=esc(t.id),preferred=Number(t.boost||0)>0;
+ const reason=t.reasons?.[0]||'结合当前任务状态推荐';
+ const facts=taskExecutionBits(t);
+ const available=taskAvailability(t);if(available)facts.push(available);
+ const description=t.description?'<p>'+esc(t.description)+'</p>':'';
+ return '<article class="today-next-card'+(index===0?' lead':'')+'">'+
+  '<div class="today-next-rank"><span>NEXT</span><strong>'+String(index+1).padStart(2,'0')+'</strong></div>'+
+  '<div class="today-next-copy"><div class="today-next-title"><strong>'+esc(t.title)+'</strong>'+
+   (t.workflow_state&&t.workflow_state!=='todo'?'<span data-workflow="'+esc(t.workflow_state)+'">'+esc(workflowNames[t.workflow_state]||t.workflow_state)+'</span>':'')+'</div>'+
+   description+'<small>'+esc([deadlineDistance(t.due_at),...facts,reason].filter(Boolean).join(' · '))+'</small></div>'+
+  '<div class="today-next-actions"><button type="button" class="today-priority-button'+(preferred?' active':'')+'" data-preference="'+id+'" aria-pressed="'+preferred+'" aria-label="'+(preferred?'撤销今天优先':'今天先做')+'" title="'+(preferred?'已优先':'今天先做')+'">'+ornament(preferred?'pin':'up')+'</button>'+
+  '<button type="button" class="today-task-check" data-today-done="'+id+'" aria-label="完成 '+esc(t.title)+'" title="完成"></button></div></article>';
 }
 function todayMatrix(model,tasks){
  const ready=Boolean(model?.importanceAvailable),linked=Boolean(model?.evidenceLinksAvailable);
@@ -367,6 +396,8 @@ async function today(){
  const plannedOpen=d.todayTasks;
  const plannedDone=d.completedTodayTasks||[];
  const planned=[...plannedOpen,...plannedDone];
+ const recommended=d.recommendedNext||[];
+ const recommendationPool=d.recommendations||[];
  const startLabel=activity?'继续学习':'开始学习';
  const focusTotal=minutes(focusHistory.total_ms||0);
  const review='<div class="today-review-kicker">REVIEW</div>'+
@@ -379,6 +410,9 @@ async function today(){
   (planned.length?'<div class="today-task-list">'+planned.map(decisionRow).join('')+'</div>':
    '<p class="today-empty">今天还没有安排任务。去 Plan 放一件真正想完成的事进来。</p>'):
   todayMatrix(d.priorityModel,plannedOpen);
+ const nextBody=recommended.length
+  ?'<div class="today-next-list">'+recommended.map(nextDecisionCard).join('')+'</div>'
+  :'<p class="today-empty">现在没有可立即开始的任务。Plan 里的等待、阻塞和未到开始时间的任务仍会保留。</p>';
  view(
   '<header class="head today-head"><div><p class="kicker">HOME / OVERVIEW</p><h1>Today</h1></div>'+
    '<a class="today-start-action" href="#/learn"><span>'+startLabel+'</span><span class="today-start-plus" aria-hidden="true">+</span></a></header>'+
@@ -386,6 +420,9 @@ async function today(){
    '<section class="today-brief" aria-label="首页课程与今日安排">'+
     '<div class="today-agenda">'+todayRealityMarkup(todayTimedEvents,todayNextCourse)+'</div>'+
     '<aside class="today-review">'+review+'</aside>'+
+   '</section>'+
+   '<section class="today-next" aria-label="接下来建议">'+
+    '<div class="today-next-head"><div><span class="section-eyebrow">RECOMMENDED / NOW</span><h2>接下来</h2></div><p>只列出现在可以开始的前三项</p></div>'+nextBody+
    '</section>'+
    '<section class="today-backlog" aria-label="今日安排">'+
     '<div class="today-backlog-head"><div><h2>今日安排</h2></div>'+switcher+'</div>'+
@@ -401,7 +438,7 @@ async function today(){
   root.querySelector('.today-view-switch [data-task-view="'+todayTaskView+'"]')?.focus({preventScroll:true});
  })));
  root.querySelectorAll('[data-preference]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
-  const item=plannedOpen.find(t=>t.id===button.dataset.preference);
+  const item=recommendationPool.find(t=>t.id===button.dataset.preference);
   if(!item)return;
   const boost=Number(item.boost||0)>0?0:2;
   const scroll=root.querySelector('.workarea')?.scrollTop||0;
@@ -435,6 +472,48 @@ function localTimeFromIso(iso){
  if(!iso)return '';
  const d=new Date(iso),pad=v=>String(v).padStart(2,'0');
  return pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function optionList(items,current){
+ return items.map(([value,label])=>'<option value="'+value+'" '+(current===value?'selected':'')+'>'+label+'</option>').join('');
+}
+function executionFieldsMarkup(t={}){
+ const state=t.workflow_state||'todo',hasContext=Boolean(t.description||t.task_type||state!=='todo'||t.progress_percent!=null||t.remaining_minutes!=null||t.available_from||t.blocked_reason);
+ const typeOptions=[['','未分类'],...Object.entries(taskTypeNames)];
+ const workflowOptions=Object.entries(workflowNames);
+ return '<details class="task-execution-fields" '+(hasContext?'open':'')+'><summary><span>执行信息</span><small>状态、进度与剩余量</small></summary>'+
+  '<div class="task-execution-grid">'+
+   '<label class="task-execution-description">任务说明<textarea name="description" maxlength="4000" placeholder="记录范围、目标或完成标准">'+esc(t.description||'')+'</textarea></label>'+
+   '<label>任务类型<select name="task_type">'+optionList(typeOptions,t.task_type||'')+'</select></label>'+
+   '<label>执行状态<select name="workflow_state" data-workflow-select>'+optionList(workflowOptions,state)+'</select></label>'+
+   '<label>完成进度<input name="progress_percent" type="number" min="0" max="100" inputmode="numeric" value="'+esc(t.progress_percent??'')+'" placeholder="0–100"></label>'+
+   '<label>剩余分钟<input name="remaining_minutes" type="number" min="0" max="20160" inputmode="numeric" value="'+esc(t.remaining_minutes??'')+'" placeholder="可留空"></label>'+
+   '<label>可开始时间<input name="available_local" type="datetime-local" value="'+esc(localDatetimeValue(t.available_from))+'"></label>'+
+   '<label class="task-blocked-reason" data-blocked-field '+(state==='blocked'?'':'hidden')+'>阻塞原因<textarea name="blocked_reason" maxlength="1200" placeholder="正在等待什么，怎样才能继续">'+esc(t.blocked_reason||'')+'</textarea></label>'+
+  '</div></details>';
+}
+function executionPayload(form){
+ const state=String(form.get('workflow_state')||'todo');
+ return {
+  description:String(form.get('description')||'').trim()||null,
+  task_type:form.get('task_type')||null,
+  workflow_state:state,
+  progress_percent:form.get('progress_percent')!==''?Number(form.get('progress_percent')):null,
+  remaining_minutes:form.get('remaining_minutes')!==''?Number(form.get('remaining_minutes')):null,
+  available_from:form.get('available_local')?new Date(String(form.get('available_local'))).toISOString():null,
+  blocked_reason:state==='blocked'?(String(form.get('blocked_reason')||'').trim()||null):null
+ };
+}
+function bindExecutionFields(scope){
+ scope.querySelectorAll('[data-workflow-select]').forEach(select=>{
+  const sync=()=>{
+   const field=select.closest('form')?.querySelector('[data-blocked-field]');
+   if(!field)return;
+   field.hidden=select.value!=='blocked';
+   const input=field.querySelector('[name=blocked_reason]');
+   if(field.hidden&&input)input.value='';
+  };
+  select.addEventListener('change',sync);sync();
+ });
 }
 function dayDate(value){
  const [y,m,d]=String(value).split('-').map(Number);
@@ -476,12 +555,13 @@ function planWeekMarkup(selected){
 function taskEditForm(t){
  const scheduleDay=t.scheduled_start?localDateFromIso(t.scheduled_start):(t.planned_for||'');
  return '<form class="task-inline-edit" data-edit-form="'+esc(t.id)+'" hidden>'+
+  '<label class="task-edit-title">任务<input name="title" value="'+esc(t.title)+'" required maxlength="160"></label>'+
   '<label>安排日期<input type="date" name="planned_for" value="'+esc(scheduleDay)+'"></label>'+
   '<label>开始<input type="time" name="schedule_start" value="'+esc(localTimeFromIso(t.scheduled_start))+'"></label>'+
   '<label>结束<input type="time" name="schedule_end" value="'+esc(localTimeFromIso(t.scheduled_end))+'"></label>'+
   '<label>截止时间<input type="datetime-local" name="due_local" value="'+esc(localDatetimeValue(t.due_at))+'"></label>'+
   '<label>预计分钟<input type="number" name="estimated_minutes" min="1" max="20160" value="'+esc(t.estimated_minutes||'')+'"></label>'+
-  '<button class="button sm primary" type="submit">保存</button></form>';
+  executionFieldsMarkup(t)+'<button class="button sm primary task-edit-save" type="submit">保存任务</button></form>';
 }
 function taskActionButtons(t,courseTask,includeDone=true){
  const id=esc(t.id);
@@ -492,15 +572,20 @@ function taskActionButtons(t,courseTask,includeDone=true){
 function planTaskRow(t,courseIds){
  const done=t.status==='done',id=esc(t.id),courseTask=Boolean(t.object_id&&courseIds.has(t.object_id));
  const details=[
+  t.task_type?(taskTypeNames[t.task_type]||t.task_type):'',
+  t.workflow_state&&t.workflow_state!=='todo'?(workflowNames[t.workflow_state]||t.workflow_state):'',
+  t.progress_percent!=null?t.progress_percent+'%':'',
+  t.remaining_minutes!=null?'剩余 '+t.remaining_minutes+' 分钟':'',
   t.planned_for?'计划 '+t.planned_for:'',
   t.due_at?'DDL '+date(t.due_at)+' '+time(t.due_at):'',
   t.estimated_minutes?t.estimated_minutes+' 分钟':''
  ].filter(Boolean).join(' · ');
+ const executionNote=t.workflow_state==='blocked'&&t.blocked_reason?'阻塞：'+t.blocked_reason:(t.description||taskAvailability(t));
  return '<div class="plan-task"><div class="task-item">'+(done
   ?'<span class="task-check complete" aria-label="已完成">'+ornament('check')+'</span>'
   :'<button type="button" class="task-check" data-done="'+id+'" aria-label="完成 '+esc(t.title)+'" title="完成"></button>')+
   '<div class="plan-task-copy"><span class="task-description '+(done?'complete':'')+'">'+esc(t.title)+'</span>'+
-  (details?'<small>'+esc(details)+'</small>':'')+'</div>'+
+  (details?'<small>'+esc(details)+'</small>':'')+(executionNote?'<small class="plan-task-note">'+esc(executionNote)+'</small>':'')+'</div>'+
   (done?'<span class="row-trailing">已完成</span>':taskActionButtons(t,courseTask,false))+'</div>'+
   (done?'':taskEditForm(t)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+id+'" hidden></div>':''))+'</div>';
 }
@@ -669,6 +754,8 @@ function planTimelineMarkup(schedule,tasks,objectsById,courseIds){
    '<div class="plan-time-rail"><span class="plan-duration-bar" aria-hidden="true"></span></div><div class="plan-event-card"><div class="plan-event-meta"><span>'+esc(meta)+'</span>'+(status==='current'?'<b>NOW</b>':'')+'</div>'+
    '<div class="plan-event-main"><strong>'+esc(item.title)+'</strong>'+
    (object&&item.kind==='task'?'<small>'+esc(object.title)+'</small>':'')+'</div>'+
+   (task&&taskExecutionBits(task).length?'<p class="plan-event-context">'+esc(taskExecutionBits(task).join(' · '))+'</p>':'')+
+   (task&&(task.blocked_reason||task.available_from)?'<p class="plan-event-context">'+esc(task.workflow_state==='blocked'&&task.blocked_reason?'阻塞：'+task.blocked_reason:taskAvailability(task))+'</p>':'')+
    (task?'<div class="plan-event-actions">'+taskActionButtons(task,courseTask)+'</div>'+taskEditForm(task)+(courseTask?'<div class="task-evidence-editor" data-evidence-panel="'+esc(task.id)+'" hidden></div>':''):'')+
    '</div></article>';
  }
@@ -684,6 +771,7 @@ function planDialogMarkup(objects){
   '<div class="plan-create-grid"><label>日期<input name="planned_for" type="date" value="'+esc(selected)+'"></label>'+
   '<label>开始<input name="schedule_start" type="time"></label><label>结束<input name="schedule_end" type="time"></label></div>'+
   '<div class="plan-create-grid two"><label>DDL<input name="due_local" type="datetime-local"></label><label>预计分钟<input name="estimated_minutes" type="number" min="1" max="20160" placeholder="可留空"></label></div>'+
+  executionFieldsMarkup()+
   '<div class="plan-dialog-actions"><button type="button" class="button secondary" data-plan-close>取消</button><button class="button primary" type="submit">添加计划 '+ornament('arrow')+'</button></div></form></div></dialog>';
 }
 async function plan(){
@@ -710,6 +798,7 @@ async function plan(){
   '</section></div>'+planDialogMarkup(objects),'plan-view');
 
  applyPlanTimelineGeometry(root.querySelector('.plan-timeline'));
+ bindExecutionFields(root);
  root.querySelector('#addPlan')?.addEventListener('click',()=>root.querySelector('#planDialog')?.showModal());
  root.querySelectorAll('[data-plan-close]').forEach(button=>button.addEventListener('click',()=>root.querySelector('#planDialog')?.close()));
  root.querySelectorAll('[data-plan-date]').forEach(button=>button.addEventListener('click',()=>perform(async()=>{
@@ -727,7 +816,8 @@ async function plan(){
    scheduled_start:day&&start?localDateTimeIso(day,start):null,
    scheduled_end:day&&start&&end?localDateTimeIso(day,end):null,
    due_at:due?new Date(String(due)).toISOString():null,
-   estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null
+   estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null,
+   ...executionPayload(f)
   });
   if(day)planSelectedDate=day;
   await plan();notify('已添加计划');
@@ -744,10 +834,12 @@ async function plan(){
   e.preventDefault();const f=new FormData(form),day=String(f.get('planned_for')||''),start=String(f.get('schedule_start')||''),end=String(f.get('schedule_end')||''),due=f.get('due_local');
   perform(async()=>{
    await api('/tasks/'+form.dataset.editForm+'/details','POST',{
+    title:f.get('title'),
     planned_for:day||null,scheduled_start:day&&start?localDateTimeIso(day,start):null,
     scheduled_end:day&&start&&end?localDateTimeIso(day,end):null,
     due_at:due?new Date(String(due)).toISOString():null,
-    estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null
+    estimated_minutes:f.get('estimated_minutes')?Number(f.get('estimated_minutes')):null,
+    ...executionPayload(f)
    });
    await plan();notify('已更新任务信息');
   });
@@ -1385,7 +1477,7 @@ void main(){
     }
     function syncCards(){
       const selected=new Set(document.querySelectorAll(
-        '.feature-today,.composer-pane,.focus-stage,.object-overview,.today-task-card:not(.complete),.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
+        '.feature-today,.today-start-action,.composer-pane,.focus-stage,.object-overview,.today-next-card,.today-task-card:not(.complete),.plan-add-button,.plan-day-button.selected,.plan-timeline-row.current .plan-event-card,.dock'
       ));
       for(const [card,optic] of optics){
         if(!selected.has(card)){optic.dispose();optics.delete(card);}

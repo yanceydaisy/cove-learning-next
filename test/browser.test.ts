@@ -36,6 +36,8 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.today-reality').count(),1,'Today exposes one live schedule status instead of a static 今日任务 heading');
   assert.equal(await page.getByText('今日任务',{exact:true}).count(),0,'Today no longer labels the live area 今日任务');
   assert.equal(await page.locator('.today-review').count(),1);
+  assert.equal(await page.locator('.today-next').count(),1,'Today reserves a real recommended-next surface');
+  assert.match(await page.locator('.today-next').innerText(),/没有可立即开始的任务/);
   assert.equal(await page.locator('.today-view-switch button').count(),2,'backlog switches only between list and matrix');
   assert.equal(await page.locator('.today-start-action').innerText().then(v=>v.includes('开始学习')),true);
   await page.locator('.today-view-switch button[data-task-view=matrix]').click();
@@ -64,13 +66,13 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
    title:getComputedStyle(document.querySelector('.head h1')!).color,
    muted:getComputedStyle(document.querySelector('.today-disclaimer')!).color,
    divider:getComputedStyle(document.querySelector('.today-brief')!).borderTopColor,
-   dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor,
+   dock:getComputedStyle(document.documentElement).getPropertyValue('--glass-panel'),
    button:getComputedStyle(document.querySelector('.today-start-action')!).color,
    overlay:getComputedStyle(document.querySelector('.wallpaper')!,'::after').backgroundColor
   }));
   assert.equal(lightTheme.title,'rgb(0, 0, 0)','day headings are pure black');
   assert.equal(lightTheme.muted,'rgb(0, 0, 0)','day secondary copy is pure black');
-  assert.equal(lightTheme.divider,'rgb(0, 0, 0)','day dividers are pure black');
+  assert.equal(lightTheme.divider,'rgba(0, 0, 0, 0.12)','day dividers retain the existing translucent black rule');
   assert.equal(lightTheme.button,'rgb(0, 0, 0)','day primary action text is pure black');
   await page.screenshot({path:join(dir,'mobile-today-light.png'),fullPage:true});
   await page.locator('#appearance').click();
@@ -78,11 +80,11 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('#appearance').innerText(),'夜');
   const darkTheme=await page.evaluate(()=>({
    title:getComputedStyle(document.querySelector('.head h1')!).color,
-   dock:getComputedStyle(document.querySelector('.dock')!).backgroundColor,
+   dock:getComputedStyle(document.documentElement).getPropertyValue('--glass-panel'),
    overlay:getComputedStyle(document.querySelector('.wallpaper')!,'::after').backgroundColor
   }));
   assert.notEqual(darkTheme.title,lightTheme.title,'day and night have distinct foreground colors');
-  assert.notEqual(darkTheme.dock,lightTheme.dock,'day and night have distinct glass surfaces');
+  assert.notEqual(darkTheme.dock,lightTheme.dock,'day and night have distinct glass material tokens (canvas surfaces are transparent)');
   assert.notEqual(darkTheme.overlay,lightTheme.overlay,'day brightens and night darkens the entire wallpaper');
   await page.screenshot({path:join(dir,'mobile-today-dark.png'),fullPage:true});
   await page.reload({waitUntil:'networkidle'});
@@ -148,15 +150,16 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   const nowGeometry=await page.evaluate(()=>{const marker=document.querySelector('.plan-now-marker')!.getBoundingClientRect();const y=marker.top+marker.height/2;const current=Array.from(document.querySelectorAll('.plan-timeline-row.current')).map(el=>el.getBoundingClientRect());return {y,inside:current.some(box=>y>=box.top&&y<=box.bottom),timelineTop:document.querySelector('.plan-timeline')!.getBoundingClientRect().top};});
   assert.equal(nowGeometry.inside,true,'current-time marker shares the same real-time coordinate space as the active interval');
   assert.ok(nowGeometry.y>nowGeometry.timelineTop,'current-time marker is not hard-pinned to the top of the timeline');
-  const timelineGeometry=await page.evaluate(()=>{const timelineEl=document.querySelector('.plan-timeline') as HTMLElement;const timeline=timelineEl.getBoundingClientRect();const loose=document.querySelector('.plan-loose-section')!.getBoundingClientRect();return {ready:timelineEl.classList.contains('geometry-ready'),height:timeline.height,scale:Number(timelineEl.dataset.minuteScale),looseTop:loose.top,timelineBottom:timeline.bottom};});
+  const timelineGeometry=await page.evaluate(()=>{const timelineEl=document.querySelector('.plan-timeline') as HTMLElement;const timeline=timelineEl.getBoundingClientRect();const loose=document.querySelector('.plan-loose-section')!.getBoundingClientRect();const rows=Array.from(timelineEl.querySelectorAll('.plan-timeline-row')).map(el=>el.getBoundingClientRect()).sort((a,b)=>a.top-b.top);return {ready:timelineEl.classList.contains('geometry-ready'),height:timeline.height,gaps:rows.slice(1).map((box,i)=>box.top-rows[i]!.bottom),looseTop:loose.top,timelineBottom:timeline.bottom};});
   assert.equal(timelineGeometry.ready,true,'timeline geometry is applied after CSP-safe DOM layout');
-  assert.ok(timelineGeometry.scale<1,'timeline uses a compressed minute scale to keep chronology readable without excessive height');
+  assert.ok(timelineGeometry.gaps.length>0&&timelineGeometry.gaps.every(gap=>Math.abs(gap-34)<1),'timeline uses fixed event gaps, not proportional empty-time spacing');
   assert.ok(timelineGeometry.height>72,'timeline retains visible chronological spacing');
   assert.ok(timelineGeometry.looseTop>=timelineGeometry.timelineBottom,'unscheduled section starts after the full timeline');
   await page.locator('#addPlan').click();
   await page.locator('#planDialog[open]').waitFor();
   await page.locator('#taskForm').waitFor();
   assert.equal(await page.locator('#taskForm button .micro-arrow').count(),1);
+  assert.equal(await page.locator('#taskForm .task-execution-fields').count(),1,'Plan create exposes execution context without crowding the default form');
   const keyboardLayout=await page.evaluate(()=>{
    const viewport=(window as any).__coveLearningViewport;
    const shell=document.querySelector('.shell')!.getBoundingClientRect().height;
@@ -175,14 +178,24 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   });
   await page.locator('#taskForm input[name=title]').fill('极点配置');
   await page.locator('#taskForm input[name=due_local]').fill(dueDay+'T20:00');
+  await page.locator('#taskForm .task-execution-fields summary').click();
+  await page.locator('#taskForm textarea[name=description]').fill('完成控制器极点配置与验证');
+  await page.locator('#taskForm select[name=task_type]').selectOption('assignment');
+  await page.locator('#taskForm select[name=workflow_state]').selectOption('in_progress');
+  await page.locator('#taskForm input[name=progress_percent]').fill('20');
+  await page.locator('#taskForm input[name=remaining_minutes]').fill('90');
   await page.locator('#taskForm button[type=submit]').click();
   await page.getByText('极点配置',{exact:true}).first().waitFor();
-  await page.locator('[data-edit]').first().click();
-  await page.locator('.task-inline-edit input[name=planned_for]').fill(dueDay);
-  await page.locator('.task-inline-edit input[name=due_local]').fill(dueDay+'T20:00');
-  await page.locator('.task-inline-edit input[name=estimated_minutes]').fill('75');
-  await page.locator('.task-inline-edit button[type=submit]').click();
-  await page.locator('.task-inline-edit[hidden]').waitFor({state:'attached'});
+  const poleTask=page.locator('.plan-task').filter({hasText:'极点配置'}).first();
+  assert.match(await poleTask.innerText(),/作业 · 进行中 · 20% · 剩余 90 分钟/,'new execution context is visible in the Plan row');
+  await poleTask.locator('[data-edit]').click();
+  await poleTask.locator('.task-inline-edit input[name=planned_for]').fill(dueDay);
+  await poleTask.locator('.task-inline-edit input[name=due_local]').fill(dueDay+'T20:00');
+  await poleTask.locator('.task-inline-edit input[name=estimated_minutes]').fill('75');
+  await poleTask.locator('.task-inline-edit input[name=progress_percent]').fill('45');
+  await poleTask.locator('.task-inline-edit input[name=remaining_minutes]').fill('60');
+  await poleTask.locator('.task-inline-edit button[type=submit]').click();
+  await poleTask.locator('.task-inline-edit[hidden]').waitFor({state:'attached'});
   await page.screenshot({path:join(dir,'mobile-plan.png'),fullPage:true});
   await page.locator('a[data-nav=library]').click();
   await page.locator('#objectForm').waitFor();
@@ -287,8 +300,10 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.match(await page.locator('.today-reality').innerText(),/NOW \/ COURSE|NEXT \/ COURSE|暂时没有下一节课程/,'Homepage keeps course reality live and looks ahead to the next class');
   await page.getByText('极点配置',{exact:true}).first().waitFor();
   await page.getByText('状态空间复习',{exact:true}).first().waitFor();
-  assert.equal(await page.locator('.today-task-card').count(),2,'both open tasks appear in the ranked backlog');
-  const deadlineCard=page.locator('.today-task-card').filter({hasText:'极点配置'});
+  assert.equal(await page.locator('.today-next-card').count(),2,'Today renders the actionable recommended top three returned by the backend');
+  assert.match(await page.locator('.today-next-card').filter({hasText:'极点配置'}).innerText(),/进行中|45%|剩余 60 分钟/,'recommended card exposes execution context');
+  assert.equal(await page.locator('.today-task-card').count(),1,'today arrangement excludes the task explicitly planned for a later date');
+  const deadlineCard=page.locator('.today-next-card').filter({hasText:'极点配置'});
   const evidenceCard=page.locator('.today-task-card').filter({hasText:'状态空间复习'});
   assert.match(await deadlineCard.innerText(),/距截止/,'deadline distance is visible in the approved compact layout');
   assert.match(await evidenceCard.innerText(),/重要度 高/,'Today shows the user-confirmed ordinal importance');
