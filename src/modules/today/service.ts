@@ -11,11 +11,13 @@ export class TodayService {
    throw new AppError('VALIDATION_ERROR','今日日期不合法。');
   const openTasks=this.db.raw.prepare("SELECT * FROM tasks WHERE status='open' ORDER BY created_at DESC,id LIMIT 8").all();
   const decisionInputs=this.db.raw.prepare(
-   "SELECT t.id,t.title,t.created_at,t.due_at,t.estimated_minutes,t.planned_for,COALESCE(p.boost,0) AS boost FROM tasks t "+
+   "SELECT t.id,t.title,t.description,t.task_type,t.created_at,t.due_at,t.estimated_minutes,t.remaining_minutes,t.progress_percent,t.planned_for,t.scheduled_start,t.scheduled_end,t.blocked_reason,"+
+   "t.workflow_state,t.available_from,COALESCE(p.boost,0) AS boost,i.contribution AS importance FROM tasks t "+
    "LEFT JOIN task_preferences p ON p.task_id=t.id AND p.expires_at>? "+
+   "LEFT JOIN task_importance_inputs i ON i.task_id=t.id AND EXISTS (SELECT 1 FROM course_context_items ci WHERE ci.id=i.context_item_id AND ci.status='confirmed') "+
    "WHERE t.status='open'"
   ).all(instant.toISOString()) as unknown as DecisionInput[];
-  const ranked=rankTasks(decisionInputs,instant);
+  const ranked=rankTasks(decisionInputs,instant,today);
   const evidenceRows=this.db.raw.prepare(
    `SELECT l.task_id,c.id,c.kind,c.title,c.weight_percent,c.source_locator
     FROM task_context_links l
@@ -61,11 +63,12 @@ export class TodayService {
    `SELECT id,title,object_id,status,created_at,updated_at,due_at,estimated_minutes,planned_for,scheduled_start,scheduled_end
     FROM tasks WHERE status='done' AND planned_for=? ORDER BY updated_at DESC,id DESC`
   ).all(today) as unknown as Record<string,unknown>[];
+  const recommendedNext=recommendations.filter(task=>task.actionability==='actionable').slice(0,3);
   return {openTasks,activeFocus,recentSessions,recentResources,
-   todayTasks,completedTodayTasks,deadlineTasks,recommendations,
-   priorityModel:{version:'rules-v0+importance-ordinal-v1',importanceAvailable:importanceRows.length>0,
+   todayTasks,completedTodayTasks,deadlineTasks,recommendations,recommendedNext,
+   priorityModel:{version:'rules-v2',importanceAvailable:importanceRows.length>0,
     importanceScale:'ordinal-low-medium-high',evidenceLinksAvailable:evidenceRows.length>0,
-    description:'重要度只来自你确认的主依据与低/中/高贡献等级；当前仍不与紧急度合并成一个黑箱分数。'},
+    description:'排序综合明确 DDL、剩余工作量、今日/时间块安排、执行状态和临时偏好；已确认重要度独立展示，不折入分数。每项都保留可读理由，阻塞、等待和未到可开始时间的任务不进入前三建议。'},
    generated_at:instant.toISOString()};
  }
 }

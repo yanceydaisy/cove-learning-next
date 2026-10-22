@@ -100,7 +100,7 @@ export function createLearningMcpServer(app:LearningApplication){
 
  server.registerTool('learning_create_task',{
   title:'Create Learning Task',
-  description:'Create a Learning task. object_id may point to a course/project/track. due_at and scheduled_start/end are canonical UTC ISO; planned_for is local YYYY-MM-DD.',
+  description:'Create a Learning task with optional execution context. object_id may point to a course/project/track. UTC fields require ISO instants; planned_for is local YYYY-MM-DD.',
   inputSchema:{
    title:z.string().min(1).max(160),
    object_id:z.string().uuid().optional(),
@@ -108,16 +108,31 @@ export function createLearningMcpServer(app:LearningApplication){
    estimated_minutes:z.number().int().min(1).max(20160).optional(),
    planned_for:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
    scheduled_start:z.string().optional(),
-   scheduled_end:z.string().optional()
+   scheduled_end:z.string().optional(),
+   description:z.string().max(4000).optional(),
+   task_type:z.enum(['assignment','exam','review','practice','reading','project','admin','other']).optional(),
+   workflow_state:z.enum(['todo','in_progress','waiting','blocked']).optional(),
+   progress_percent:z.number().int().min(0).max(100).optional(),
+   remaining_minutes:z.number().int().min(0).max(20160).optional(),
+   available_from:z.string().optional(),
+   blocked_reason:z.string().max(1200).optional()
   },
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
  },async args=>safe(()=>app.planning.create(clean(args as Record<string,unknown>))));
 
  server.registerTool('learning_update_task',{
   title:'Update Learning Task',
-  description:'Update an open task’s planned date, UTC deadline, estimated minutes, or explicit scheduled start/end. Pass null to clear a field.',
+  description:'Update an open task’s content, execution context, estimate, remaining work, plan, deadline, or schedule. Pass null to clear nullable fields.',
   inputSchema:{
    task_id:z.string().uuid(),
+   title:z.string().min(1).max(160).optional(),
+   description:z.string().max(4000).nullable().optional(),
+   task_type:z.enum(['assignment','exam','review','practice','reading','project','admin','other']).nullable().optional(),
+   workflow_state:z.enum(['todo','in_progress','waiting','blocked']).optional(),
+   progress_percent:z.number().int().min(0).max(100).nullable().optional(),
+   remaining_minutes:z.number().int().min(0).max(20160).nullable().optional(),
+   available_from:z.string().nullable().optional(),
+   blocked_reason:z.string().max(1200).nullable().optional(),
    due_at:z.string().nullable().optional(),
    estimated_minutes:z.number().int().min(1).max(20160).nullable().optional(),
    planned_for:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),

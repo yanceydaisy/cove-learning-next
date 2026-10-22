@@ -1,5 +1,11 @@
 # Learning Priority Engine · V0 foundation (2026-10-12)
 
+## Recommendation V2 addendum (2026-10-22)
+
+Migration v11 adds explicit task execution context: optional description/type, workflow state, progress, remaining minutes, availability time, and blocked reason. Existing rows remain valid with `workflow_state=todo`; no missing values are invented.
+
+The ranking keeps urgency independent and explainable. Deadline slack uses `remaining_minutes` when present, otherwise the original estimate. Explicit plans (today and nearby scheduled blocks), `in_progress`, bounded aging, and the temporary user preference contribute named reasons. Confirmed ordinal importance is surfaced as a separate explanation and coordinate, not silently folded into the score. `blocked`, `waiting`, and future-available tasks remain visible but are marked non-actionable and excluded from `recommendedNext`.
+
 Status: **released to `main` on 2026-10-12**. The original development branch was `feat/learning-priority-foundation`.
 
 ## Product contract

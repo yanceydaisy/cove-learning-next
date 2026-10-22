@@ -1,8 +1,11 @@
 import {randomUUID} from 'node:crypto';
 import type {Database} from '../../core/database.js';
 import {AppError} from '../../core/errors.js';
-import {record,title,optionalId,requiredId} from '../../core/validation.js';
+import {record,title,textOrNull,optionalId,requiredId} from '../../core/validation.js';
 import type {CatalogService} from '../catalog/service.js';
+
+const taskTypes=['assignment','exam','review','practice','reading','project','admin','other'] as const;
+const workflowStates=['todo','in_progress','waiting','blocked'] as const;
 
 function dueDate(value:unknown):string|null{
  if(value==null||value==='')return null;
@@ -37,6 +40,29 @@ function validateSchedule(start:string|null,end:string|null){
  if(!start&&end)throw new AppError('VALIDATION_ERROR','设置结束时间前需要先安排开始时间。');
  if(start&&end&&Date.parse(end)<=Date.parse(start))throw new AppError('VALIDATION_ERROR','日程结束时间必须晚于开始时间。');
 }
+function enumOrNull<T extends readonly string[]>(value:unknown,values:T,field:string):T[number]|null{
+ if(value==null||value==='')return null;
+ if(typeof value!=='string'||!values.includes(value as T[number]))throw new AppError('VALIDATION_ERROR',field+' 不合法。');
+ return value as T[number];
+}
+function workflowState(value:unknown,fallback='todo'){
+ if(value===undefined)return fallback;
+ if(typeof value!=='string'||!workflowStates.includes(value as typeof workflowStates[number]))throw new AppError('VALIDATION_ERROR','执行状态不合法。');
+ return value;
+}
+function percent(value:unknown):number|null{
+ if(value==null||value==='')return null;
+ if(!Number.isInteger(value)||Number(value)<0||Number(value)>100)throw new AppError('VALIDATION_ERROR','任务进度必须是 0～100 的整数。');
+ return value as number;
+}
+function remaining(value:unknown):number|null{
+ if(value==null||value==='')return null;
+ if(!Number.isInteger(value)||Number(value)<0||Number(value)>20_160)throw new AppError('VALIDATION_ERROR','剩余耗时应为 0～20160 分钟。');
+ return value as number;
+}
+function validateExecution(state:string,reason:string|null){
+ if(state!=='blocked'&&reason)throw new AppError('VALIDATION_ERROR','只有阻塞任务可以设置 blocked_reason。');
+}
 export class PlanningService {
  constructor(private db:Database,private catalog:CatalogService,private now=()=>new Date().toISOString()){}
  list(){
@@ -48,18 +74,24 @@ export class PlanningService {
   const scheduled_start=scheduledAt(data.scheduled_start,'日程开始时间');
   const scheduled_end=scheduledAt(data.scheduled_end,'日程结束时间');
   validateSchedule(scheduled_start,scheduled_end);
+  const workflow_state=workflowState(data.workflow_state);
+  const blocked_reason=textOrNull(data.blocked_reason,1200);
+  validateExecution(workflow_state,blocked_reason);
   const at=this.now(),task={
    id:randomUUID(),title:title(data.title),object_id,status:'open',created_at:at,updated_at:at,
    due_at:dueDate(data.due_at),estimated_minutes:estimate(data.estimated_minutes),planned_for:plannedDate(data.planned_for),
-   scheduled_start,scheduled_end
+   scheduled_start,scheduled_end,description:textOrNull(data.description,4000),
+   task_type:enumOrNull(data.task_type,taskTypes,'任务类型'),workflow_state,
+   progress_percent:percent(data.progress_percent),remaining_minutes:remaining(data.remaining_minutes),
+   available_from:scheduledAt(data.available_from,'可开始时间'),blocked_reason
   };
   this.db.transaction(()=>this.db.raw.prepare(
-   'INSERT INTO tasks (id,title,object_id,status,created_at,updated_at,due_at,estimated_minutes,planned_for,scheduled_start,scheduled_end) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
-  ).run(task.id,task.title,task.object_id,task.status,at,at,task.due_at,task.estimated_minutes,task.planned_for,task.scheduled_start,task.scheduled_end));
+   'INSERT INTO tasks (id,title,object_id,status,created_at,updated_at,due_at,estimated_minutes,planned_for,scheduled_start,scheduled_end,description,task_type,workflow_state,progress_percent,remaining_minutes,available_from,blocked_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+  ).run(task.id,task.title,task.object_id,task.status,at,at,task.due_at,task.estimated_minutes,task.planned_for,task.scheduled_start,task.scheduled_end,task.description,task.task_type,task.workflow_state,task.progress_percent,task.remaining_minutes,task.available_from,task.blocked_reason));
   return task;
  }
  updateDetails(id:string,input:unknown){
-  const data=record(input),fields=['due_at','estimated_minutes','planned_for','scheduled_start','scheduled_end'] as const;
+  const data=record(input),fields=['title','description','task_type','workflow_state','progress_percent','remaining_minutes','available_from','blocked_reason','due_at','estimated_minutes','planned_for','scheduled_start','scheduled_end'] as const;
   if(!fields.some(k=>Object.hasOwn(data,k)))throw new AppError('VALIDATION_ERROR','没有需要修改的任务属性。');
   return this.db.transaction(()=>{
    const task=this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(requiredId(id)) as Record<string,unknown>|undefined;
@@ -70,9 +102,18 @@ export class PlanningService {
    const planned=Object.hasOwn(data,'planned_for')?plannedDate(data.planned_for):task.planned_for as string|null;
    const scheduled_start=Object.hasOwn(data,'scheduled_start')?scheduledAt(data.scheduled_start,'日程开始时间'):task.scheduled_start as string|null;
    const scheduled_end=Object.hasOwn(data,'scheduled_end')?scheduledAt(data.scheduled_end,'日程结束时间'):task.scheduled_end as string|null;
+   const name=Object.hasOwn(data,'title')?title(data.title):task.title as string;
+   const description=Object.hasOwn(data,'description')?textOrNull(data.description,4000):task.description as string|null;
+   const task_type=Object.hasOwn(data,'task_type')?enumOrNull(data.task_type,taskTypes,'任务类型'):task.task_type as string|null;
+   const workflow_state=Object.hasOwn(data,'workflow_state')?workflowState(data.workflow_state):task.workflow_state as string;
+   const progress_percent=Object.hasOwn(data,'progress_percent')?percent(data.progress_percent):task.progress_percent as number|null;
+   const remaining_minutes=Object.hasOwn(data,'remaining_minutes')?remaining(data.remaining_minutes):task.remaining_minutes as number|null;
+   const available_from=Object.hasOwn(data,'available_from')?scheduledAt(data.available_from,'可开始时间'):task.available_from as string|null;
+   const blocked_reason=Object.hasOwn(data,'blocked_reason')?textOrNull(data.blocked_reason,1200):task.blocked_reason as string|null;
    validateSchedule(scheduled_start,scheduled_end);
-   this.db.raw.prepare('UPDATE tasks SET due_at=?,estimated_minutes=?,planned_for=?,scheduled_start=?,scheduled_end=?,updated_at=? WHERE id=?')
-    .run(due,minutes,planned,scheduled_start,scheduled_end,this.now(),id);
+   validateExecution(workflow_state,blocked_reason);
+   this.db.raw.prepare('UPDATE tasks SET title=?,description=?,task_type=?,workflow_state=?,progress_percent=?,remaining_minutes=?,available_from=?,blocked_reason=?,due_at=?,estimated_minutes=?,planned_for=?,scheduled_start=?,scheduled_end=?,updated_at=? WHERE id=?')
+    .run(name,description,task_type,workflow_state,progress_percent,remaining_minutes,available_from,blocked_reason,due,minutes,planned,scheduled_start,scheduled_end,this.now(),id);
    return this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(id);
   });
  }

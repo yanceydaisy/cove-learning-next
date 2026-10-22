@@ -83,8 +83,11 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    }));
    const task=toolJson(await client.callTool({
     name:'learning_create_task',
-    arguments:{title:'状态空间复习',object_id:course.id,due_at:'2026-10-18T12:00:00.000Z',estimated_minutes:45}
+    arguments:{title:'状态空间复习',description:'复习状态空间模型',task_type:'review',workflow_state:'in_progress',progress_percent:20,remaining_minutes:30,object_id:course.id,due_at:'2026-10-18T12:00:00.000Z',estimated_minutes:45}
    }));
+   assert.equal(task.task_type,'review');
+   assert.equal(task.workflow_state,'in_progress');
+   assert.equal(task.remaining_minutes,30);
    const beforePlan=toolJson(await client.callTool({
     name:'learning_plan_day',arguments:{local_date:'2026-10-15'}
    }));

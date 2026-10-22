@@ -109,3 +109,40 @@ test('completed tasks planned for today remain visible in Today history',()=>{
   assert.equal(restored.completedTodayTasks.some(item=>item.id===task.id),false);
  }finally{f.finish();}
 });
+
+test('execution fields are optional, validated, editable, and preserved',()=>{
+ const f=fixture();
+ try{
+  const task=f.app.planning.create({title:'后端字段',description:'补齐决策输入',task_type:'project',workflow_state:'in_progress',progress_percent:40,estimated_minutes:120,remaining_minutes:70}) as any;
+  assert.equal(task.remaining_minutes,70);
+  assert.equal(task.workflow_state,'in_progress');
+  const updated=f.app.planning.updateDetails(task.id,{progress_percent:65,remaining_minutes:35,workflow_state:'blocked',blocked_reason:'等待字段确认'}) as any;
+  assert.equal(updated.progress_percent,65);
+  assert.equal(updated.blocked_reason,'等待字段确认');
+  assert.throws(()=>f.app.planning.updateDetails(task.id,{workflow_state:'todo'}),AppError);
+  const resumed=f.app.planning.updateDetails(task.id,{workflow_state:'in_progress',blocked_reason:null}) as any;
+  assert.equal(resumed.blocked_reason,null);
+  const projection=f.app.today.snapshot('2026-10-12').recommendations.find(item=>item.id===task.id)!;
+  assert.equal(projection.progress_percent,65);
+  assert.equal(projection.remaining_minutes,35);
+  assert.equal(projection.task_type,'project');
+  assert.throws(()=>f.app.planning.create({title:'坏类型',task_type:'magic'}),AppError);
+ }finally{f.finish();}
+});
+
+test('recommendation v2 uses remaining work, explicit plans and importance while sidelining non-actionable tasks',()=>{
+ const now=new Date(START);
+ const base={created_at:START,estimated_minutes:null,remaining_minutes:null,scheduled_start:null,scheduled_end:null,available_from:null,importance:null,boost:0};
+ const ranked=rankTasks([
+  {...base,id:'planned',title:'今天做',due_at:null,planned_for:'2026-10-12',workflow_state:'todo' as const},
+  {...base,id:'blocked',title:'阻塞',due_at:'2026-10-12T10:30:00.000Z',planned_for:null,workflow_state:'blocked' as const},
+  {...base,id:'important',title:'重要',due_at:null,planned_for:null,importance:'high' as const,workflow_state:'todo' as const},
+  {...base,id:'risk',title:'余量风险',due_at:'2026-10-12T11:00:00.000Z',remaining_minutes:90,planned_for:null,workflow_state:'todo' as const}
+ ],now,'2026-10-12');
+ assert.equal(ranked[0]?.id,'risk');
+ assert.equal(ranked[0]?.urgency,'at-risk');
+ assert.equal(ranked.at(-1)?.id,'blocked');
+ assert.equal(ranked.at(-1)?.actionability,'blocked');
+ assert.ok(ranked.find(item=>item.id==='planned')?.reasons.some(reason=>reason.includes('安排在今天')));
+ assert.ok(ranked.find(item=>item.id==='important')?.reasons.some(reason=>reason.includes('高重要度')));
+});

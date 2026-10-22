@@ -153,6 +153,16 @@ CREATE UNIQUE INDEX idx_record_idempotency ON learning_records(idempotency_key) 
 CREATE INDEX idx_records_interval ON learning_records(started_at,ended_at);
 CREATE INDEX idx_task_completed_at ON tasks(completed_at) WHERE status='done';
 `}
+ ,{version:11,name:'task_execution_context_and_recommendation_v2',sql:`
+ALTER TABLE tasks ADD COLUMN description TEXT;
+ALTER TABLE tasks ADD COLUMN task_type TEXT CHECK(task_type IS NULL OR task_type IN ('assignment','exam','review','practice','reading','project','admin','other'));
+ALTER TABLE tasks ADD COLUMN workflow_state TEXT NOT NULL DEFAULT 'todo' CHECK(workflow_state IN ('todo','in_progress','waiting','blocked'));
+ALTER TABLE tasks ADD COLUMN progress_percent INTEGER CHECK(progress_percent IS NULL OR progress_percent BETWEEN 0 AND 100);
+ALTER TABLE tasks ADD COLUMN remaining_minutes INTEGER CHECK(remaining_minutes IS NULL OR remaining_minutes BETWEEN 0 AND 20160);
+ALTER TABLE tasks ADD COLUMN available_from TEXT;
+ALTER TABLE tasks ADD COLUMN blocked_reason TEXT;
+CREATE INDEX idx_tasks_workflow ON tasks(status,workflow_state,available_from,updated_at);
+`}
 
 ] as const;
 
