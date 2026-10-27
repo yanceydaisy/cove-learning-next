@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import type {Database} from '../../core/database.js';
 import {AppError} from '../../core/errors.js';
 import {optionalId,requiredId,record,textOrNull,title} from '../../core/validation.js';
@@ -97,6 +97,57 @@ export class LearningRecordsService {
    if(row&&row.id!==exceptId)throw new AppError('CONFLICT','这个专注会话已经关联了学习记录。');
   }
  }
+ // Backfill keeps provenance and uncertainty visible, and is atomic across records.
+ backfill(entries:unknown,dryRun=false){
+  if(!Array.isArray(entries)||entries.length<1||entries.length>20)
+   throw new AppError('VALIDATION_ERROR','单次补录数量须为 1～20 条。');
+  const prepared=entries.map((raw:unknown)=>{
+   const item=record(raw);
+   if(item.time_precision!=='exact'&&item.time_precision!=='estimated')
+    throw new AppError('VALIDATION_ERROR','时间精度必须是 exact 或 estimated。');
+   const evidence=typeof item.evidence_note==='string'?item.evidence_note.trim():'';
+   if(!evidence||evidence.length>500)
+    throw new AppError('VALIDATION_ERROR','每条补录都必须填写聊天/笔记依据。');
+   const userNote=typeof item.note==='string'?item.note.trim():'';
+   const note=[userNote,'补录依据：'+evidence,'时间精度：'+(item.time_precision==='estimated'?'估计，非计时器实测':'有明确时间证据')].filter(Boolean).join('\n');
+   const originalTags=item.tags??[];
+   if(!Array.isArray(originalTags))throw new AppError('VALIDATION_ERROR','tags 必须是数组。');
+   const tags=Array.from(new Set([...originalTags,'历史补录',item.time_precision==='estimated'?'时间估计':'时间已核实']));
+   const identity=[item.local_date,item.started_at,item.ended_at,item.title,item.object_id??'',item.task_id??''];
+   const key='backfill-v1:'+createHash('sha256').update(JSON.stringify(identity)).digest('hex');
+   const value=this.values({...item,note,tags,source:'import',idempotency_key:key,focused_minutes:item.focused_minutes??0});
+   const keyed=this.db.raw.prepare('SELECT * FROM learning_records WHERE idempotency_key=?').get(key) as any;
+   if(keyed){
+    const old=this.present(keyed);
+    if(Object.entries(value).some(([k,v])=>JSON.stringify(old[k])!==JSON.stringify(v)))
+     throw new AppError('CONFLICT','相同学习片段已补录但内容有变化，请修改原记录。');
+   }
+   const matched=this.db.raw.prepare("SELECT * FROM learning_records WHERE local_date=? AND started_at=? AND ended_at=? AND title=? AND COALESCE(object_id,'')=COALESCE(?,'') AND COALESCE(task_id,'')=COALESCE(?,'') LIMIT 1")
+    .get(value.local_date,value.started_at,value.ended_at,value.title,value.object_id,value.task_id) as any;
+   return {value,existing:keyed??matched};
+  });
+  const keys=prepared.map(p=>p.value.idempotency_key);
+  if(new Set(keys).size!==keys.length)throw new AppError('VALIDATION_ERROR','同批次包含重复学习片段。');
+  const format=(list:Array<{status:string;record:any}>)=>({
+    dry_run:dryRun,total:list.length,
+    created:list.filter(x=>x.status==='created').length,
+    existing:list.filter(x=>x.status==='existing').length,records:list
+  });
+  if(dryRun)return format(prepared.map(p=>({
+   status:p.existing?'existing':'created',
+   record:p.existing?this.present(p.existing):{...p.value}
+  })));
+  this.db.raw.exec('BEGIN IMMEDIATE');
+  try{
+   const result=prepared.map(p=>({
+    status:p.existing?'existing':'created',
+    record:p.existing?this.present(p.existing):this.create(p.value)
+   }));
+   this.db.raw.exec('COMMIT');
+   return format(result);
+  }catch(err){this.db.raw.exec('ROLLBACK');throw err;}
+ }
+
  create(input:unknown){
   const value=this.values(record(input));
   if(value.idempotency_key){

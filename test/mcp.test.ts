@@ -47,6 +47,7 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    assert.ok(names.includes('learning_set_importance'));
    assert.ok(names.includes('learning_focus'));
    assert.ok(names.includes('learning_add_record'));
+   assert.ok(names.includes('learning_backfill_records'));
    assert.ok(names.includes('learning_course_context'));
    assert.ok(names.includes('learning_update_object'));
    assert.ok(names.includes('learning_schedule'));
@@ -70,6 +71,31 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
     name:'learning_create_object',
     arguments:{kind:'course',title:'现代控制'}
    }));
+   const backfillInput={
+    local_date:'2026-10-14',
+    started_at:'2026-10-14T13:58:00+08:00',
+    ended_at:'2026-10-14T14:15:00+08:00',
+    title:'Voronoi 路由复盘',summary:'课堂框选最大突破路由',
+    time_zone:'Asia/Shanghai',object_id:course.id,
+    time_precision:'estimated',evidence_note:'聊天 13:58—14:15 的课件框选',
+   };
+   const dryRun=toolJson(await client.callTool({name:'learning_backfill_records',arguments:{records:[backfillInput],dry_run:true}}));
+   assert.equal(dryRun.dry_run,true);
+   assert.equal(dryRun.created,1);
+   assert.equal((app.records.list() as any[]).length,0,'dry run must never persist');
+   const backfill=toolJson(await client.callTool({name:'learning_backfill_records',arguments:{records:[backfillInput]}}));
+   assert.equal(backfill.created,1);
+   assert.equal(backfill.records[0].record.focused_minutes,0,'unverified focus never becomes elapsed time');
+   assert.equal(backfill.records[0].record.source,'import');
+   assert.ok(backfill.records[0].record.note.includes('时间精度：估计'));
+   const retry=toolJson(await client.callTool({name:'learning_backfill_records',arguments:{records:[backfillInput]}}));
+   assert.equal(retry.created,0);
+   assert.equal(retry.existing,1);
+   assert.equal(retry.records[0].record.id,backfill.records[0].record.id);
+   const conflict=await client.callTool({name:'learning_backfill_records',arguments:{records:[{...backfillInput,summary:'different'}]}});
+   assert.equal(conflict.isError,true);
+   assert.equal((app.records.list() as any[]).length,1,'conflict must not create duplicates');
+
    const slot=toolJson(await client.callTool({
     name:'learning_schedule',
     arguments:{action:'create',object_id:course.id,title:'现代控制',weekday:4,start_time:'09:55',end_time:'11:30',effective_from:'2026-09-07'}

@@ -46,6 +46,28 @@ test('trace preserves pause gaps, elapsed/focused time, record identity and actu
   assert.equal(f.app.trace.list(window).events.filter(e=>e.kind==='task').length,0);
  }finally{f.end()}
 });
+test('historical backfill rejects invalid batches atomically',()=>{
+ const f=fixture();
+ try{
+  const course=f.app.catalog.create({kind:'course',title:'传感器网络'}) as any;
+  const valid={local_date:'2026-10-15',started_at:'2026-10-15T15:52:00+08:00',
+   ended_at:'2026-10-15T16:05:00+08:00',title:'CBTC 计算',
+   object_id:course.id,time_zone:'Asia/Shanghai',time_precision:'estimated',
+   evidence_note:'聊天记录的开始时刻及结束范围'};
+  assert.throws(()=>f.app.records.backfill([valid,{...valid,title:'invalid',ended_at:'2026-10-15T15:00:00+08:00'}]),
+   e=>e instanceof AppError&&e.code==='VALIDATION_ERROR');
+  assert.equal((f.app.records.list() as any[]).length,0);
+  const preview=f.app.records.backfill([valid],true);
+  assert.equal(preview.created,1);
+  assert.equal((f.app.records.list() as any[]).length,0);
+  const made=f.app.records.backfill([valid]);
+  assert.equal(made.created,1);assert.equal(made.records[0]!.record.focused_minutes,0);
+  const dedup=f.app.records.backfill([valid]);
+  assert.equal(dedup.existing,1);
+  assert.equal((f.app.records.list() as any[]).length,1);
+ }finally{f.end()}
+});
+
 test('trace includes cross-month intervals and all monthly records, while marking legacy time honestly',()=>{
  const f=fixture();
  try{

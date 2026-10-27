@@ -212,6 +212,31 @@ export function createLearningMcpServer(app:LearningApplication){
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
  },async args=>safe(()=>app.records.create({...clean(args),source:'mcp'})));
 
+ server.registerTool('learning_backfill_records',{
+  title:'Backfill Learning Records',
+  description:'Backfill 1–20 historical study records from chat/notes. Requires evidence and exact/estimated time precision. Defaults unknown focused minutes to 0, labels estimates, reuses existing records, and validates batch atomically. Use dry_run=true to preview; do not fabricate old timestamps.',
+  inputSchema:{
+   records:z.array(z.object({
+    local_date:localDateSchema,
+    started_at:z.string().min(1).max(80),
+    ended_at:z.string().min(1).max(80),
+    title:z.string().min(1).max(160),
+    summary:z.string().max(4000).optional(),
+    activity_type:z.enum(['study','review','practice','reading','project','other']).optional(),
+    object_id:z.string().uuid().optional(),task_id:z.string().uuid().optional(),
+    focused_minutes:z.number().int().min(0).max(1440).optional(),
+    next_action:z.string().max(1200).optional(),
+    note:z.string().max(3000).optional(),
+    tags:z.array(z.string().min(1).max(40)).max(16).optional(),
+    time_zone:z.string().max(80).optional(),
+    time_precision:z.enum(['exact','estimated']),
+    evidence_note:z.string().min(1).max(500)
+   })).min(1).max(20),
+   dry_run:z.boolean().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({records,dry_run})=>safe(()=>app.records.backfill(records,dry_run??false)));
+
  server.registerTool('learning_get_trace',{
   title:'Read Ephemeris Learning Trace',
   description:'Read one month (at most 32 days) of factual learning records, completed tasks and focus intervals. Includes summaries, associations, actual elapsed/focused time, and explicit legacy time precision. from/to are ISO instants with offsets; omit both for the current UTC month.',
