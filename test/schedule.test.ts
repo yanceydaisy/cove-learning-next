@@ -43,7 +43,7 @@ test('weekly class schedule and task time blocks stay explicit and date-addressa
 
   const again=new LearningApplication(f.dir);
   try{
-   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,11);
+   assert.equal((again.database.raw.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get() as {n:number}).n,12);
    assert.equal(again.schedule.list().length,1);
    assert.equal(again.schedule.forDate('2026-10-13').length,1);
   }finally{again.close();}

@@ -164,6 +164,23 @@ ALTER TABLE tasks ADD COLUMN blocked_reason TEXT;
 CREATE INDEX idx_tasks_workflow ON tasks(status,workflow_state,available_from,updated_at);
 `}
 
+ ,{version:12,name:'resource_links_for_tasks_and_learning_records',sql:`
+CREATE TABLE task_resource_links (
+ task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+ resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+ created_at TEXT NOT NULL,
+ PRIMARY KEY(task_id,resource_id)
+);
+CREATE INDEX idx_task_resource_reverse ON task_resource_links(resource_id,task_id);
+CREATE TABLE learning_record_resource_links (
+ record_id TEXT NOT NULL REFERENCES learning_records(id) ON DELETE CASCADE,
+ resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+ created_at TEXT NOT NULL,
+ PRIMARY KEY(record_id,resource_id)
+);
+CREATE INDEX idx_record_resource_reverse ON learning_record_resource_links(resource_id,record_id);
+`}
+
 ] as const;
 
 export class Database {

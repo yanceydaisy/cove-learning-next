@@ -436,6 +436,22 @@ export function createLearningMcpServer(app:LearningApplication){
   return app.schedule.update(requireValue(args.entry_id,'update 需要 entry_id。'),payload);
  }));
 
+ server.registerTool('learning_resource_links',{
+  title:'Learning Resource Associations',
+  description:'List, link, or unlink an existing Library resource from a task or a completed learning record. Idempotent; preserves original file and resource metadata. Course Context already has its separate source_resource_id.',
+  inputSchema:{
+   action:z.enum(['list','link','unlink']),
+   kind:z.enum(['task','record']),
+   target_id:z.string().uuid(),
+   resource_id:z.string().uuid().optional()
+  },
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
+ },async({action,kind,target_id,resource_id})=>safe(()=>{
+  if(action==='list')return app.resourceLinks.list(kind,target_id);
+  const id=requireValue(resource_id,'link / unlink 需要 resource_id。');
+  return app.resourceLinks.set(kind,target_id,id,action==='link');
+ }));
+
  server.registerTool('learning_list_resources',{
   title:'List Learning Resources',
   description:'List immutable resource metadata already stored in Learning. Raw file upload/download is intentionally not exposed through MCP V0.',

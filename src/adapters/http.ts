@@ -83,6 +83,22 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
      result=app.planning.setPreference(parts[2]!,await parseBody(req));
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='complete'&&method==='POST')result=app.planning.complete(parts[2]!);
     else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='reopen'&&method==='POST')result=app.planning.reopen(parts[2]!);
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='resources'&&method==='GET')
+     result=app.resourceLinks.list('task',parts[2]!);
+    else if(parts.length===4&&parts[1]==='tasks'&&parts[3]==='resources'&&method==='POST'){
+     const data=await parseBody(req);
+     if(!data||typeof data!=='object'||Array.isArray(data))throw new AppError('VALIDATION_ERROR','资料关联请求必须是 JSON 对象。');
+     const input=data as Record<string,unknown>;
+     result=app.resourceLinks.set('task',parts[2]!,input.resource_id as string,input.linked as boolean);
+    }
+    else if(parts.length===4&&parts[1]==='learning-records'&&parts[3]==='resources'&&method==='GET')
+     result=app.resourceLinks.list('record',parts[2]!);
+    else if(parts.length===4&&parts[1]==='learning-records'&&parts[3]==='resources'&&method==='POST'){
+     const data=await parseBody(req);
+     if(!data||typeof data!=='object'||Array.isArray(data))throw new AppError('VALIDATION_ERROR','资料关联请求必须是 JSON 对象。');
+     const input=data as Record<string,unknown>;
+     result=app.resourceLinks.set('record',parts[2]!,input.resource_id as string,input.linked as boolean);
+    }
     else if(path==='/api/resources'&&method==='GET')result=app.library.list();
     else if(path==='/api/resources'&&method==='POST'){result=app.library.ingest(await parseBody(req));status=201;}
     else if(parts.length===4&&parts[1]==='resources'&&parts[3]==='content'&&method==='GET'){

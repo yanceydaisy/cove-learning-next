@@ -48,6 +48,7 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    assert.ok(names.includes('learning_focus'));
    assert.ok(names.includes('learning_add_record'));
    assert.ok(names.includes('learning_backfill_records'));
+   assert.ok(names.includes('learning_resource_links'));
    assert.ok(names.includes('learning_course_context'));
    assert.ok(names.includes('learning_update_object'));
    assert.ok(names.includes('learning_schedule'));
@@ -166,6 +167,29 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
     title:'状态空间复习记录',summary:'复习状态转移矩阵与能控性。',activity_type:'review',object_id:course.id,task_id:task.id,next_action:'整理错题',tags:['控制','复习']
    }}));
    assert.equal(learningRecord.elapsed_minutes,45);assert.equal(learningRecord.focused_minutes,38);assert.equal(learningRecord.source,'mcp');assert.equal(learningRecord.task_id,task.id);
+   const linkedResource=app.library.ingest({title:'控制讲义',mime_type:'text/plain',base64:'Y29udHJvbA=='}) as {id:string};
+   const taskLink=toolJson(await client.callTool({name:'learning_resource_links',arguments:{
+    action:'link',kind:'task',target_id:task.id,resource_id:linkedResource.id
+   }}));
+   assert.equal(taskLink.count,1);
+   const recordLink=toolJson(await client.callTool({name:'learning_resource_links',arguments:{
+    action:'link',kind:'record',target_id:learningRecord.id,resource_id:linkedResource.id
+   }}));
+   assert.equal(recordLink.count,1);
+   assert.equal(recordLink.items[0].title,'控制讲义');
+   const readRecordLinks=toolJson(await client.callTool({name:'learning_resource_links',arguments:{
+    action:'list',kind:'record',target_id:learningRecord.id
+   }}));
+   assert.equal(readRecordLinks.count,1);
+   const noDuplicate=toolJson(await client.callTool({name:'learning_resource_links',arguments:{
+    action:'link',kind:'record',target_id:learningRecord.id,resource_id:linkedResource.id
+   }}));
+   assert.equal(noDuplicate.count,1);
+   const detach=toolJson(await client.callTool({name:'learning_resource_links',arguments:{
+    action:'unlink',kind:'task',target_id:task.id,resource_id:linkedResource.id
+   }}));
+   assert.equal(detach.count,0);
+   assert.equal(app.resourceLinks.list('record',learningRecord.id).count,1);
    const revised=toolJson(await client.callTool({name:'learning_update_record',arguments:{record_id:learningRecord.id,summary:'修正后的学习总结'}}));
    assert.equal(revised.summary,'修正后的学习总结');
    const ephemeris=toolJson(await client.callTool({name:'learning_get_trace',arguments:{from:'2026-09-30T16:00:00Z',to:'2026-10-31T16:00:00Z'}}));
