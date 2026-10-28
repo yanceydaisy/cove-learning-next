@@ -1,11 +1,12 @@
 import type {Database} from '../../core/database.js';
 import {AppError} from '../../core/errors.js';
+import {localDateAt,DEFAULT_LEARNING_TIME_ZONE} from '../../core/time.js';
 import {rankTasks,type DecisionInput} from '../priority/engine.js';
 
 export class TodayService {
- constructor(private db:Database,private now=()=>new Date()){}
+ constructor(private db:Database,private now=()=>new Date(),private timeZone=DEFAULT_LEARNING_TIME_ZONE){}
  snapshot(localDate?:string){
-  const instant=this.now(),today=localDate??instant.toISOString().slice(0,10);
+  const instant=this.now(),today=localDate??localDateAt(instant,this.timeZone);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(today)||!Number.isFinite(Date.parse(today+'T12:00:00Z'))||
     new Date(today+'T12:00:00Z').toISOString().slice(0,10)!==today)
    throw new AppError('VALIDATION_ERROR','今日日期不合法。');
@@ -54,7 +55,7 @@ export class TodayService {
     reasons:[...task.reasons,...importanceReasons,...evidenceReasons]};
   });
   const activeFocus=this.db.raw.prepare("SELECT * FROM focus_sessions WHERE state IN ('running','paused') LIMIT 1").get()??null;
-  const recentSessions=this.db.raw.prepare("SELECT id,state,started_at,ended_at,accumulated_ms,object_id FROM focus_sessions ORDER BY started_at DESC,id DESC LIMIT 5").all();
+  const recentSessions=this.db.raw.prepare("SELECT id,state,started_at,ended_at,accumulated_ms,object_id,task_id FROM focus_sessions ORDER BY started_at DESC,id DESC LIMIT 5").all();
   const recentResources=this.db.raw.prepare('SELECT id,title,mime_type,created_at FROM resources ORDER BY created_at DESC,id DESC LIMIT 5').all();
   const horizon=instant.getTime()+7*86_400_000;
   const deadlineTasks=recommendations.filter(t=>t.due_at && Date.parse(t.due_at)<=horizon).slice(0,8);
@@ -64,7 +65,7 @@ export class TodayService {
     FROM tasks WHERE status='done' AND planned_for=? ORDER BY updated_at DESC,id DESC`
   ).all(today) as unknown as Record<string,unknown>[];
   const recommendedNext=recommendations.filter(task=>task.actionability==='actionable').slice(0,3);
-  return {openTasks,activeFocus,recentSessions,recentResources,
+  return {local_date:today,time_zone:this.timeZone,openTasks,activeFocus,recentSessions,recentResources,
    todayTasks,completedTodayTasks,deadlineTasks,recommendations,recommendedNext,
    priorityModel:{version:'rules-v2',importanceAvailable:importanceRows.length>0,
     importanceScale:'ordinal-low-medium-high',evidenceLinksAvailable:evidenceRows.length>0,

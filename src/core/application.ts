@@ -11,8 +11,10 @@ import {ActivityService} from '../modules/activity/service.js';
 import {TraceService} from '../modules/activity/trace.js';
 import {LearningRecordsService} from '../modules/activity/records.js';
 import {TodayService} from '../modules/today/service.js';
+import {DEFAULT_LEARNING_TIME_ZONE,validateLearningTimeZone} from './time.js';
 export class LearningApplication {
  readonly database:Database;
+ readonly timeZone:string;
  readonly catalog:CatalogService;
  readonly courseContext:CourseContextService;
  readonly planning:PlanningService;
@@ -24,7 +26,8 @@ export class LearningApplication {
  readonly records:LearningRecordsService;
  readonly trace:TraceService;
  readonly today:TodayService;
- constructor(dataDir:string,memory=false,clock=()=>new Date()){
+ constructor(dataDir:string,memory=false,clock=()=>new Date(),timeZone=process.env.LEARNING_TIME_ZONE??DEFAULT_LEARNING_TIME_ZONE){
+  this.timeZone=validateLearningTimeZone(timeZone);
   this.database=new Database(memory?':memory:':join(dataDir,'learning.sqlite'));
   const now=()=>clock().toISOString();
   this.catalog=new CatalogService(this.database,now);
@@ -36,8 +39,8 @@ export class LearningApplication {
   this.resourceLinks=new ResourceLinksService(this.database,now);
   this.activity=new ActivityService(this.database,this.catalog,clock);
   this.records=new LearningRecordsService(this.database,this.catalog,now);
-  this.trace=new TraceService(this.database,clock);
-  this.today=new TodayService(this.database,clock);
+  this.trace=new TraceService(this.database,clock,this.timeZone);
+  this.today=new TodayService(this.database,clock,this.timeZone);
  }
  close(){this.database.close();}
 }

@@ -196,8 +196,10 @@ test('capability URL exposes only bounded Learning MCP tools and performs the ev
    assert.ok(ephemeris.events.some((event:any)=>event.record_id===learningRecord.id&&event.summary==='修正后的学习总结'));
 
 
-   const started=toolJson(await client.callTool({name:'learning_focus',arguments:{action:'start',object_id:course.id}}));
+   const started=toolJson(await client.callTool({name:'learning_focus',arguments:{action:'start',task_id:task.id}}));
    assert.equal(started.state,'running');
+   assert.equal(started.task_id,task.id);
+   assert.equal(started.object_id,course.id);
    const active=toolJson(await client.callTool({name:'learning_focus',arguments:{action:'active'}}));
    assert.equal(active.id,started.id);
    const finished=toolJson(await client.callTool({name:'learning_focus',arguments:{action:'finish'}}));

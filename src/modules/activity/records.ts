@@ -73,6 +73,15 @@ export class LearningRecordsService {
    if(session.state!=='finished'||start!==Date.parse(session.started_at)||end!==Date.parse(session.ended_at))throw new AppError('VALIDATION_ERROR','关联专注记录必须覆盖已结束会话的完整起止时间。');
    if(object_id&&session.object_id&&object_id!==session.object_id)throw new AppError('VALIDATION_ERROR','学习记录与专注会话的关联对象不一致。');
    if(!object_id)object_id=session.object_id;
+   if(session.task_id){
+    if(task_id&&task_id!==session.task_id)throw new AppError('VALIDATION_ERROR','学习记录关联任务与专注会话不一致。');
+    if(!task_id){
+     task_id=session.task_id;
+     const linked=this.db.raw.prepare('SELECT object_id FROM tasks WHERE id=?').get(task_id) as {object_id:string|null}|undefined;
+     if(linked?.object_id&&object_id&&linked.object_id!==object_id)throw new AppError('VALIDATION_ERROR','记录的关联课程与专注任务不一致。');
+     if(!object_id)object_id=linked?.object_id??null;
+    }
+   }
    if(data.focused_minutes==null)focused_minutes=Math.min(elapsed_minutes,Math.floor(Number(session.accumulated_ms)/60000));
    if(focused_minutes>Math.ceil(Number(session.accumulated_ms)/60000))throw new AppError('VALIDATION_ERROR','专注分钟数不能超过关联会话的真实累计时长。');
   }

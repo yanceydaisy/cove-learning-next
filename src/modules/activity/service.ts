@@ -30,13 +30,22 @@ export class ActivityService {
  }
  events(id:string){return this.db.raw.prepare('SELECT * FROM learning_events WHERE session_id=? ORDER BY occurred_at,id').all(requiredId(id));}
  start(input:unknown={}){
-  const data=record(input),object_id=optionalId(data.object_id);
-  if(object_id)this.catalog.get(object_id);
+  const data=record(input),requestedObject=optionalId(data.object_id),task_id=optionalId(data.task_id);
+  if(requestedObject)this.catalog.get(requestedObject);
+  let object_id=requestedObject;
+  if(task_id){
+   const task=this.db.raw.prepare('SELECT id,status,object_id FROM tasks WHERE id=?').get(task_id) as {id:string;status:string;object_id:string|null}|undefined;
+   if(!task)throw new AppError('NOT_FOUND','关联任务不存在。');
+   if(task.status!=='open')throw new AppError('CONFLICT','已完成任务不能开始新的关联专注。');
+   if(object_id&&task.object_id&&object_id!==task.object_id)
+    throw new AppError('VALIDATION_ERROR','专注课程与关联任务所属对象不一致。');
+   object_id=task.object_id??object_id;
+  }
   return this.db.transaction(()=>{
    const previous=this.active();
    if(previous)throw new AppError('CONFLICT','已有学习会话，请先继续或结束。',{active_session_id:previous.id});
    const id=randomUUID(),now=this.now();
-   this.db.raw.prepare("INSERT INTO focus_sessions VALUES (?,?,?,?,?,?,?,?)").run(id,'running',now,now,0,null,object_id,now);
+   this.db.raw.prepare("INSERT INTO focus_sessions (id,state,started_at,current_started_at,accumulated_ms,ended_at,object_id,updated_at,task_id) VALUES (?,?,?,?,?,?,?,?,?)").run(id,'running',now,now,0,null,object_id,now,task_id);
    this.event(id,'focus.started',now);
    return this.db.raw.prepare('SELECT * FROM focus_sessions WHERE id=?').get(id);
   });

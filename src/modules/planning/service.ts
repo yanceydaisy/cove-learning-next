@@ -150,7 +150,7 @@ export class PlanningService {
    if(!current)throw new AppError('NOT_FOUND','任务不存在。');
    if((current as {status:string}).status==='done')return current;
    const now=this.now();
-   this.db.raw.prepare("UPDATE tasks SET status='done',updated_at=?,completed_at=? WHERE id=?").run(now,now,id);
+   this.db.raw.prepare("UPDATE tasks SET status='done',workflow_state='todo',blocked_reason=NULL,updated_at=?,completed_at=? WHERE id=?").run(now,now,id);
    this.db.raw.prepare('DELETE FROM task_preferences WHERE task_id=?').run(id);
    return this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(id);
   });
@@ -160,7 +160,7 @@ export class PlanningService {
    const current=this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(requiredId(id));
    if(!current)throw new AppError('NOT_FOUND','任务不存在。');
    if((current as {status:string}).status==='open')return current;
-   this.db.raw.prepare("UPDATE tasks SET status='open',updated_at=?,completed_at=NULL WHERE id=?").run(this.now(),id);
+   this.db.raw.prepare("UPDATE tasks SET status='open',workflow_state='todo',blocked_reason=NULL,updated_at=?,completed_at=NULL WHERE id=?").run(this.now(),id);
    return this.db.raw.prepare('SELECT * FROM tasks WHERE id=?').get(id);
   });
  }

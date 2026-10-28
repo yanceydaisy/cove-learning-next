@@ -181,6 +181,13 @@ CREATE TABLE learning_record_resource_links (
 CREATE INDEX idx_record_resource_reverse ON learning_record_resource_links(resource_id,record_id);
 `}
 
+ ,{version:13,name:'focus_task_link_and_completed_state_cleanup',sql:`
+ALTER TABLE focus_sessions ADD COLUMN task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL;
+CREATE INDEX idx_focus_task ON focus_sessions(task_id,started_at);
+-- Completed is authoritative; workflow_state is only meaningful for open tasks.
+-- Do not fabricate legacy completed_at timestamps.
+UPDATE tasks SET workflow_state='todo',blocked_reason=NULL WHERE status='done';
+`}
 ] as const;
 
 export class Database {

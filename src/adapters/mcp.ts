@@ -6,6 +6,7 @@ import {isInitializeRequest} from '@modelcontextprotocol/sdk/types.js';
 import * as z from 'zod/v4';
 import type {LearningApplication} from '../core/application.js';
 import {AppError} from '../core/errors.js';
+import {offsetMinutesForDate} from '../core/time.js';
 
 type Session={
  transport:StreamableHTTPServerTransport;
@@ -35,8 +36,8 @@ function requireValue<T>(value:T|undefined,message:string):T{
 
 const localDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const localTimeSchema=z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-function utcOffset(value:number|undefined){
- const offset=value??480;
+function utcOffset(value:number|undefined,date:string,timeZone:string){
+ const offset=value??offsetMinutesForDate(date,timeZone);
  if(!Number.isInteger(offset)||offset < -840||offset > 840)throw new AppError('VALIDATION_ERROR','UTC offset 应为 -840～840 的整数分钟。');
  return offset;
 }
@@ -263,18 +264,19 @@ export function createLearningMcpServer(app:LearningApplication){
 
  server.registerTool('learning_focus',{
   title:'Learning Focus Session',
-  description:'Read or control the Learning focus timer. pause/resume/finish may omit session_id to target the current active session.',
+  description:'Read or control the Learning focus timer. On start, optional task_id associates this session with an open task and infers its course/project. Many focus sessions may reference one task. pause/resume/finish may omit session_id to target the active session.',
   inputSchema:{
    action:z.enum(['active','recent','history','start','pause','resume','finish']),
    session_id:z.string().uuid().optional(),
-   object_id:z.string().uuid().optional()
+   object_id:z.string().uuid().optional(),
+   task_id:z.string().uuid().optional()
   },
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false,openWorldHint:false}
- },async({action,session_id,object_id})=>safe(()=>{
+ },async({action,session_id,object_id,task_id})=>safe(()=>{
   if(action==='active')return app.activity.active();
   if(action==='recent')return app.activity.recent();
   if(action==='history')return app.activity.history();
-  if(action==='start')return app.activity.start(clean({object_id}));
+  if(action==='start')return app.activity.start(clean({object_id,task_id}));
   const active=app.activity.active() as {id?:string}|null;
   const id=session_id??active?.id;
   requireValue(id,'当前没有可操作的学习会话。');
@@ -350,25 +352,25 @@ export function createLearningMcpServer(app:LearningApplication){
 
  server.registerTool('learning_plan_day',{
   title:'Learning Plan Day',
-  description:'Read one local Plan day exactly as a planning surface: recurring classes plus explicitly scheduled open tasks, followed by DDL-unscheduled and other unscheduled tasks. utc_offset_minutes defaults to +480 (Taipei) and may be overridden.',
+  description:'Read one local Plan day exactly as a planning surface: recurring classes plus explicitly scheduled open tasks, followed by DDL-unscheduled and other unscheduled tasks. utc_offset_minutes defaults to the configured Learning timezone (Asia/Shanghai by default); utc_offset_minutes can override it.',
   inputSchema:{
    local_date:localDateSchema,
    utc_offset_minutes:z.number().int().min(-840).max(840).optional()
   },
   annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
- },async({local_date,utc_offset_minutes})=>safe(()=>planDay(app,local_date,utcOffset(utc_offset_minutes),true)));
+ },async({local_date,utc_offset_minutes})=>safe(()=>planDay(app,local_date,utcOffset(utc_offset_minutes,local_date,app.timeZone),true)));
 
  server.registerTool('learning_plan_week',{
   title:'Learning Plan Week',
-  description:'Read the Monday-Sunday Plan week containing anchor_date. Each day contains recurring classes and explicitly scheduled open tasks. Unscheduled tasks are returned once at the week level. utc_offset_minutes defaults to +480 (Taipei) and may be overridden.',
+  description:'Read the Monday-Sunday Plan week containing anchor_date. Each day contains recurring classes and explicitly scheduled open tasks. Unscheduled tasks are returned once at the week level. utc_offset_minutes defaults to the configured Learning timezone (Asia/Shanghai by default); utc_offset_minutes can override it.',
   inputSchema:{
    anchor_date:localDateSchema,
    utc_offset_minutes:z.number().int().min(-840).max(840).optional()
   },
   annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}
  },async({anchor_date,utc_offset_minutes})=>safe(()=>{
-  const offset=utcOffset(utc_offset_minutes),week_start=mondayOf(anchor_date);
-  const days=Array.from({length:7},(_,i)=>planDay(app,addDays(week_start,i),offset,false));
+  const offset=utcOffset(utc_offset_minutes,anchor_date,app.timeZone),week_start=mondayOf(anchor_date);
+  const days=Array.from({length:7},(_,i)=>{const date=addDays(week_start,i);return planDay(app,date,utcOffset(utc_offset_minutes,date,app.timeZone),false)});
   const tasks=app.planning.list() as Array<Record<string,any>>,open=tasks.filter(task=>task.status==='open');
   return {
    week_start,week_end:addDays(week_start,6),utc_offset_minutes:offset,days,
@@ -390,7 +392,7 @@ export function createLearningMcpServer(app:LearningApplication){
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}
  },async({task_id,local_date,start_time,end_time,utc_offset_minutes})=>safe(()=>{
   if(end_time&&end_time<=start_time)throw new AppError('VALIDATION_ERROR','同一天的结束时间必须晚于开始时间。');
-  const offset=utcOffset(utc_offset_minutes);
+  const offset=utcOffset(utc_offset_minutes,local_date,app.timeZone);
   return app.planning.updateDetails(task_id,{
    planned_for:local_date,
    scheduled_start:localToUtc(local_date,start_time,offset),

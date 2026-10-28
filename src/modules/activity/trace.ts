@@ -1,6 +1,7 @@
 import type {Database} from '../../core/database.js';
 import {AppError} from '../../core/errors.js';
 import {record} from '../../core/validation.js';
+import {DEFAULT_LEARNING_TIME_ZONE,localMonthBounds} from '../../core/time.js';
 
 type Interval={started_at:string;ended_at:string};
 function instant(value:unknown,field:string){
@@ -8,7 +9,7 @@ function instant(value:unknown,field:string){
  return new Date(value).toISOString();
 }
 export class TraceService{
- constructor(private db:Database,private clock=()=>new Date()){}
+ constructor(private db:Database,private clock=()=>new Date(),private timeZone=DEFAULT_LEARNING_TIME_ZONE){}
  private focusIntervals(session:any,now:string):Interval[]{
   const logs=this.db.raw.prepare('SELECT event_type,occurred_at FROM learning_events WHERE session_id=? ORDER BY julianday(occurred_at),rowid').all(session.id) as any[];
   const result:Interval[]=[];let open:string|null=null;
@@ -25,8 +26,9 @@ export class TraceService{
  list(input:unknown={}){
   const data=record(input),now=this.clock(),nowIso=now.toISOString();
   if((data.from==null)!==(data.to==null))throw new AppError('VALIDATION_ERROR','from 和 to 必须一起提供。');
-  const from=data.from==null?new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)).toISOString():instant(data.from,'from');
-  const to=data.to==null?new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1)).toISOString():instant(data.to,'to');
+  const month=localMonthBounds(now,this.timeZone);
+  const from=data.from==null?month.from:instant(data.from,'from');
+  const to=data.to==null?month.to:instant(data.to,'to');
   if(Date.parse(to)<=Date.parse(from)||Date.parse(to)-Date.parse(from)>32*86400000)throw new AppError('VALIDATION_ERROR','轨迹查询范围必须大于零且不能超过 32 天。');
   const objects=new Map((this.db.raw.prepare('SELECT id,title,kind FROM learning_objects').all() as any[]).map(item=>[item.id,item]));
   const object=(id:string|null)=>id?objects.get(id)??null:null;
@@ -58,7 +60,7 @@ export class TraceService{
     id:'focus:'+session.id,focus_session_id:session.id,kind:'focus',activity_type:'study',title:'专注 '+Math.max(1,Math.floor(focused_ms/60000))+' 分钟',
     occurred_at:session.started_at,started_at:session.started_at,ended_at:end,
     elapsed_ms:Math.max(0,Date.parse(end)-Date.parse(session.started_at)),focused_ms,intervals,
-    summary:null,note:null,next_action:null,tags:[],object:object(session.object_id),task:null,source:'focus',
+    summary:null,note:null,next_action:null,tags:[],object:object(session.object_id),task:session.task_id?{id:session.task_id,title:taskTitles.get(session.task_id)??''}:null,source:'focus',
     status:session.state,time_source:intervals.length?'recorded':'legacy'
    });
   }

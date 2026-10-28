@@ -1,6 +1,6 @@
 # Cove Learning · 核心字段与关联契约（2026-10-28）
 
-从 Node/TypeScript 与 SQLite migrations 1–12 梳理，以下明确区分已实现、未实现；前端不可将未接入功能当作已完成。
+从 Node/TypeScript 与 SQLite migrations 1–13 梳理，以下明确区分已实现、未实现；前端不可将未接入功能当作已完成。
 
 ## 实体所有权
 
@@ -9,7 +9,7 @@
 | Course / Project / Track | id, kind, title, description; Project 另有 stage, progress_percent, next_action, blocker | created_at, updated_at; project_status=idea/active/paused/done | Catalog owns learning_objects |
 | Task | id, title, description, task_type, object_id, due_at, estimated_minutes, remaining_minutes, planned_for, scheduled_start/end, available_from | status=open/done; workflow_state=todo/in_progress/waiting/blocked; completed_at | Planning owns tasks；Course Evidence、Resource 多对多关联 |
 | Plan | 日期视图、周期课程、任务时间块 | weekday + HH:MM + effective range；任务按 UTC instant 映射 | Plan 是投影，绝不独立复制 Task / Course |
-| Focus | id, state, started_at, accumulated_ms, ended_at, object_id | running/paused/finished | Activity owns focus_sessions + learning_events；暂停不计入真实专注 |
+| Focus | id, state, started_at, accumulated_ms, ended_at, object_id, task_id（可选） | running/paused/finished | Activity owns focus_sessions + learning_events；可关联未完成 Task；一个 Task 可有多段 Focus；暂停不计入专注 |
 | LearningRecord | id, local_date, started_at, ended_at, elapsed_minutes, focused_minutes, title, summary, activity_type, note, next_action, tags | source=manual/focus/mcp/import; time_zone, focus_session_id, idempotency_key | Activity owns learning_records；object_id、task_id、多个 Resource |
 | Resource | id, title, mime_type, created_at; version id, sha256, size_bytes | immutable original revision 1 | Library owns resources / versions；CourseContext 可引用来源，Task / Record 多对多关联 |
 
@@ -30,7 +30,7 @@ MCP 工具：learning_resource_links，参数 action=list|link|unlink, kind=task
 3. elapsed_minutes 由真实起止间隔计算；focused_minutes 不等于 elapsed_minutes。未知专注不能凭想象当做全时段专注。历史补录须具备证据与时间精度标识。
 4. CourseContext 的 suggested/confirmed 是证据审核状态。任务重要度必须链接已确认的本课程证据；不能拿推荐权重当事实。
 5. 文件原件不可变、SHA256 校验；任务/记录被删除只级联删除关联，不删除 Resource。
-6. 迁移有 checksum，**只能追加，不要改写 migrations 1–11**；更新运行服务前务必对现用数据库做一致性备份。
+6. 迁移有 checksum，**只能追加，不要改写 migrations 1–12**；更新运行服务前务必对现用数据库做一致性备份。
 
 ## 已知未完成
 
@@ -39,3 +39,12 @@ MCP 工具：learning_resource_links，参数 action=list|link|unlink, kind=task
 - Worker / 非专注陪伴的静态执行与独立模型配置，仍未真正上线。
 - 完整的推荐/调度策略与解释性闭环。
 - UI 中 Today/Trace 的资源显示需要前端主动读取新关联端点，**不会仅凭后端迁移自动出现**。
+
+## 第一阶段收敛（migration 13）
+
+- 默认学习时区：`Asia/Shanghai`，可通过服务端 `LEARNING_TIME_ZONE`（IANA）覆盖。Today 的默认 `local_date` 使用学习时区，Trace 的默认月份使用本地自然月；Plan 默认偏移依照指定日期与学习时区计算，显式 `utc_offset_minutes` 仍可覆盖。UTC instant 存储不变。
+- 已完成任务以 `status=done` 为权威状态；`workflow_state` 只在未完成时有意义。完成时归一化 `workflow_state=todo` 并清空旧阻塞理由；恢复任务设回 `todo`。迁移对已完成的旧任务作相同清理，但**保留未知的历史完成时间**。
+- `focus_sessions.task_id` 为可空外键。新专注只允许绑定未完成任务，自动推断课程/项目，冲突关联会报错。历史 Focus 保持未关联，允许同一任务关联多个专注。MCP `learning_focus(action=start,task_id=...)` 与 HTTP `/api/focus/start` 都支持。
+- 结束后的 Focus 关联学习记录时自动继承 `task_id`；刻序中独立 Focus 也可以显示对应任务。没有强制为每次专注建立学习记录。
+- **学习记录保持轻量**：本轮不新增专注时长未知标记、精度字段或强制填写项，普通记录行为保持兼容。
+- 当前仅更新后端和 MCP；既有前端开始计时的交互尚未主动选择 `task_id`，需要后续前端接线。
