@@ -205,10 +205,41 @@ function view(body,extra=''){root.innerHTML='<div class="view'+(extra?' '+extra:
 function sectionTitle(eyebrow,title,aside=''){
  return '<div class="section-heading"><div><span class="section-eyebrow">'+eyebrow+'</span><h2>'+title+'</h2></div>'+aside+'</div>';
 }
-function historyList(sessions,max=5){
- return sessions.length?'<div class="activity-list">'+sessions.slice(0,max).map(s=>
-  '<div class="activity-item"><span class="activity-mark" aria-hidden="true"></span><div class="activity-copy"><strong>'+esc(date(s.started_at))+' · '+esc(time(s.started_at))+'</strong><span>'+esc(s.state==='finished'?'已完成':s.state==='paused'?'已暂停':'进行中')+'</span></div><span class="activity-duration">'+minutes(s.accumulated_ms)+'<small> min</small></span></div>'
- ).join('')+'</div>':'<p class="muted-line">还没有学习记录，第一段专注从这里开始。</p>';
+function sessionContext(session,taskById,objectById){
+ const task=taskById.get(session.task_id),object=objectById.get(session.object_id);
+ return task?.title||object?.title||'自由学习';
+}
+function historyList(sessions,max=5,taskById=new Map(),objectById=new Map(),recordByFocus=new Map()){
+ return sessions.length?'<div class="activity-list">'+sessions.slice(0,max).map(s=>{
+  const state=s.state==='finished'?'已结束':s.state==='paused'?'已暂停':'进行中';
+  const recorded=recordByFocus.has(s.id)?' · 已留小结':'';
+  return '<div class="activity-item"><span class="activity-mark" aria-hidden="true"></span><div class="activity-copy"><strong>'+esc(sessionContext(s,taskById,objectById))+'</strong><span>'+esc(date(s.started_at))+' · '+esc(time(s.started_at))+' · '+state+recorded+'</span></div><span class="activity-duration">'+minutes(s.accumulated_ms)+'<small> min</small></span></div>';
+ }).join('')+'</div>':'<p class="muted-line">还没有专注记录，第一段专注从这里开始。</p>';
+}
+function recordList(records,max=6,taskById=new Map(),objectById=new Map()){
+ return records.length?'<div class="learning-record-list">'+records.slice(0,max).map(record=>{
+  const task=taskById.get(record.task_id),object=objectById.get(record.object_id);
+  const context=task?.title||object?.title||'自由学习';
+  const summary=record.summary||record.next_action||context;
+  return '<article class="learning-record-item"><div><strong>'+esc(record.title)+'</strong><span>'+esc(date(record.started_at))+' · '+esc(context)+'</span><p>'+esc(summary)+'</p></div><span class="activity-duration">'+esc(record.focused_minutes??record.elapsed_minutes??0)+'<small> min</small></span></article>';
+ }).join('')+'</div>':'<p class="muted-line">结束一段专注后，可以在这里留下学到什么和下一步。</p>';
+}
+function dateInLearningZone(iso){
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(iso));
+ const part=type=>parts.find(item=>item.type===type)?.value||'';
+ return [part('year'),part('month'),part('day')].join('-');
+}
+function focusRecordForm(session,taskById,objectById){
+ const title=sessionContext(session,taskById,objectById);
+ return '<section class="focus-record-card"><div class="focus-record-head"><div><span class="section-eyebrow">SESSION / NOTE</span><h2>留下本次学习小结</h2></div><span>'+minutes(session.accumulated_ms)+' min</span></div>'+
+  '<form id="focusRecordForm" class="focus-record-form" data-session-id="'+esc(session.id)+'">'+
+   '<label class="focus-record-title"><span>标题</span><input name="title" required maxlength="160" value="'+esc(title)+'"></label>'+
+   '<label><span>学习类型</span><select name="activity_type"><option value="study">学习</option><option value="review">复习</option><option value="practice">练习</option><option value="reading">阅读</option><option value="project">项目</option><option value="other">其他</option></select></label>'+
+   '<label class="focus-record-wide"><span>学到了什么</span><textarea name="summary" maxlength="4000" placeholder="写下本次完成的内容、理解或结果"></textarea></label>'+
+   '<label class="focus-record-wide"><span>下一步</span><input name="next_action" maxlength="1200" placeholder="下次从哪里继续"></label>'+
+   '<label class="focus-record-wide"><span>标签</span><input name="tags" maxlength="180" placeholder="用逗号分隔，例如：实验，复习"></label>'+
+   '<div class="focus-record-actions"><button class="button focus-main" type="submit">保存学习记录 '+ornament('arrow')+'</button></div>'+
+  '</form></section>';
 }
 let todayTaskView='list';
 let todayTimedEvents=[];
@@ -854,30 +885,68 @@ function liveTime(s){
  const seconds=Math.max(0,Math.floor((s.accumulated_ms+since)/1000));
  return String(Math.floor(seconds/3600)).padStart(2,'0')+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
 }
-async function learn(){
- const [active,recent,objects]=await Promise.all([api('/focus/active'),api('/focus/recent'),api('/objects')]);
+async function learn(preferredRecordSessionId=null){
+ const [active,recent,objects,tasks,records]=await Promise.all([
+  api('/focus/active'),api('/focus/recent'),api('/objects'),api('/tasks'),api('/learning-records?limit=24')
+ ]);
+ const objectById=new Map(objects.map(item=>[item.id,item]));
+ const taskById=new Map(tasks.map(item=>[item.id,item]));
+ const recordByFocus=new Map(records.filter(item=>item.focus_session_id).map(item=>[item.focus_session_id,item]));
+ const openTasks=tasks.filter(item=>item.status==='open');
+ const preferred=preferredRecordSessionId?recent.find(item=>item.id===preferredRecordSessionId):null;
+ const recentCutoff=Date.now()-24*60*60*1000;
+ const pending=preferred&&!recordByFocus.has(preferred.id)?preferred:
+  recent.find(item=>item.state==='finished'&&item.ended_at&&Date.parse(item.ended_at)>=recentCutoff&&!recordByFocus.has(item.id));
+ const activeContext=active?sessionContext(active,taskById,objectById):'';
  const action=active?
- '<div class="focus-time" id="elapsed">'+liveTime(active)+'</div><p class="focus-caption">'+(active.state==='paused'?'当前已暂停':'专注进行中')+'</p>'+
+ '<div class="focus-time" id="elapsed">'+liveTime(active)+'</div><p class="focus-caption">'+(active.state==='paused'?'当前已暂停':'专注进行中')+'</p><p class="focus-context">'+esc(active.task_id?'任务 · '+activeContext:'学习对象 · '+activeContext)+'</p>'+
  '<div class="focus-actions">'+
  (active.state==='running'?'<button type="button" class="button focus-main" data-action="pause">暂停专注</button>':'<button type="button" class="button focus-main" data-action="resume">继续专注</button>')+
  '<button type="button" class="button focus-outline" data-action="finish">结束</button></div>':
  '<p class="focus-prompt">现在，开始一段属于你的时间。</p>'+
- '<form id="focusForm" class="focus-form"><select name="object_id" aria-label="选择学习对象"><option value="">自由学习 · 不关联任务</option>'+
- objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+
- '</select><button class="button focus-main">开始专注 '+ornament('arrow')+'</button></form>';
+ '<form id="focusForm" class="focus-form"><div class="focus-selects">'+
+  '<label class="focus-field"><span>关联任务</span><select name="task_id" aria-label="选择任务"><option value="">自由学习 · 不关联任务</option>'+
+  openTasks.map(task=>'<option value="'+esc(task.id)+'">'+esc((objectById.get(task.object_id)?.title?objectById.get(task.object_id).title+' · ':'')+task.title)+'</option>').join('')+
+  '</select></label>'+
+  '<label class="focus-field"><span>自由学习归属</span><select name="object_id" aria-label="选择学习对象"><option value="">不指定课程或项目</option>'+
+  objects.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join('')+
+  '</select></label></div><p class="focus-form-hint">选择任务后，课程或项目会自动带入。</p><button class="button focus-main">开始专注 '+ornament('arrow')+'</button></form>';
  view(head('Learning','专注','')+
  '<div class="workarea spacious-flow">'+
  '<section class="focus-stage"><p class="focus-eyebrow">FOCUS / NOW</p><span class="focus-decoration" aria-hidden="true">'+ornament('orbit')+'</span>'+action+'</section>'+
- '<section class="open-section">'+sectionTitle('ARCHIVE / RECENT','学习记录')+historyList(recent,6)+'</section>'+
- '<p class="notice">阅读器与 ChatGPT 尚未接入，当前仅记录真实的专注时间。</p></div>');
+ (pending?focusRecordForm(pending,taskById,objectById):'')+
+ '<section class="open-section">'+sectionTitle('RECORD / RECENT','学习记录')+recordList(records,6,taskById,objectById)+'</section>'+
+ '<section class="open-section">'+sectionTitle('FOCUS / HISTORY','最近专注')+historyList(recent,6,taskById,objectById,recordByFocus)+'</section>'+
+ '<p class="notice">专注可以关联具体任务；结束后的小结会继承任务与课程，并进入刻序。</p></div>');
  if(timer){clearInterval(timer);timer=null;}
  if(active?.state==='running')timer=setInterval(()=>{const el=document.querySelector('#elapsed');if(el)el.textContent=liveTime(active);},1000);
- if(!active)root.querySelector('#focusForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
-  await api('/focus/start','POST',{object_id:f.get('object_id')||null});await learn();notify('学习开始');
- });});
+ if(!active){
+  const focusForm=root.querySelector('#focusForm'),taskSelect=focusForm.querySelector('select[name=task_id]'),objectSelect=focusForm.querySelector('select[name=object_id]');
+  const syncFocusSelects=()=>{const linked=Boolean(taskSelect.value);objectSelect.disabled=linked;objectSelect.closest('.focus-field').classList.toggle('disabled',linked)};
+  taskSelect.addEventListener('change',syncFocusSelects);syncFocusSelects();
+  focusForm.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);perform(async()=>{
+   const task_id=f.get('task_id')||null;
+   await api('/focus/start','POST',{task_id,object_id:task_id?null:(f.get('object_id')||null)});await learn();notify('学习开始');
+  });});
+ }
  else root.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
-  await api('/focus/'+active.id+'/'+b.dataset.action,'POST');await learn();notify('已保存');
+  const result=await api('/focus/'+active.id+'/'+b.dataset.action,'POST');
+  await learn(b.dataset.action==='finish'?result.id:null);
+  notify(b.dataset.action==='finish'?'本段专注已结束，请补学习小结':'已保存');
  })));
+ const recordForm=root.querySelector('#focusRecordForm');
+ if(recordForm)recordForm.addEventListener('submit',event=>{event.preventDefault();const form=new FormData(recordForm);perform(async()=>{
+  const session=recent.find(item=>item.id===recordForm.dataset.sessionId);
+  if(!session)throw Error('专注会话已不在最近记录中，请刷新后重试。');
+  const tags=String(form.get('tags')||'').split(/[，,]/).map(item=>item.trim()).filter(Boolean).slice(0,20);
+  await api('/learning-records','POST',{
+   local_date:dateInLearningZone(session.started_at),started_at:session.started_at,ended_at:session.ended_at,
+   title:form.get('title'),summary:form.get('summary')||null,next_action:form.get('next_action')||null,
+   activity_type:form.get('activity_type')||'study',tags,source:'focus',focus_session_id:session.id,
+   time_zone:'Asia/Shanghai',idempotency_key:'focus-ui:'+session.id
+  });
+  await learn();notify('学习记录已保存');
+ });});
 }
 function sourceOptions(resources,current=''){
  return '<option value="">无来源资料 · 手动录入</option>'+resources.map(r=>

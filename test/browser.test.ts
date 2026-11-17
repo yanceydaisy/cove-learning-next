@@ -290,11 +290,24 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   assert.equal(await page.locator('.focus-stage').evaluate(el=>getComputedStyle(el).textAlign),'center');
   assert.equal(await page.locator('.focus-decoration svg.micro-orbit').count(),1);
   assert.equal(await page.locator('#focusForm button .micro-arrow').count(),1);
+  assert.equal(await page.locator('#focusForm select[name=task_id] option').count()>1,true,'focus can attach to a real open task');
+  await page.locator('#focusForm select[name=task_id]').selectOption({label:'现代控制 · 状态空间复习'});
+  assert.equal(await page.locator('#focusForm select[name=object_id]').isDisabled(),true,'task selection owns the course association');
 
   await page.locator('#focusForm button').click();
   await page.locator('#elapsed').waitFor();
+  assert.match(await page.locator('.focus-context').innerText(),/任务 · 状态空间复习/);
   await page.locator('button[data-action=finish]').click();
+  await page.locator('#focusRecordForm').waitFor();
+  await page.locator('#focusRecordForm textarea[name=summary]').fill('完成状态空间模型与极点配置复习');
+  await page.locator('#focusRecordForm input[name=next_action]').fill('整理实验报告中的控制流程图');
+  await page.locator('#focusRecordForm input[name=tags]').fill('现代控制，复习');
+  await page.locator('#focusRecordForm button[type=submit]').click();
   await page.getByText('学习记录',{exact:true}).waitFor();
+  await page.getByText('完成状态空间模型与极点配置复习',{exact:true}).waitFor();
+  const savedRecord=app.records.list({task_id:(app.planning.list().find((item:any)=>item.title==='状态空间复习') as any).id})[0] as any;
+  assert.equal(savedRecord.summary,'完成状态空间模型与极点配置复习');
+  assert.deepEqual(savedRecord.tags,['现代控制','复习']);
   await page.locator('a[data-nav=today]').click();
   await page.locator('.today-reality').waitFor();
   assert.match(await page.locator('.today-reality').innerText(),/NOW \/ COURSE|NEXT \/ COURSE|暂时没有下一节课程/,'Homepage keeps course reality live and looks ahead to the next class');
