@@ -7,6 +7,7 @@ import {ScheduleService} from '../modules/planning/schedule.js';
 import {TaskEvidenceService} from '../modules/planning/task-evidence.js';
 import {LibraryService} from '../modules/library/service.js';
 import {ResourceLinksService} from '../modules/library/resource-links.js';
+import {RagService} from '../modules/library/rag.js';
 import {ActivityService} from '../modules/activity/service.js';
 import {TraceService} from '../modules/activity/trace.js';
 import {LearningRecordsService} from '../modules/activity/records.js';
@@ -22,6 +23,7 @@ export class LearningApplication {
  readonly taskEvidence:TaskEvidenceService;
  readonly library:LibraryService;
  readonly resourceLinks:ResourceLinksService;
+ readonly rag:RagService;
  readonly activity:ActivityService;
  readonly records:LearningRecordsService;
  readonly trace:TraceService;
@@ -37,6 +39,7 @@ export class LearningApplication {
   this.taskEvidence=new TaskEvidenceService(this.database,now);
   this.library=new LibraryService(this.database,join(dataDir,'originals'),now);
   this.resourceLinks=new ResourceLinksService(this.database,now);
+  this.rag=new RagService(this.database,this.library,now);
   this.activity=new ActivityService(this.database,this.catalog,clock);
   this.records=new LearningRecordsService(this.database,this.catalog,now);
   this.trace=new TraceService(this.database,clock,this.timeZone);

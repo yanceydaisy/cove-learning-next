@@ -229,7 +229,15 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   });
   assert.equal(await page.locator('#fileName').innerText(),'study-note.txt','custom file picker reflects the selected filename');
   await page.locator('#fileForm button').click();
-  await page.locator('.resource-list .row-title',{hasText:'study-note.txt'}).waitFor();
+  const indexedResource=page.locator('.resource-list .row').filter({hasText:'study-note.txt'});
+  await indexedResource.locator('.row-title').waitFor();
+  assert.match(await indexedResource.innerText(),/已索引\s*·\s*1 段/,'text upload is indexed automatically');
+  await page.locator('#ragForm textarea[name=query]').fill('Learning browser regression note');
+  await page.locator('#ragForm button[type=submit]').click();
+  await page.locator('#ragResult .rag-answer').waitFor();
+  assert.match(await page.locator('#ragResult').innerText(),/study-note\.txt/,'RAG answer cites the uploaded source');
+  assert.match(await page.locator('#ragResult .rag-answer').innerText(),/Learning browser regression note/);
+  assert.ok(await page.locator('#ragResult .rag-citations li').count()>=1,'RAG renders grounded citations');
   await page.locator('[data-context-edit]').first().click();
   const objectiveEdit=page.locator('[data-context-edit-form]').first();
   await objectiveEdit.locator('select[name=source_resource_id]').selectOption({label:'study-note.txt'});
@@ -238,7 +246,7 @@ test('visual contract: compact iPhone app, four internal pages, real writes, PWA
   await page.getByText(/来源 study-note\.txt/).first().waitFor();
   const libSize=await page.evaluate(()=>({
    viewport:innerWidth,scroll:document.documentElement.scrollWidth,
-   sections:Array.from(document.querySelectorAll('.library-objects,.course-context-panel,.library-materials')).map(el=>({
+   sections:Array.from(document.querySelectorAll('.library-objects,.course-context-panel,.library-materials,.library-rag')).map(el=>({
     width:Math.round(el.getBoundingClientRect().width),left:Math.round(el.getBoundingClientRect().left)
    }))
   }));

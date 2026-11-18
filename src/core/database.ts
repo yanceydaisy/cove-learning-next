@@ -188,6 +188,34 @@ CREATE INDEX idx_focus_task ON focus_sessions(task_id,started_at);
 -- Do not fabricate legacy completed_at timestamps.
 UPDATE tasks SET workflow_state='todo',blocked_reason=NULL WHERE status='done';
 `}
+
+ ,{version:14,name:'resource_rag_index',sql:`
+CREATE TABLE resource_index_states (
+ resource_id TEXT PRIMARY KEY REFERENCES resources(id) ON DELETE CASCADE,
+ status TEXT NOT NULL CHECK(status IN ('pending','ready','failed','unsupported')),
+ extractor TEXT,
+ embedding_model TEXT,
+ chunk_count INTEGER NOT NULL DEFAULT 0 CHECK(chunk_count>=0),
+ error_message TEXT,
+ indexed_at TEXT,
+ updated_at TEXT NOT NULL
+);
+CREATE INDEX idx_resource_index_status ON resource_index_states(status,updated_at);
+CREATE TABLE resource_chunks (
+ id TEXT PRIMARY KEY,
+ resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+ chunk_index INTEGER NOT NULL CHECK(chunk_index>=0),
+ content TEXT NOT NULL,
+ locator TEXT NOT NULL,
+ estimated_tokens INTEGER NOT NULL CHECK(estimated_tokens>=0),
+ embedding_json TEXT NOT NULL,
+ embedding_model TEXT NOT NULL,
+ created_at TEXT NOT NULL,
+ UNIQUE(resource_id,chunk_index)
+);
+CREATE INDEX idx_resource_chunks_resource ON resource_chunks(resource_id,chunk_index);
+CREATE INDEX idx_resource_chunks_model ON resource_chunks(embedding_model,resource_id);
+`}
 ] as const;
 
 export class Database {

@@ -8,8 +8,11 @@ const MAX_BYTES=8*1024*1024;
 export class LibraryService {
  constructor(private db:Database,private blobDir:string,private now=()=>new Date().toISOString()){}
  list(){
-  return this.db.raw.prepare(`SELECT r.*,v.id AS version_id,v.sha256,v.size_bytes,v.created_at AS version_created_at
+  return this.db.raw.prepare(`SELECT r.*,v.id AS version_id,v.sha256,v.size_bytes,v.created_at AS version_created_at,
+     COALESCE(i.status,'not_indexed') AS index_status,i.extractor,i.embedding_model,
+     COALESCE(i.chunk_count,0) AS chunk_count,i.error_message,i.indexed_at
      FROM resources r INNER JOIN resource_versions v ON v.resource_id=r.id AND v.revision=1
+     LEFT JOIN resource_index_states i ON i.resource_id=r.id
      ORDER BY r.created_at DESC,r.id`).all();
  }
  ingest(input:unknown){

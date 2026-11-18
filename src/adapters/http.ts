@@ -100,12 +100,20 @@ export function createHttp(app:LearningApplication,publicDir:string,accessKey:st
      result=app.resourceLinks.set('record',parts[2]!,input.resource_id as string,input.linked as boolean);
     }
     else if(path==='/api/resources'&&method==='GET')result=app.library.list();
-    else if(path==='/api/resources'&&method==='POST'){result=app.library.ingest(await parseBody(req));status=201;}
+    else if(path==='/api/resources'&&method==='POST'){
+     const resource=app.library.ingest(await parseBody(req)) as Record<string,unknown>&{id:string};
+     result={...resource,index:await app.rag.indexResource(resource.id)};status=201;
+    }
+    else if(parts.length===4&&parts[1]==='resources'&&parts[3]==='index'&&method==='POST')
+     result=await app.rag.indexResource(parts[2]!);
     else if(parts.length===4&&parts[1]==='resources'&&parts[3]==='content'&&method==='GET'){
      const content=app.library.content(parts[2]!);
      res.writeHead(200,{'content-type':'application/octet-stream','content-disposition':'attachment; filename="learning-original"','cache-control':'no-store','content-length':content.bytes.length});
      res.end(content.bytes);return;
     }
+    else if(path==='/api/rag/status'&&method==='GET')result=app.rag.overview();
+    else if(path==='/api/rag/search'&&method==='POST')result=await app.rag.search(await parseBody(req));
+    else if(path==='/api/rag/ask'&&method==='POST')result=await app.rag.answer(await parseBody(req));
     else if(path==='/api/trace'&&method==='GET')result=app.trace.list({from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined});
     else if(path==='/api/learning-records'&&method==='GET')result=app.records.list({local_date:url.searchParams.get('local_date')??undefined,object_id:url.searchParams.get('object_id')??undefined,task_id:url.searchParams.get('task_id')??undefined,limit:url.searchParams.has('limit')?Number(url.searchParams.get('limit')):undefined,offset:url.searchParams.has('offset')?Number(url.searchParams.get('offset')):undefined});
     else if(path==='/api/learning-records'&&method==='POST'){result=app.records.create(await parseBody(req));status=201;}

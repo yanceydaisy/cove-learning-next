@@ -65,12 +65,12 @@ test('Completed task state is canonical and reopening allows a fresh session',()
  }finally{f.end()}
 });
 
-test('Unbound focus is still valid and schema v13 has intact foreign keys',()=>{
+test('Unbound focus is still valid and schema v14 has intact foreign keys',()=>{
  const f=fixture();
  try{
   const focus=f.app.activity.start({}) as any;
   assert.equal(focus.task_id,null);
   assert.equal(f.app.database.raw.prepare('PRAGMA foreign_key_check').all().length,0);
-  assert.equal((f.app.database.raw.prepare('SELECT MAX(version) AS v FROM schema_migrations').get() as any).v,13);
+  assert.equal((f.app.database.raw.prepare('SELECT MAX(version) AS v FROM schema_migrations').get() as any).v,14);
  }finally{f.end()}
 });

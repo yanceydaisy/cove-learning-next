@@ -977,7 +977,7 @@ function contextItemRow(item,resources){
    '<button class="button sm primary" type="submit">保存</button></form></div>';
 }
 async function library(){
- const [objects,resources]=await Promise.all([api('/objects'),api('/resources')]);
+ const [objects,resources,ragStatus]=await Promise.all([api('/objects'),api('/resources'),api('/rag/status')]);
  const kinds={course:'课程',project:'项目',track:'路线'};
  const courses=objects.filter(o=>o.kind==='course');
  if(courseContextId&&!courses.some(o=>o.id===courseContextId))courseContextId=null;
@@ -1008,10 +1008,26 @@ async function library(){
  }).join('');
  const filterOptions=[['all','全部'],['course','课程'],['project','项目'],['track','路线']].map(([value,label])=>
   '<option value="'+value+'" '+(libraryObjectFilter===value?'selected':'')+'>'+label+'</option>').join('');
- const resourceList=resources.length?resources.map(r=>row(r.title,Math.ceil(r.size_bytes/1024)+' KB · 原始资料',
-  '<button type="button" class="button sm quiet-button" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button>')).join(''):'<p class="muted-line">还没有保存的资料。</p>';
+ const resourceList=resources.length?resources.map(r=>{
+  const status=r.index_status||'not_indexed',size=Math.ceil(r.size_bytes/1024)+' KB';
+  const detail=status==='ready'?size+' · 已索引 · '+Number(r.chunk_count||0)+' 段':
+   status==='pending'?size+' · 正在建立索引':status==='unsupported'?size+' · 仅保留原件 · 暂不支持文字索引':
+   status==='failed'?size+' · 索引失败 · '+(r.error_message||'请重试'):size+' · 尚未索引';
+  const indexAction=status==='pending'||status==='unsupported'?'':
+   '<button type="button" class="button sm quiet-button" data-index-resource="'+esc(r.id)+'">'+(status==='ready'?'重建索引':'建立索引')+'</button>';
+  return row(r.title,detail,'<div class="resource-actions">'+indexAction+'<button type="button" class="button sm quiet-button" data-file="'+esc(r.id)+'" data-name="'+esc(r.title)+'">下载</button></div>');
+ }).join(''):'<p class="muted-line">还没有保存的资料。</p>';
  const objectiveItems=context?context.items.filter(i=>i.kind==='objective'):[];
  const assessmentItems=context?context.items.filter(i=>i.kind==='assessment'):[];
+ const readyResources=resources.filter(r=>r.index_status==='ready');
+ const ragOptions=readyResources.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.title)+'</option>').join('');
+ const ragPanel='<section class="library-rag" aria-label="询问资料库">'+
+  sectionTitle(context?'04 / RETRIEVAL':'03 / RETRIEVAL','询问资料库','<span class="count-caption">'+Number(ragStatus.counts?.ready||0)+' 份可检索</span>')+
+  '<div class="rag-panel"><div class="rag-copy"><span>GROUNDED / RAG</span><h3>从原始资料里找答案</h3><p>回答会附带命中的文件与位置。证据不足时，它会直接保留原文，不会假装知道。</p></div>'+
+  '<form id="ragForm" class="rag-form"><label>问题<textarea name="query" required maxlength="500" placeholder="例如：这门课的期末考核占比是多少？"></textarea></label>'+
+  '<div class="rag-form-actions"><label>检索范围<select name="resource_id"><option value="">全部已索引资料</option>'+ragOptions+'</select></label><button class="button primary" type="submit" '+(readyResources.length?'':'disabled')+'>检索并回答 '+ornament('arrow')+'</button></div></form>'+
+  '<div id="ragResult" class="rag-result" hidden aria-live="polite"></div>'+
+  (!readyResources.length?'<p class="rag-empty">上传 TXT、Markdown、JSON 或文字型 PDF 后，就能在这里提问。</p>':'')+'</div></section>';
  const contextPanel=context?'<section class="course-context-panel" aria-label="课程档案">'+
   sectionTitle('02 / CONTEXT','课程档案','<span class="count-caption">'+esc(context.course.title)+'</span>')+
   '<p class="context-intro">这里只保存可追溯的课程证据。PPT 或教学大纲以后可以生成“待确认”条目；确认前不会进入重要度判断。</p>'+
@@ -1041,7 +1057,7 @@ async function library(){
  '<p class="muted-line">保存原始文件，随时回到学习资料。课程档案可以把条目追溯到这里的原件。</p>'+
  '<form id="fileForm" class="upload-strip"><div class="upload-copy"><span class="upload-mark" aria-hidden="true">'+ornament('plus')+'</span><label for="sourceFile">选择文件</label><small>支持 8MB 以内文件 · 公开测试版请勿上传隐私资料</small></div>'+
  '<div class="file-picker"><span class="file-picker-label">浏览文件</span><span class="file-picker-name" id="fileName" aria-live="polite">尚未选择</span><input id="sourceFile" type="file" name="file" aria-label="选择资料" required></div><button class="button secondary">保存原件 '+ornament('arrow')+'</button></form>'+
- '<div class="simple-list resource-list">'+resourceList+'</div></section></div>');
+ '<div class="simple-list resource-list">'+resourceList+'</div></section>'+ragPanel+'</div>');
  root.querySelector('#libraryObjectFilter')?.addEventListener('change',e=>perform(async()=>{
   libraryObjectFilter=e.currentTarget.value;await library();
  }));
@@ -1086,8 +1102,23 @@ async function library(){
   if(file.size>8*1024*1024)throw Error('文件目前不能超过 8MB');
   const bytes=new Uint8Array(await file.arrayBuffer());let string='';
   for(let i=0;i<bytes.length;i+=8192)string+=String.fromCharCode(...bytes.subarray(i,i+8192));
-  await api('/resources','POST',{title:file.name,mime_type:file.type||'application/octet-stream',base64:btoa(string)});
-  await library();notify('原件已保存');
+  const result=await api('/resources','POST',{title:file.name,mime_type:file.type||'application/octet-stream',base64:btoa(string)});
+  await library();notify(result.index?.status==='ready'?'原件已保存并建立索引':'原件已保存');
+ });});
+ root.querySelectorAll('[data-index-resource]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
+  await api('/resources/'+b.dataset.indexResource+'/index','POST',{});
+  await library();notify('索引状态已更新');
+ })));
+ const ragForm=root.querySelector('#ragForm');
+ ragForm?.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(ragForm),resultBox=root.querySelector('#ragResult'),button=ragForm.querySelector('button[type=submit]');perform(async()=>{
+  button.disabled=true;resultBox.hidden=false;resultBox.innerHTML='<p class="rag-loading">正在检索资料片段…</p>';
+  try{
+   const resourceId=f.get('resource_id');
+   const result=await api('/rag/ask','POST',{query:f.get('query'),limit:5,...(resourceId?{resource_ids:[resourceId]}:{})});
+   const citations=(result.citations||[]).map(c=>'<li><div><span>['+Number(c.index)+']</span><strong>'+esc(c.title)+'</strong><small>'+esc(c.locator)+' · 相似度 '+Math.round(Number(c.score||0)*100)+'%</small></div><p>'+esc(c.excerpt)+'</p></li>').join('');
+   resultBox.innerHTML='<div class="rag-answer-head"><span>'+(result.mode==='llm'?'生成式回答':'检索式回答')+'</span><small>'+esc(result.embedding_model||'')+'</small></div><div class="rag-answer">'+esc(result.answer).replace(/\n/g,'<br>')+'</div>'+
+    (citations?'<ol class="rag-citations">'+citations+'</ol>':'');
+  }finally{button.disabled=false;}
  });});
  root.querySelectorAll('[data-file]').forEach(b=>b.addEventListener('click',()=>perform(async()=>{
   const blob=await api('/resources/'+b.dataset.file+'/content');
