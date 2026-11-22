@@ -1,4 +1,14 @@
-# Cove Learning · standalone horizontal test build
+# Cove Learning
+
+> **课程项目身份声明**
+>
+> 本仓库为暨南大学（JNU）物联网工程 2404 班学生 WZY（吴梓妍，学号 1030624403）于 2026 年独立完成的软件工程课程大作业。
+>
+> Cove Learning 是一套可安装到手机和桌面设备的 PWA 学习管理系统。项目的需求设计、系统架构、前后端实现、RAG 资料检索、首页任务优先级算法，以及 UI、视觉、交互、排版和液态玻璃视觉方案与实现均由本人独立完成；项目使用的开源基础依赖及其许可按仓库文件保留。
+>
+> 本仓库在课程完成后公开，用于课程验收、学习交流和个人作品展示。提交记录保留了项目开发过程，可用于核对作品来源。代码采用 [MIT License](LICENSE)。
+
+**Repository:** https://github.com/yanceydaisy/cove-learning-next
 
 ## 刻序 / EPHEMERIS · regular archive (2026-10-19)
 
